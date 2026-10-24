@@ -1,12 +1,15 @@
 # AGENTS.md — DACN Implementation Rules
 
 ## 1. Mission
+
 Implement the MVP "Hệ thống hỗ trợ tự học ứng dụng AI" exactly from the approved project baseline.
 Act as an implementation agent, not as a product designer.
 Prefer correctness, traceability, and a complete end-to-end flow over unnecessary abstraction.
 
 ## 2. Source of Truth
+
 Before making a behavior decision, use this authority order:
+
 1. `docs/baseline/SRS_v1.5_baseline_final.md` — requirements, data, AI behavior, NFRs.
 2. `docs/baseline/Use_Case_Diagram_he_thong_ho_tro_tu_hoc_AI_v1.4_baseline_rev1.md` — actors, boundary, UC relationships.
 3. `docs/baseline/Business_Rules_v1.3_baseline_rev1.md` — validation, authorization, state, calculations, integrity.
@@ -22,6 +25,7 @@ Architecture and ADRs may define implementation details but must not override fr
 Existing code and tests are evidence of implementation, not authority over the baseline.
 
 ## 3. Frozen Baseline Protection
+
 Treat `docs/baseline/` as read-only during bootstrap, feature, fix, refactor, and test tasks.
 Never edit, rename, delete, regenerate, or auto-format frozen baseline files.
 Never auto-update `docs/baseline/BASELINE_MANIFEST.sha256`.
@@ -29,19 +33,30 @@ Run the baseline integrity check when available and report any mismatch.
 If a task appears to require changing frozen behavior, stop that part of the implementation and use Proposal Mode.
 
 ## 4. Proposal Mode
+
 Do not invent or silently change observable behavior.
 For a technical change that preserves behavior/API semantics, draft a proposal or ADR under `docs/proposals/technical/`.
 For a change to requirement, role, permission, business rule, state transition, Use Case, API contract, observable UI behavior, or AI business behavior, draft under `docs/proposals/change-requests/`.
 A proposal must state:
+
 - the conflict or requested change;
 - affected `UC-*`, `FR-*`, `BR-*`, API endpoint/decision, and Screen ID when applicable;
 - current baseline behavior;
 - proposed behavior;
 - implementation impact.
-Agents may draft proposals but may not approve them or modify the frozen baseline from them.
+  Agents may draft proposals but may not approve them or modify the frozen baseline from them.
 
 ## 5. Before Coding
+
+### Automatic Superpowers Routing
+
+Before exploring or editing for feature, bug, refactor, implementation-plan, plan-execution, review, or completion tasks, use the repository skill `dacn-development-workflow`.
+The workflow skill routes the task to the installed Superpowers skills and must run before task-specific exploration or edits.
+It must never bypass Frozen Baseline Protection, Proposal Mode, or any human-approval gate.
+If the repository workflow skill is unavailable, invoke the applicable Superpowers skill directly instead of proceeding without the workflow.
+
 For every non-trivial task:
+
 1. Restate the requested outcome and boundaries.
 2. Identify affected `UC-*`, `FR-*`, `BR-*`, API endpoints/decisions, and Screen IDs.
 3. Read only the relevant baseline sections, then Architecture and relevant ADRs.
@@ -53,12 +68,14 @@ For every non-trivial task:
 Do not expand scope because a feature is common, fashionable, or a "best practice".
 
 ## 6. Architecture Invariants
+
 The MVP is a pnpm + Turborepo monorepo.
 Frontend: Next.js + TypeScript + Tailwind CSS + TanStack Query + React Hook Form.
 Backend: NestJS + TypeScript + Prisma ORM + PostgreSQL.
 AI Runtime: self-managed external runtime on Google Colab, accessed through NestJS.
 
 Required boundaries:
+
 - Browser/frontend calls the NestJS REST API; do not add a default BFF/proxy hop.
 - Frontend must never access PostgreSQL directly.
 - Frontend must never call the AI Runtime directly for business flows.
@@ -76,6 +93,7 @@ Required boundaries:
 Do not add Redis, queues, microservices, refresh-token APIs, token blacklist, multi-session management, chatbot/RAG, or other out-of-scope infrastructure/features unless approved through the proper decision/change process.
 
 ## 7. API and Security Rules
+
 Keep API base path `/api/v1` and preserve frozen route/method/request/response/error semantics.
 Protected requests must enforce backend checks for valid token, existing user, `ACTIVE` status, role, and ownership/resource access as applicable.
 Frontend route hiding or menu visibility is UX only, never authorization.
@@ -83,6 +101,7 @@ Follow the Architecture/API decision for JWT handling; do not create new authent
 Never log passwords, hashes, bearer tokens, database credentials, AI secrets, or full raw prompts/responses by default.
 
 ## 8. Implementation Discipline
+
 Make the smallest change that satisfies the traced requirement.
 Follow existing project conventions unless they conflict with an approved source.
 Avoid unrelated refactors in feature/fix tasks.
@@ -92,9 +111,11 @@ Use comments for rationale/invariants, not to restate obvious code.
 Keep generated artifacts and dependencies reproducible; commit lockfiles/migrations when the task requires them.
 
 ## 9. Testing and Verification
+
 Expected behavior comes from Acceptance Criteria, Business Rules, API Specification, and Wireframe/UI states — not from current implementation.
 Add or update tests for changed behavior.
 Run the narrowest relevant tests during development, then the applicable repository gates before completion:
+
 - `pnpm verify:baseline`
 - `pnpm lint`
 - `pnpm typecheck`
@@ -107,6 +128,7 @@ If a command is not yet available or cannot run, state that explicitly; never cl
 Do not mark a task complete while known relevant failures remain unexplained.
 
 ## 10. Git and Change Safety
+
 Do not overwrite or revert unrelated user changes.
 Prefer small commits with one clear purpose.
 Do not commit secrets or real `.env` files.
@@ -114,7 +136,9 @@ For feature work, use a feature branch/worktree when the environment supports it
 Do not rewrite history, force-push, or perform destructive Git operations unless explicitly requested.
 
 ## 11. Completion Report
+
 When finishing a task, report:
+
 - what changed;
 - affected requirement/use-case/business-rule/API/screen references;
 - files changed;
@@ -123,6 +147,7 @@ When finishing a task, report:
 - remaining risks, open items, or proposals.
 
 ## 12. Scoped Instructions
+
 `apps/web/AGENTS.md`, `apps/api/AGENTS.md`, and `ai/AGENTS.md` may add area-specific implementation rules.
 Scoped instructions must not weaken or override this file, frozen baseline, Architecture, or approved ADRs.
 When a scoped rule conflicts with a higher-authority source, follow the higher-authority source and report the conflict.
