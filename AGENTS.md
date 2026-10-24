@@ -55,6 +55,31 @@ The workflow skill routes the task to the installed Superpowers skills and must 
 It must never bypass Frozen Baseline Protection, Proposal Mode, or any human-approval gate.
 If the repository workflow skill is unavailable, invoke the applicable Superpowers skill directly instead of proceeding without the workflow.
 
+### RTK Command Efficiency
+
+RTK is installed and should be preferred for supported development commands.
+
+Before issuing Git, file-search, text-search, test, typecheck, build, or other
+supported shell commands, use the RTK form when available.
+
+Examples:
+
+- `rtk git status` instead of `git status`
+- `rtk git diff` instead of `git diff`
+- `rtk find ...` instead of broad raw `find`
+- `rtk grep ...` instead of broad raw text search when supported
+
+Follow the installed global RTK guidance in `~/.codex/RTK.md` when needed.
+
+Use raw commands when RTK does not support the required operation.
+
+If compact RTK output omits information needed for debugging, code review,
+security inspection, or verification evidence, rerun the relevant command
+with `rtk bypass` or temporarily disable RTK for that command.
+
+RTK is an output-efficiency layer only. It must not weaken repository
+governance, Git safety, TDD, approval requirements, or verification.
+
 For every non-trivial task:
 
 1. Restate the requested outcome and boundaries.
