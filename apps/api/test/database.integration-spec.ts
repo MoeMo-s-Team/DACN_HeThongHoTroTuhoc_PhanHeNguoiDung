@@ -1,10 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '../../.env' });
-dotenv.config({ path: '../../.env.example' });
-
-const prisma = new PrismaClient();
+import { requireTestDatabaseUrl } from '../prisma/test-database-url';
+const prisma = new PrismaClient({ datasourceUrl: requireTestDatabaseUrl() });
 const ids = {
   user: '90000000-0000-4000-8000-000000000001',
   course: '90000000-0000-4000-8000-000000000002',
@@ -63,6 +59,81 @@ describe('baseline database invariants', () => {
       await prisma.topic.deleteMany({ where: { id: ids.topic } });
       await prisma.course.deleteMany({ where: { id: ids.course } });
       await prisma.user.deleteMany({ where: { id: ids.user } });
+    }
+  });
+  it('accepts scores 0 and 100 while rejecting scores outside the range', async () => {
+    try {
+      await prisma.user.upsert({
+        where: { id: ids.user },
+        update: {},
+        create: { id: ids.user, fullName: 'Score Boundary Test', email: 'score.boundary@example.test', passwordHash: 'test-only', role: 'STUDENT' },
+      });
+      await prisma.course.upsert({
+        where: { id: ids.course },
+        update: {},
+        create: { id: ids.course, name: 'Score Boundary Test Course' },
+      });
+      await prisma.topic.upsert({
+        where: { id: ids.topic },
+        update: {},
+        create: { id: ids.topic, courseId: ids.course, name: 'Score Boundary Test Topic' },
+      });
+      await prisma.assessmentResult.createMany({ data: [
+        { id: ids.assessmentOne, studentId: ids.user, topicId: ids.topic, score: new Prisma.Decimal('0'), evaluatedAt: new Date('2026-10-26T00:00:00Z') },
+        { id: ids.assessmentTwo, studentId: ids.user, topicId: ids.topic, score: new Prisma.Decimal('100'), evaluatedAt: new Date('2026-10-26T00:00:01Z') },
+      ] });
+      await expect(prisma.assessmentResult.create({ data: {
+        id: '90000000-0000-4000-8000-000000000011', studentId: ids.user, topicId: ids.topic,
+        score: new Prisma.Decimal('-0.001'), evaluatedAt: new Date('2026-10-26T00:00:02Z'),
+      } })).rejects.toThrow('ck_assessment_results_score_range');
+      await expect(prisma.assessmentResult.create({ data: {
+        id: '90000000-0000-4000-8000-000000000012', studentId: ids.user, topicId: ids.topic,
+        score: new Prisma.Decimal('100.001'), evaluatedAt: new Date('2026-10-26T00:00:03Z'),
+      } })).rejects.toThrow('ck_assessment_results_score_range');
+    } finally {
+      await prisma.assessmentResult.deleteMany({ where: { studentId: ids.user } });
+      await prisma.topic.deleteMany({ where: { id: ids.topic } });
+      await prisma.course.deleteMany({ where: { id: ids.course } });
+      await prisma.user.deleteMany({ where: { id: ids.user } });
+    }
+  });
+
+  it('rejects invalid temporary-context replay and retention states', async () => {
+    const ownerId = '90000000-0000-4000-8000-000000000008';
+    const contextIds = [
+      '90000000-0000-4000-8000-000000000009',
+      '90000000-0000-4000-8000-000000000010',
+      '90000000-0000-4000-8000-000000000013',
+    ];
+    const consumedAt = new Date('2026-10-26T01:00:00Z');
+    const base = {
+      contextType: 'STUDY_PLAN_PREVIEW' as const,
+      ownerUserId: ownerId,
+      resourceKey: `student:${ownerId}`,
+      payload: {},
+      expiresAt: new Date('2026-10-26T00:00:00Z'),
+      retentionUntil: new Date('2026-10-26T01:10:00Z'),
+    };
+
+    await prisma.temporaryContext.deleteMany({ where: { id: { in: contextIds } } });
+    await prisma.user.deleteMany({ where: { id: ownerId } });
+    try {
+      await prisma.user.create({ data: { id: ownerId, fullName: 'Context Test', email: 'context.test@example.test', passwordHash: 'test-only', role: 'STUDENT' } });
+      await expect(prisma.temporaryContext.create({ data: {
+        ...base, id: contextIds[0], opaqueRef: 'invalid-open-replay', replayResult: {},
+      } })).rejects.toThrow('ck_temporary_contexts_status_replay');
+      await expect(prisma.temporaryContext.create({ data: {
+        ...base, id: contextIds[1], opaqueRef: 'invalid-consumed-retention',
+        status: 'CONSUMED', consumedAt, replayResult: {},
+        retentionUntil: new Date('2026-10-26T01:09:00Z'),
+      } })).rejects.toThrow('ck_temporary_contexts_retention');
+      await expect(prisma.temporaryContext.create({ data: {
+        ...base, id: contextIds[2], opaqueRef: 'invalid-consumed-no-replay',
+        status: 'CONSUMED', consumedAt,
+      } })).rejects.toThrow('ck_temporary_contexts_status_replay');
+    } finally {
+      await prisma.temporaryContext.deleteMany({ where: { id: { in: contextIds } } });
+      await prisma.user.deleteMany({ where: { id: ownerId } });
     }
   });
 });
