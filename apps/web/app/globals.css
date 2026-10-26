@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --canvas: #fffcf7;
+  --ink: #0d0129;
+  --accent: #fae59b;
+  --teal: #19615c;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-accent: var(--accent);
+  --color-teal: var(--teal);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}

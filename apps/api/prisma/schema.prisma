@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMINISTRATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum StudyPlanStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum StudyTaskStatus {
+  TODO
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FeedbackTag {
+  AI_PERFORMANCE
+  STUDY_PLAN
+  UI_UX
+  LEARNING_ANALYTICS
+  OTHER
+}
+
+enum AIRequestStatus {
+  SUCCESS
+  FAILED
+}
+
+enum ContextType {
+  STUDY_PLAN_PREVIEW
+  STUDY_PLAN_ADJUSTMENT
+  TEACHER_CLASS_ANALYSIS
+  ADMIN_FEEDBACK_ANALYSIS
+}
+
+enum ContextStatus {
+  OPEN
+  CONSUMED
+}
+
+model User {
+  id                String      @id @default(uuid()) @db.Uuid
+  fullName          String      @map("full_name")
+  email             String      @unique
+  passwordHash      String      @map("password_hash")
+  role              Role
+  status            UserStatus  @default(ACTIVE)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  taughtClasses     Class[]     @relation("TeacherClasses")
+  classMemberships  ClassMember[] @relation("StudentClassMemberships")
+  assessmentResults AssessmentResult[]
+  studyPlans        StudyPlan[]
+  feedback          Feedback[]
+  aiRequestLogs     AIRequestLog[]
+  temporaryContexts TemporaryContext[]
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Class {
+  id              String @id @default(uuid()) @db.Uuid
+  name            String
+  teacherId       String @map("teacher_id") @db.Uuid
+  teacher         User @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Restrict)
+  members         ClassMember[]
+  analysisReports ClassAnalysisReport[]
+
+  @@index([teacherId])
+  @@map("classes")
+}
+
+model ClassMember {
+  classId   String @map("class_id") @db.Uuid
+  studentId String @map("student_id") @db.Uuid
+  class     Class @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student   User @relation("StudentClassMemberships", fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@id([classId, studentId])
+  @@index([studentId])
+  @@map("class_members")
+}
+
+model Course {
+  id          String @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  topics      Topic[]
+
+  @@map("courses")
+}
+
+model Topic {
+  id                String @id @default(uuid()) @db.Uuid
+  courseId          String @map("course_id") @db.Uuid
+  name              String
+  course            Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  assessmentResults AssessmentResult[]
+  studyTasks        StudyTask[]
+
+  @@index([courseId])
+  @@map("topics")
+}
+
+model AssessmentResult {
+  id          String   @id @default(uuid()) @db.Uuid
+  studentId   String   @map("student_id") @db.Uuid
+  topicId     String   @map("topic_id") @db.Uuid
+  score       Decimal
+  evaluatedAt DateTime @map("evaluated_at") @db.Timestamptz(3)
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, topicId, evaluatedAt(sort: Desc)])
+  @@map("assessment_results")
+}
+
+model StudyPlan {
+  id                      String          @id @default(uuid()) @db.Uuid
+  studentId               String          @map("student_id") @db.Uuid
+  title                   String
+  goal                    String
+  availableMinutesPerWeek Int             @map("available_minutes_per_week")
+  startDate               DateTime        @map("start_date") @db.Timestamptz(3)
+  endDate                 DateTime        @map("end_date") @db.Timestamptz(3)
+  status                  StudyPlanStatus @default(ACTIVE)
+  createdAt               DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  student                 User            @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  tasks                   StudyTask[]
+
+  @@index([studentId, status])
+  @@index([studentId, createdAt(sort: Desc)])
+  @@map("study_plans")
+}
+
+model StudyTask {
+  id              String          @id @default(uuid()) @db.Uuid
+  studyPlanId     String          @map("study_plan_id") @db.Uuid
+  topicId         String          @map("topic_id") @db.Uuid
+  title           String
+  goal            String
+  expectedMinutes Int             @map("expected_minutes")
+  dueDate         DateTime        @map("due_date") @db.Timestamptz(3)
+  priority        Priority
+  status          StudyTaskStatus @default(TODO)
+  completedAt     DateTime?       @map("completed_at") @db.Timestamptz(3)
+  studyPlan       StudyPlan       @relation(fields: [studyPlanId], references: [id], onDelete: Restrict)
+  topic           Topic           @relation(fields: [topicId], references: [id], onDelete: Restrict)
+
+  @@index([studyPlanId, status])
+  @@index([studyPlanId, dueDate])
+  @@index([topicId])
+  @@map("study_tasks")
+}
+
+model ClassAnalysisReport {
+  id             String   @id @default(uuid()) @db.Uuid
+  classId        String   @map("class_id") @db.Uuid
+  inputSnapshot  Json     @map("input_snapshot") @db.JsonB
+  analysisResult Json     @map("analysis_result") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  class          Class    @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  @@index([classId, createdAt(sort: Desc)])
+  @@map("class_analysis_reports")
+}
+
+model Feedback {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  tag       FeedbackTag
+  rating    Int         @db.SmallInt
+  content   String
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([tag, createdAt(sort: Desc)])
+  @@index([rating, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("feedback")
+}
+
+model FeedbackAnalysis {
+  id             String   @id @default(uuid()) @db.Uuid
+  inputSnapshot  Json     @map("input_snapshot") @db.JsonB
+  analysisResult Json     @map("analysis_result") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("feedback_analyses")
+}
+
+model AIRequestLog {
+  id         String          @id @default(uuid()) @db.Uuid
+  userId     String          @map("user_id") @db.Uuid
+  feature    String
+  status     AIRequestStatus
+  errorCode  String?         @map("error_code")
+  durationMs Int?            @map("duration_ms")
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([feature, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("ai_request_logs")
+}
+
+model TemporaryContext {
+  id                 String        @id @default(uuid()) @db.Uuid
+  opaqueRef          String        @unique @map("opaque_ref")
+  contextType        ContextType   @map("context_type")
+  ownerUserId        String        @map("owner_user_id") @db.Uuid
+  resourceKey        String        @map("resource_key")
+  payload            Json          @db.JsonB
+  status             ContextStatus @default(OPEN)
+  requestFingerprint String?       @map("request_fingerprint")
+  replayResult       Json?         @map("replay_result") @db.JsonB
+  expiresAt          DateTime      @map("expires_at") @db.Timestamptz(3)
+  retentionUntil     DateTime      @map("retention_until") @db.Timestamptz(3)
+  consumedAt         DateTime?     @map("consumed_at") @db.Timestamptz(3)
+  version            Int           @default(0)
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner              User          @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+
+  @@index([ownerUserId, contextType, status])
+  @@index([status, expiresAt])
+  @@index([retentionUntil])
+  @@map("temporary_contexts")
+}
