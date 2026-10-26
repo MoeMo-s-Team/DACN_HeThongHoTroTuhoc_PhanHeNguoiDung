@@ -12,6 +12,6 @@ for (const args of [
   ['exec', 'prisma', 'migrate', 'deploy'],
   ['exec', 'jest', '--runInBand', '--config', 'jest.integration.config.ts'],
 ]) {
-  const result = spawnSync('pnpm', args, { stdio: 'inherit', env });
+  const result = spawnSync('pnpm', args, { stdio: 'inherit', env, shell: true });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
