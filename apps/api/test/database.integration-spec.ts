@@ -1,6 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { requireTestDatabaseUrl } from '../prisma/test-database-url';
-
 const prisma = new PrismaClient({ datasourceUrl: requireTestDatabaseUrl() });
 const ids = {
   user: '90000000-0000-4000-8000-000000000001',
@@ -62,7 +61,6 @@ describe('baseline database invariants', () => {
       await prisma.user.deleteMany({ where: { id: ids.user } });
     }
   });
-
   it('accepts scores 0 and 100 while rejecting scores outside the range', async () => {
     try {
       await prisma.user.upsert({
