@@ -1,0 +1,11 @@
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
+
+[agents.reviewer]
+config_file = "agents/reviewer.toml"
+description = "Independent read-only reviewer using GPT-6 Sol Medium."
+
+[agents.implementer]
+config_file = "agents/implementer.toml"
+description = "Code implementation and fixes using GPT-6 Luna High."

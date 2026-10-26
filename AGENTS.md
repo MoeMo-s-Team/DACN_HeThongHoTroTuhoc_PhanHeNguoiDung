@@ -35,6 +35,14 @@ Agents may draft proposals but never approve them or modify the frozen baseline 
 Before feature, bug, refactor, implementation-plan, plan-execution, review, or completion work, use `dacn-development-workflow` before task-specific exploration or edits.
 It may not bypass baseline protection, Proposal Mode, or human approval gates. If unavailable, invoke the applicable Superpowers skill directly.
 
+### Subagent Model Routing
+When subagents are used, route by responsibility and never silently substitute a different subagent model or reasoning effort.
+- Independent review subagent: role `reviewer`, model `gpt-6-sol`, reasoning `medium`, read-only. Use for plan review, code review, architecture/baseline/regression review, and reviewing another agent's output.
+- Code-change subagent: role `implementer`, model `gpt-6-luna`, reasoning `high`. Use for implementation, bug fixes, refactors, tests, migrations, and code/config changes.
+- A reviewer must not modify the plan or implementation it reviews. Return findings to the parent; plan edits belong to the parent/writer, and code fixes belong to `implementer`.
+- Never let an implementation subagent approve its own work.
+- If the required role/model/effort is unavailable, do not silently use another subagent. Fall back to parent execution only when the active workflow permits it; otherwise report `BLOCKED`.
+
 ### CodeGraph
 When a healthy `.codegraph/` index exists, use CodeGraph first for code structure, call paths, dependencies, feature flow, symbol relationships, or blast radius.
 Read source directly only for exact implementation context needed for editing/verification.
@@ -53,7 +61,7 @@ RTK affects output efficiency only; it never weakens governance, Git safety, TDD
 3. Read only relevant baseline sections, then Architecture/ADRs.
 4. Inspect code/tests after baseline review.
 5. Check for conflicts or open technical items.
-6. Create or confirm an implementation plan before editing.
+6. Create or confirm an implementation plan before editing; if a plan is created, it must pass the workflow Plan Review Gate before execution.
 7. Prefer a vertical slice: requirement → data → backend/API → frontend → tests → verification.
 
 Do not expand scope because something is common or a "best practice".
