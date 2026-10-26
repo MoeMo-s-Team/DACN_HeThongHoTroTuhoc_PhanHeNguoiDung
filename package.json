@@ -1,0 +1,31 @@
+{
+  "name": "dacn-self-study",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "pnpm db:generate && turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "pnpm --filter @dacn/api test:integration",
+    "test:e2e": "pnpm --filter @dacn/web test:e2e",
+    "verify:baseline": "cd docs/baseline && sha256sum -c BASELINE_MANIFEST.sha256",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @dacn/api db:migrate",
+    "db:seed": "pnpm --filter @dacn/api db:seed",
+    "db:generate": "pnpm --filter @dacn/api db:generate"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^15.5.9",
+    "@eslint/js": "^9.29.0",
+    "eslint": "^9.29.0",
+    "globals": "^16.3.0",
+    "typescript-eslint": "^8.38.0",
+    "turbo": "^2.5.0"
+  },
+  "engines": {
+    "node": ">=24.18.0 <25"
+  }
+}

@@ -77,3 +77,127 @@ Stop and route correctly if you are:
 - writing production code before TDD;
 - executing a plan that was not found and confirmed;
 - claiming success without fresh verification evidence.
+
+
+## Completion Report
+
+After finishing a task and completing `superpowers:verification-before-completion`, provide the user with a **Completion Report**.
+
+The report should explain the result in natural language so that the user can understand what was requested, what changed, how the result was verified, and which files matter for future development.
+
+Use the following structure:
+
+### 1. Assigned Work
+
+Briefly restate the task that was assigned.
+
+Do not copy the full user prompt. Summarize the intended outcome in clear, natural language.
+
+### 2. Summary
+
+Summarize the most important completed outcomes in a few concise points.
+
+Focus on the final result rather than narrating every implementation step.
+
+### 3. Work Performed
+
+Explain the important work that was actually completed.
+
+When relevant, distinguish between:
+
+- newly created files;
+- modified existing files;
+- added dependencies or configuration;
+- important structural or behavioral changes.
+
+For each important change, explain naturally:
+
+- what the file or change is for;
+- what was added or changed;
+- why it was necessary for the assigned task.
+
+Do not dump the full `git diff`, and do not list every minor or generated file unless it is useful for understanding the work.
+
+### 4. Verification
+
+Explain how the result was verified.
+
+Only mark a command or check as `PASS` if it was actually executed successfully during the current task.
+
+Use clear statuses such as:
+
+```text
+PASS
+FAIL
+NOT RUN
+BLOCKED
+```
+
+When useful, include the actual verification commands and their results.
+
+If a check could not be run, state that explicitly and explain why.
+
+Never infer or assume that a verification step would pass.
+
+### 5. Important Files for Developers
+
+Identify the most important files that a developer should understand after this task.
+
+For each file, briefly explain:
+
+- its role;
+- what changed or why it matters;
+- when a developer is likely to work with it again.
+
+This is not a complete changed-file list. Prefer the small set of files that are most important for understanding, maintaining, debugging, or extending the completed work.
+
+Do not prioritize generated files unless they are directly relevant to future development.
+
+### 6. Remaining Issues
+
+Report any remaining:
+
+- errors;
+- blockers;
+- incomplete work;
+- technical debt;
+- TODOs;
+- deferred decisions;
+- known limitations.
+
+If there are no meaningful remaining issues within the scope of the task, state that clearly.
+
+### Completion Report Rules
+
+The report must:
+
+- use natural, developer-friendly language;
+- be concise but sufficient for another developer to continue the work;
+- describe only work that was actually performed;
+- distinguish verified facts from assumptions;
+- never claim completion when required verification or acceptance criteria are still failing;
+- avoid replacing useful explanations with raw file lists or command output.
+
+Default format:
+
+```markdown
+## Completion Report
+
+### Assigned Work
+...
+
+### Summary
+...
+
+### Work Performed
+...
+
+### Verification
+...
+
+### Important Files for Developers
+...
+
+### Remaining Issues
+...
+```

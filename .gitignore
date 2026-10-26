@@ -1,0 +1,35 @@
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+build/
+out/
+.turbo/*
+coverage/
+*.tsbuildinfo
+
+apps/api/.turbo/
+apps/web/.turbo/
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Python tooling used by the AI runtime
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local OS/editor files
+.DS_Store
+Thumbs.db
