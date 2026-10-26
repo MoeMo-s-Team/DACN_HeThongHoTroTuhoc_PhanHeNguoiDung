@@ -7,7 +7,7 @@
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --runInBand",
-    "test:integration": "DATABASE_URL=${TEST_DATABASE_URL:-postgresql://dacn:dacn_dev_password@localhost:5433/dacn_test?schema=public} prisma migrate deploy && DATABASE_URL=${TEST_DATABASE_URL:-postgresql://dacn:dacn_dev_password@localhost:5433/dacn_test?schema=public} jest --runInBand --config jest.integration.config.ts",
+    "test:integration": "tsx scripts/run-integration-tests.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts"
