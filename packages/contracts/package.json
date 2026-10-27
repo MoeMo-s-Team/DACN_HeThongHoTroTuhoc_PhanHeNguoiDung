@@ -1,0 +1,12 @@
+{
+  "name": "@dacn/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+}

@@ -21,6 +21,7 @@ MVP hỗ trợ quá trình tự học bằng dữ liệu học tập và AI. Bac
 ```text
 apps/web/       Next.js frontend
 apps/api/       NestJS API, Prisma schema/migrations/seed
+packages/contracts/  OpenAPI-generated TypeScript transport types
 docker/         PostgreSQL initialization scripts
 docs/baseline/  Tài liệu baseline đóng băng và manifest kiểm tra
 ai/             Quy tắc cho AI runtime; chưa có AI feature
@@ -90,7 +91,13 @@ pnpm dev
 
 ## Kiểm tra và build
 
+## Shared API contracts
+
+NestJS DTO and Swagger metadata produce the OpenAPI snapshot and the generated TypeScript transport types in `packages/contracts`. After changing an API DTO or Swagger metadata, run `pnpm contracts:generate` and review both generated files. Do not edit generated files manually. `pnpm contracts:check` regenerates into a temporary directory and fails if either committed artifact is stale; it checks generation drift, not conformance to the frozen API specification.
+
 ```bash
+pnpm contracts:generate
+pnpm contracts:check
 pnpm lint
 pnpm typecheck
 pnpm test               # Jest API + Vitest Web
