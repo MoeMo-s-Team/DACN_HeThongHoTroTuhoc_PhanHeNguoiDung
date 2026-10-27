@@ -41,6 +41,7 @@ export class AuthController {
   @ApiOkResponse({ type: UserSummaryDto })
   @ApiUnauthorizedResponse({ type: ApiErrorResponseDto, example: { code: 'AUTH_REQUIRED', message: 'Yêu cầu đăng nhập hợp lệ.', details: null } })
   @ApiForbiddenResponse({ type: ApiErrorResponseDto, example: { code: 'ACCOUNT_DISABLED', message: 'Tài khoản đã bị vô hiệu hóa.', details: null } })
+  @ApiInternalServerErrorResponse({ type: ApiErrorResponseDto, example: { code: 'DATABASE_FAILURE', message: 'Không thể xử lý yêu cầu.', details: null } })
   me(@CurrentUser() user: AuthUser) {
     return user;
   }
@@ -52,5 +53,6 @@ export class AuthController {
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ type: ApiErrorResponseDto, example: { code: 'AUTH_REQUIRED', message: 'Yêu cầu đăng nhập hợp lệ.', details: null } })
   @ApiForbiddenResponse({ type: ApiErrorResponseDto, example: { code: 'ACCOUNT_DISABLED', message: 'Tài khoản đã bị vô hiệu hóa.', details: null } })
+  @ApiInternalServerErrorResponse({ type: ApiErrorResponseDto, example: { code: 'DATABASE_FAILURE', message: 'Không thể xử lý yêu cầu.', details: null } })
   logout() {}
 }

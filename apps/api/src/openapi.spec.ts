@@ -8,6 +8,11 @@ import { AppModule } from './app.module';
 import { createOpenApiDocument } from './openapi';
 import { PrismaService } from './prisma/prisma.service';
 
+function responseSchema(response: unknown) {
+  return (response as { content?: Record<string, { schema?: unknown }> } | undefined)
+    ?.content?.['application/json']?.schema;
+}
+
 describe('OpenAPI auth contract', () => {
   let app: INestApplication;
   let document: OpenAPIObject;
@@ -46,9 +51,6 @@ describe('OpenAPI auth contract', () => {
     expect((login?.requestBody as { required?: boolean } | undefined)?.required).toBe(true);
     expect((login?.requestBody as { content?: Record<string, { schema?: unknown }> } | undefined)?.content?.['application/json']?.schema)
       .toEqual({ $ref: '#/components/schemas/LoginDto' });
-    const responseSchema = (response: unknown) => (response as {
-      content?: Record<string, { schema?: unknown }>;
-    } | undefined)?.content?.['application/json']?.schema;
     expect(responseSchema(login?.responses['200'])).toEqual({ $ref: '#/components/schemas/LoginResponseDto' });
     expect(responseSchema(login?.responses['401'])).toEqual(errorSchema);
     expect(responseSchema(login?.responses['403'])).toEqual(errorSchema);
@@ -65,11 +67,15 @@ describe('OpenAPI auth contract', () => {
     expect(me?.responses).toHaveProperty('403');
     expect(responseSchema(me?.responses['401'])).toEqual(errorSchema);
     expect(responseSchema(me?.responses['403'])).toEqual(errorSchema);
+    expect(me?.responses).toHaveProperty('500');
+    expect(responseSchema(me?.responses['500'])).toEqual(errorSchema);
 
     expect(logout?.security).toEqual([{ bearerAuth: [] }]);
     expect((logout?.responses['204'] as { content?: unknown } | undefined)?.content).toBeUndefined();
     expect(responseSchema(logout?.responses['401'])).toEqual(errorSchema);
     expect(responseSchema(logout?.responses['403'])).toEqual(errorSchema);
+    expect(logout?.responses).toHaveProperty('500');
+    expect(responseSchema(logout?.responses['500'])).toEqual(errorSchema);
     expect(document.paths).not.toHaveProperty('/api/v1/health');
   });
 
@@ -85,6 +91,11 @@ describe('OpenAPI auth contract', () => {
     expect(errorSchema.properties.details.oneOf).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'array', items: {} }),
     ]));
+    expect(me?.responses).toHaveProperty('500');
+    expect(responseSchema(me?.responses['500'])).toEqual({ $ref: '#/components/schemas/ApiErrorResponseDto' });
+    const logout = generatedDocument.paths['/api/v1/auth/logout']?.post;
+    expect(logout?.responses).toHaveProperty('500');
+    expect(responseSchema(logout?.responses['500'])).toEqual({ $ref: '#/components/schemas/ApiErrorResponseDto' });
     expect(me?.security).toEqual([{ bearerAuth: [] }]);
     expect(generatedDocument.components?.securitySchemes?.bearerAuth).toMatchObject({ type: 'http', scheme: 'bearer' });
     expect(generatedDocument.paths).not.toHaveProperty('/api/v1/health');

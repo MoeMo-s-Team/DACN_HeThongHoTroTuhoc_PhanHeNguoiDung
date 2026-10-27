@@ -138,6 +138,21 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
           }
         },
         "security": [
@@ -183,6 +198,21 @@
                 "example": {
                   "code": "ACCOUNT_DISABLED",
                   "message": "Tài khoản đã bị vô hiệu hóa.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
                   "details": null
                 }
               }

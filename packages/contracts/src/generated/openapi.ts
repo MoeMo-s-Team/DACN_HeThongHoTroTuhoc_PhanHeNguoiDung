@@ -234,6 +234,21 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponseDto"];
                 };
             };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "DATABASE_FAILURE",
+                     *       "message": "Không thể xử lý yêu cầu.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
         };
     };
     AuthController_logout: {
@@ -275,6 +290,21 @@ export interface operations {
                      * @example {
                      *       "code": "ACCOUNT_DISABLED",
                      *       "message": "Tài khoản đã bị vô hiệu hóa.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "DATABASE_FAILURE",
+                     *       "message": "Không thể xử lý yêu cầu.",
                      *       "details": null
                      *     }
                      */
