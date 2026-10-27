@@ -3,6 +3,7 @@ import type { Config } from 'jest';
 const config: Config = {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/test/**/*.integration-spec.ts'],
+  setupFiles: ['<rootDir>/test/setup-env.ts'],
   transform: { '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }] },
 };
 
