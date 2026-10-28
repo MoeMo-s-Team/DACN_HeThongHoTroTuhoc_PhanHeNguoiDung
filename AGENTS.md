@@ -42,7 +42,7 @@ It may not bypass baseline protection, Proposal Mode, or human approval gates. I
 
 ### Subagent Model Routing
 When subagents are used, route by responsibility and never silently substitute a different subagent model or reasoning effort.
-- Independent review subagent: role `reviewer`, model `gpt-6.1-terra`, reasoning `medium`, read-only.. Use for plan review, code review, architecture/baseline/regression review, and reviewing another agent's output.
+- Independent review subagent: role `reviewer`, model `gpt-6.1-terra`, reasoning `medium`, read-only. Use for plan review, code review, architecture/baseline/regression review, and reviewing another agent's output.
 - Code-change subagent: role `implementer`, model `gpt-6-luna`, reasoning `low`. Use for implementation, bug fixes, refactors, tests, migrations, and code/config changes.
 - A reviewer must not modify the plan or implementation it reviews. Return findings to the parent; plan edits belong to the parent/writer, and code fixes belong to `implementer`.
 - Never let an implementation subagent approve its own work.
