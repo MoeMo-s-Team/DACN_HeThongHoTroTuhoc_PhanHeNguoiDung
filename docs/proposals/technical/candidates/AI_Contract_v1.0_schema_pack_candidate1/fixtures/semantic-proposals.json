@@ -1,0 +1,24 @@
+[
+  {
+    "case": "whitespace-only-required-output-text",
+    "schema": "admin-feedback-summary-stage2.output.schema.json",
+    "property": "summary",
+    "data": {
+      "summary": "   ",
+      "priorityAreas": [
+        "Main action visibility"
+      ],
+      "recommendations": [
+        {
+          "title": "Clarify the primary action",
+          "description": "Improve the visibility of the primary action."
+        }
+      ]
+    },
+    "schemaExpectedValid": true,
+    "proposedClassification": "AI_INCOMPLETE_DATA",
+    "proposedLogState": "FAILED",
+    "scope": "post-dispatch-ai-output",
+    "approvalStatus": "PENDING"
+  }
+]

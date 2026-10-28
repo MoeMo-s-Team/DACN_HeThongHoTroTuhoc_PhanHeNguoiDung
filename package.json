@@ -12,7 +12,9 @@
     "test:e2e": "pnpm --filter @dacn/api test:e2e:prepare && pnpm --filter @dacn/web test:e2e",
     "contracts:generate": "node scripts/contracts.mjs generate",
     "contracts:check": "node scripts/contracts.mjs check",
-    "verify:baseline": "cd docs/baseline && sha256sum -c BASELINE_MANIFEST.sha256",
+    "test:ai-schema-candidate": "node docs/proposals/technical/candidates/AI_Contract_v1.0_schema_pack_candidate1/tests/validate.cjs",
+    "pack:ai-schema-candidate": "python3 docs/proposals/technical/candidates/AI_Contract_v1.0_schema_pack_candidate1/scripts/package.py",
+    "verify:baseline": "sha256sum -c docs/baseline/BASELINE_MANIFEST.sha256",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @dacn/api db:migrate",
@@ -20,13 +22,15 @@
     "db:generate": "pnpm --filter @dacn/api db:generate"
   },
   "devDependencies": {
-    "openapi-typescript": "7.13.0",
-    "@next/eslint-plugin-next": "^15.5.9",
     "@eslint/js": "^9.29.0",
+    "@next/eslint-plugin-next": "^15.5.9",
+    "ajv": "8.20.0",
+    "ajv-formats": "2.1.1",
     "eslint": "^9.29.0",
     "globals": "^16.3.0",
-    "typescript-eslint": "^8.38.0",
-    "turbo": "^2.5.0"
+    "openapi-typescript": "7.13.0",
+    "turbo": "^2.5.0",
+    "typescript-eslint": "^8.38.0"
   },
   "engines": {
     "node": ">=24.18.0 <25"

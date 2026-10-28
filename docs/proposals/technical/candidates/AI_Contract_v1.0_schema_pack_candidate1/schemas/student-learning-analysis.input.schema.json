@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dacn:ai-contract:v1.0:schema-pack-candidate1:student-learning-analysis.input",
+  "$comment": "CANDIDATE — NOT APPROVED",
+  "type": "object",
+  "properties": {
+    "goal": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "assessments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assessment"
+      }
+    },
+    "progress": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/progressView"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "assessments"
+  ],
+  "$defs": {
+    "assessment": {
+      "type": "object",
+      "properties": {
+        "topicId": {
+          "type": "string"
+        },
+        "topicName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "score": {
+          "type": "number"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "GOOD",
+            "NEEDS_REINFORCEMENT",
+            "PRIORITY"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "topicId",
+        "topicName",
+        "score",
+        "classification"
+      ]
+    },
+    "progressView": {
+      "type": "object",
+      "properties": {
+        "completedTasks": {
+          "type": "integer"
+        },
+        "totalTasks": {
+          "type": "integer"
+        },
+        "completionPercentage": {
+          "type": "number"
+        },
+        "actualProgress": {
+          "type": "number"
+        },
+        "expectedProgress": {
+          "type": "number"
+        },
+        "overdueTasks": {
+          "type": "integer"
+        },
+        "slowProgress": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "completedTasks",
+        "totalTasks",
+        "completionPercentage",
+        "actualProgress",
+        "expectedProgress",
+        "overdueTasks",
+        "slowProgress"
+      ]
+    }
+  }
+}

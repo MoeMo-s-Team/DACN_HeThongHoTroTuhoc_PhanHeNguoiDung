@@ -1,0 +1,53 @@
+[
+  {
+    "name": "missing-required",
+    "data": {},
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "issueGroups"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "issueGroups": "wrong-type"
+    },
+    "keyword": "type",
+    "instancePath": "/issueGroups"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ]
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "ai-supplied-count",
+    "data": {
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "/issueGroups/0",
+    "additionalProperty": "count"
+  }
+]

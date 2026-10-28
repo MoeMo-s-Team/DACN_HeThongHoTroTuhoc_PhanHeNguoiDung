@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "taskId": "task_1",
+      "expectedMinutes": 60,
+      "dueDate": "2026-10-30T16:59:59.000Z",
+      "priority": "HIGH",
+      "reason": "Reduce the task load."
+    }
+  ]
+}

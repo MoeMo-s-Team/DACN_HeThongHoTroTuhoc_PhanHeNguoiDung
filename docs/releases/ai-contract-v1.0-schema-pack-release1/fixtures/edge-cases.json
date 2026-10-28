@@ -1,0 +1,117 @@
+[
+  {
+    "schema": "student-learning-analysis.input.schema.json",
+    "data": {
+      "goal": null,
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "PRIORITY"
+        }
+      ],
+      "progress": {
+        "completedTasks": 0,
+        "totalTasks": 0,
+        "completionPercentage": 0,
+        "actualProgress": 0,
+        "expectedProgress": 0,
+        "overdueTasks": 0,
+        "slowProgress": false
+      }
+    }
+  },
+  {
+    "schema": "student-study-plan-generation.input.schema.json",
+    "data": {
+      "goal": "Prepare for the exam",
+      "availableMinutesPerWeek": 300,
+      "planningStartAt": "2026-10-26T03:00:00.000Z",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [],
+      "topics": [],
+      "learningAnalysisContext": null
+    }
+  },
+  {
+    "schema": "teacher-class-analysis.input.schema.json",
+    "data": {
+      "classId": "class_1",
+      "studentCount": 0,
+      "classAverageScore": null,
+      "topicAverageScores": [
+        {
+          "topic": {
+            "id": "topic_1",
+            "name": "Data structures"
+          },
+          "averageScore": null,
+          "weakTopic": false
+        }
+      ],
+      "classCompletionRate": null,
+      "overdueTaskCount": 0,
+      "needsAttentionStudents": [],
+      "progressWarnings": []
+    }
+  },
+  {
+    "schema": "student-study-plan-generation.input.schema.json",
+    "data": {
+      "goal": "Strengthen data structures before the exam",
+      "availableMinutesPerWeek": 420,
+      "planningStartAt": "2026-10-26T03:00:00.000Z",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "PRIORITY"
+        }
+      ],
+      "topics": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures"
+        }
+      ],
+      "learningAnalysisContext": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [
+          {
+            "topicId": "topic_1",
+            "topicName": "Data structures",
+            "reason": "Needs reinforcement."
+          }
+        ],
+        "reasons": []
+      }
+    }
+  },
+  {
+    "case": "admin-stage2-empty-issue-groups",
+    "schema": "admin-feedback-summary-stage2.input.schema.json",
+    "data": {
+      "feedback": [
+        {
+          "feedbackId": "feedback_1",
+          "tag": "UI_UX",
+          "rating": 4,
+          "content": "Difficult to find the main action"
+        }
+      ],
+      "totalFeedback": 1,
+      "tagStatistics": {
+        "AI_PERFORMANCE": 0,
+        "STUDY_PLAN": 0,
+        "UI_UX": 1,
+        "LEARNING_ANALYTICS": 0,
+        "OTHER": 0
+      },
+      "issueGroups": []
+    }
+  }
+]

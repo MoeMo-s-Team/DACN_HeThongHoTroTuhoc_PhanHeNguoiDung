@@ -1,0 +1,84 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "requestId": "ai_req_001",
+      "task": "STUDENT_LEARNING_ANALYSIS",
+      "output": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [],
+        "reasons": []
+      },
+      "runtime": {
+        "modelId": "model-1",
+        "promptVersion": "stu-learning-analysis-v1"
+      }
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "contractVersion"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": [],
+      "task": "STUDENT_LEARNING_ANALYSIS",
+      "output": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [],
+        "reasons": []
+      },
+      "runtime": {
+        "modelId": "model-1",
+        "promptVersion": "stu-learning-analysis-v1"
+      }
+    },
+    "keyword": "type",
+    "instancePath": "/requestId"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": "ai_req_001",
+      "task": "STUDENT_LEARNING_ANALYSIS",
+      "output": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [],
+        "reasons": []
+      },
+      "runtime": {
+        "modelId": "model-1",
+        "promptVersion": "stu-learning-analysis-v1"
+      },
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": "ai_req_001",
+      "task": "__invalid_enum__",
+      "output": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [],
+        "reasons": []
+      },
+      "runtime": {
+        "modelId": "model-1",
+        "promptVersion": "stu-learning-analysis-v1"
+      }
+    },
+    "keyword": "enum",
+    "instancePath": "/task"
+  }
+]

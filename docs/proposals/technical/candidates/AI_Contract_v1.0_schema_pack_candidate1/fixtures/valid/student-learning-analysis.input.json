@@ -1,0 +1,10 @@
+{
+  "assessments": [
+    {
+      "topicId": "topic_1",
+      "topicName": "Data structures",
+      "score": 58.7,
+      "classification": "PRIORITY"
+    }
+  ]
+}

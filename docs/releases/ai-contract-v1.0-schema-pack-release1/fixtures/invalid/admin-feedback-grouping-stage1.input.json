@@ -1,0 +1,49 @@
+[
+  {
+    "name": "missing-required",
+    "data": {},
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "feedback"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "feedback": "wrong-type"
+    },
+    "keyword": "type",
+    "instancePath": "/feedback"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "feedback": [
+        {
+          "feedbackId": "feedback_1",
+          "tag": "UI_UX",
+          "rating": 4,
+          "content": "Difficult to find the main action"
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "feedback": [
+        {
+          "feedbackId": "feedback_1",
+          "tag": "__invalid_enum__",
+          "rating": 4,
+          "content": "Difficult to find the main action"
+        }
+      ]
+    },
+    "keyword": "enum",
+    "instancePath": "/feedback/0/tag"
+  }
+]

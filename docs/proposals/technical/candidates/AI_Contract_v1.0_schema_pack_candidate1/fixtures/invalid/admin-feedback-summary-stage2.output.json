@@ -1,0 +1,55 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "priorityAreas": [
+        "Main action visibility"
+      ],
+      "recommendations": [
+        {
+          "title": "Clarify the primary action",
+          "description": "Improve the visibility of the primary action."
+        }
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "summary"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "summary": [],
+      "priorityAreas": [
+        "Main action visibility"
+      ],
+      "recommendations": [
+        {
+          "title": "Clarify the primary action",
+          "description": "Improve the visibility of the primary action."
+        }
+      ]
+    },
+    "keyword": "type",
+    "instancePath": "/summary"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "summary": "Feedback highlights the need to clarify the main action.",
+      "priorityAreas": [
+        "Main action visibility"
+      ],
+      "recommendations": [
+        {
+          "title": "Clarify the primary action",
+          "description": "Improve the visibility of the primary action."
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  }
+]

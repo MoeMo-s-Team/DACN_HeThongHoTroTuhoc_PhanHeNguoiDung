@@ -1,0 +1,8 @@
+{
+  "contractVersion": "1.0",
+  "requestId": "ai_req_001",
+  "error": {
+    "code": "INFERENCE_FAILED",
+    "message": "Inference could not be completed"
+  }
+}

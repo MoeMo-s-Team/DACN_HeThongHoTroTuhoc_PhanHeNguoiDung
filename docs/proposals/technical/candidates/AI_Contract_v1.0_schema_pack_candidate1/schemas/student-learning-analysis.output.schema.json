@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dacn:ai-contract:v1.0:schema-pack-candidate1:student-learning-analysis.output",
+  "$comment": "CANDIDATE — NOT APPROVED",
+  "type": "object",
+  "properties": {
+    "strengths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "areasToImprove": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "priorityTopics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "topicId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "topicId",
+          "reason"
+        ]
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "strengths",
+    "areasToImprove",
+    "priorityTopics",
+    "reasons"
+  ],
+  "$defs": {
+    "priorityTopic": {
+      "type": "object",
+      "properties": {
+        "topicId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "topicId",
+        "reason"
+      ]
+    }
+  }
+}

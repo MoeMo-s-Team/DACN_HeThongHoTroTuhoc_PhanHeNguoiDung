@@ -1,0 +1,28 @@
+{
+  "feedback": [
+    {
+      "feedbackId": "feedback_1",
+      "tag": "UI_UX",
+      "rating": 4,
+      "content": "Difficult to find the main action"
+    }
+  ],
+  "totalFeedback": 1,
+  "tagStatistics": {
+    "AI_PERFORMANCE": 0,
+    "STUDY_PLAN": 0,
+    "UI_UX": 1,
+    "LEARNING_ANALYTICS": 0,
+    "OTHER": 0
+  },
+  "issueGroups": [
+    {
+      "title": "Main action visibility",
+      "summary": "Users report difficulty finding the main action.",
+      "feedbackIds": [
+        "feedback_1"
+      ],
+      "count": 1
+    }
+  ]
+}

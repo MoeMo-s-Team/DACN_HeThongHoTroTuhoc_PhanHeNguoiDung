@@ -1,0 +1,20 @@
+{
+  "goal": "Strengthen data structures before the exam",
+  "availableMinutesPerWeek": 420,
+  "planningStartAt": "2026-10-26T03:00:00.000Z",
+  "targetDeadline": "2026-11-23T03:00:00.000Z",
+  "assessments": [
+    {
+      "topicId": "topic_1",
+      "topicName": "Data structures",
+      "score": 58.7,
+      "classification": "PRIORITY"
+    }
+  ],
+  "topics": [
+    {
+      "topicId": "topic_1",
+      "topicName": "Data structures"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "plan": {
+    "startDate": "2026-10-26T03:00:00.000Z",
+    "endDate": "2026-11-23T03:00:00.000Z"
+  },
+  "todoTasks": [
+    {
+      "taskId": "task_1",
+      "title": "Review traversal",
+      "expectedMinutes": 90,
+      "dueDate": "2026-11-02T16:59:59.000Z",
+      "priority": "HIGH"
+    }
+  ],
+  "actualProgress": 20.0,
+  "expectedProgress": 60.0,
+  "overdueTasks": 1,
+  "goal": "Prepare for the exam",
+  "remainingMinutes": 300
+}

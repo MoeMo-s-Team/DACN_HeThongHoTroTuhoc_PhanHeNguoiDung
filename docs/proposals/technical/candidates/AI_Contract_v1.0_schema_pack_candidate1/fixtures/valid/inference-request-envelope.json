@@ -1,0 +1,11 @@
+{
+  "contractVersion": "1.0",
+  "requestId": "ai_req_001",
+  "task": "STUDENT_LEARNING_ANALYSIS",
+  "locale": "vi-VN",
+  "input": {
+    "goal": null,
+    "assessments": [],
+    "progress": null
+  }
+}

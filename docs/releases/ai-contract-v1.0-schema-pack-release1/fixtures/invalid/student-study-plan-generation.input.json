@@ -1,0 +1,189 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "availableMinutesPerWeek": 420,
+      "planningStartAt": "2026-10-26T03:00:00.000Z",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "PRIORITY"
+        }
+      ],
+      "topics": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures"
+        }
+      ],
+      "learningAnalysisContext": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [
+          {
+            "topicId": "topic_1",
+            "topicName": "Data structures",
+            "reason": "Needs reinforcement."
+          }
+        ],
+        "reasons": []
+      }
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "goal"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "goal": [],
+      "availableMinutesPerWeek": 420,
+      "planningStartAt": "2026-10-26T03:00:00.000Z",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "PRIORITY"
+        }
+      ],
+      "topics": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures"
+        }
+      ],
+      "learningAnalysisContext": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [
+          {
+            "topicId": "topic_1",
+            "topicName": "Data structures",
+            "reason": "Needs reinforcement."
+          }
+        ],
+        "reasons": []
+      }
+    },
+    "keyword": "type",
+    "instancePath": "/goal"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "goal": "Strengthen data structures before the exam",
+      "availableMinutesPerWeek": 420,
+      "planningStartAt": "2026-10-26T03:00:00.000Z",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "PRIORITY"
+        }
+      ],
+      "topics": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures"
+        }
+      ],
+      "learningAnalysisContext": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [
+          {
+            "topicId": "topic_1",
+            "topicName": "Data structures",
+            "reason": "Needs reinforcement."
+          }
+        ],
+        "reasons": []
+      },
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "goal": "Strengthen data structures before the exam",
+      "availableMinutesPerWeek": 420,
+      "planningStartAt": "2026-10-26T03:00:00.000Z",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "__invalid_enum__"
+        }
+      ],
+      "topics": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures"
+        }
+      ],
+      "learningAnalysisContext": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [
+          {
+            "topicId": "topic_1",
+            "topicName": "Data structures",
+            "reason": "Needs reinforcement."
+          }
+        ],
+        "reasons": []
+      }
+    },
+    "keyword": "enum",
+    "instancePath": "/assessments/0/classification"
+  },
+  {
+    "name": "invalid-date-time",
+    "data": {
+      "goal": "Strengthen data structures before the exam",
+      "availableMinutesPerWeek": 420,
+      "planningStartAt": "not-a-date-time",
+      "targetDeadline": "2026-11-23T03:00:00.000Z",
+      "assessments": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures",
+          "score": 58.7,
+          "classification": "PRIORITY"
+        }
+      ],
+      "topics": [
+        {
+          "topicId": "topic_1",
+          "topicName": "Data structures"
+        }
+      ],
+      "learningAnalysisContext": {
+        "strengths": [],
+        "areasToImprove": [],
+        "priorityTopics": [
+          {
+            "topicId": "topic_1",
+            "topicName": "Data structures",
+            "reason": "Needs reinforcement."
+          }
+        ],
+        "reasons": []
+      }
+    },
+    "keyword": "format",
+    "instancePath": "/planningStartAt"
+  }
+]

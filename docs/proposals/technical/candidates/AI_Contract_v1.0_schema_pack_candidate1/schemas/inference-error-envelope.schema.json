@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dacn:ai-contract:v1.0:schema-pack-candidate1:inference-error-envelope",
+  "$comment": "CANDIDATE — NOT APPROVED",
+  "type": "object",
+  "properties": {
+    "contractVersion": {
+      "const": "1.0"
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "error": {
+      "$ref": "#/$defs/error"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "requestId",
+    "error"
+  ],
+  "$defs": {
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_REQUEST",
+            "UNSUPPORTED_CONTRACT",
+            "UNSUPPORTED_TASK",
+            "INFERENCE_FAILED",
+            "RUNTIME_UNAVAILABLE"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ]
+    }
+  }
+}

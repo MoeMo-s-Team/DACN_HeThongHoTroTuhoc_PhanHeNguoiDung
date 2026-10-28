@@ -1,0 +1,15 @@
+{
+  "contractVersion": "1.0",
+  "requestId": "ai_req_001",
+  "task": "STUDENT_LEARNING_ANALYSIS",
+  "output": {
+    "strengths": [],
+    "areasToImprove": [],
+    "priorityTopics": [],
+    "reasons": []
+  },
+  "runtime": {
+    "modelId": "model-1",
+    "promptVersion": "stu-learning-analysis-v1"
+  }
+}

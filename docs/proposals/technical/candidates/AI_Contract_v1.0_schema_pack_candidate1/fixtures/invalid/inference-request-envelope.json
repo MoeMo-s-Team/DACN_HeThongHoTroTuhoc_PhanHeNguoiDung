@@ -1,0 +1,68 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "requestId": "ai_req_001",
+      "task": "STUDENT_LEARNING_ANALYSIS",
+      "locale": "vi-VN",
+      "input": {
+        "goal": null,
+        "assessments": [],
+        "progress": null
+      }
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "contractVersion"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": [],
+      "task": "STUDENT_LEARNING_ANALYSIS",
+      "locale": "vi-VN",
+      "input": {
+        "goal": null,
+        "assessments": [],
+        "progress": null
+      }
+    },
+    "keyword": "type",
+    "instancePath": "/requestId"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": "ai_req_001",
+      "task": "STUDENT_LEARNING_ANALYSIS",
+      "locale": "vi-VN",
+      "input": {
+        "goal": null,
+        "assessments": [],
+        "progress": null
+      },
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": "ai_req_001",
+      "task": "__invalid_enum__",
+      "locale": "vi-VN",
+      "input": {
+        "goal": null,
+        "assessments": [],
+        "progress": null
+      }
+    },
+    "keyword": "enum",
+    "instancePath": "/task"
+  }
+]

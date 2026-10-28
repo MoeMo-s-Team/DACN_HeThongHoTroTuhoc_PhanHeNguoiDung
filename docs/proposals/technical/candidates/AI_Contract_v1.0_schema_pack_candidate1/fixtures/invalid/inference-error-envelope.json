@@ -1,0 +1,56 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "requestId": "ai_req_001",
+      "error": {
+        "code": "INFERENCE_FAILED",
+        "message": "Inference could not be completed"
+      }
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "contractVersion"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": [],
+      "error": {
+        "code": "INFERENCE_FAILED",
+        "message": "Inference could not be completed"
+      }
+    },
+    "keyword": "type",
+    "instancePath": "/requestId"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": "ai_req_001",
+      "error": {
+        "code": "INFERENCE_FAILED",
+        "message": "Inference could not be completed"
+      },
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "contractVersion": "1.0",
+      "requestId": "ai_req_001",
+      "error": {
+        "code": "__invalid_enum__",
+        "message": "Inference could not be completed"
+      }
+    },
+    "keyword": "enum",
+    "instancePath": "/error/code"
+  }
+]

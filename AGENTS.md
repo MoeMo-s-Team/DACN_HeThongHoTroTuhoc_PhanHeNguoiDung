@@ -7,7 +7,7 @@ Prefer correctness, traceability, and complete end-to-end flows over unnecessary
 
 ## 2. Authority
 Current approved freeze: `DACN-REQ-UC-BL-2026-10-26-R3` (CR-001 + CR-002 incorporated).
-Use `docs/baseline/Document_Governance_and_Traceability_Index_v1.2.md` and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for active versions/freeze scope.
+Use `docs/governance/Document_Governance_and_Traceability_Index_v1.3.md` for active downstream AI artifact authority and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for the unchanged R3 requirements/use-case freeze scope. The original frozen governance index v1.2 remains historical baseline evidence.
 Use this order when decisions conflict:
 1. `docs/baseline/SRS_v1.6_baseline_final.md`
 2. `docs/baseline/Use_Case_Diagram_he_thong_ho_tro_tu_hoc_AI_v1.4_baseline_rev1.md`
@@ -16,12 +16,12 @@ Use this order when decisions conflict:
 5. `docs/baseline/API_Specification_v1.5_baseline_final.md` (public REST contract)
 6. `docs/baseline/Activity_Diagram_3_AI_Main_Flows_v1.3_baseline_final.md` (AI orchestration)
 7. `docs/baseline/UI_Sitemap_v1.1_baseline.md` + `docs/baseline/Wireframe_Screen_Specification_v1.1_baseline_final.md`
-8. `docs/baseline/AI_Contract_v1.0_baseline_final.md` (internal NestJS ↔ AI Runtime contract)
+8. `docs/baseline/AI_Contract_v1.0_baseline_final.md` plus approved `docs/releases/ai-contract-v1.0-schema-pack-release1/AI_Contract_v1.0_Erratum_1_approved.md` (internal NestJS ↔ AI Runtime contract)
 9. `docs/architecture/Global UI Design System — Editorial Tech.md` (presentation only)
 10. `docs/baseline/System_Architecture_and_Technology_Stack_v1.1_baseline.md`
 11. Approved ADRs in `docs/decisions/`
 
-Follow approved `CR-001`/`CR-002` and R3 audit records in `docs/baseline/`. Higher-authority requirements/business/API sources win; AI Contract governs internal inference only. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
+Follow approved `CR-001`/`CR-002` in `docs/baseline/` and approved downstream `CR-003` in `docs/releases/ai-contract-v1.0-schema-pack-release1/`. Higher-authority requirements/business/API sources win; the AI Contract and approved Erratum 1 govern internal inference only. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
 
 ## 3. Frozen Baseline and Proposal Mode
 Treat `docs/baseline/` as read-only during implementation. Never edit, rename, delete, regenerate, auto-format frozen files, or auto-update `BASELINE_MANIFEST.sha256`.
@@ -90,12 +90,12 @@ Required boundaries:
 Do not add Redis, queues, microservices, refresh-token APIs, token blacklist, multi-session management, chatbot/RAG, or other out-of-scope features without approved change/decision.
 
 ## 6. API, AI Contract, and Security
-Keep public API base path `/api/v1` and preserve frozen route/method/request/response/error semantics. Internal AI endpoint is `POST /v1/infer` with `contractVersion=1.0`, not a frontend route.
+Keep public API base path `/api/v1` and preserve frozen route/method/request/response/error shape. Preserve frozen error semantics except the two post-dispatch classifications explicitly approved by CR-003: runtime prompt-version mismatch and required output blank after trim. Internal AI endpoint is `POST /v1/infer` with `contractVersion=1.0`, not a frontend route.
 Protected requests must validate token, user existence, `ACTIVE` status, role, and ownership/resource access as applicable.
 Frontend route/menu visibility is UX only, never authorization. Follow approved JWT architecture; do not invent new auth behavior.
 Never log passwords, hashes, bearer tokens, DB credentials, AI secrets, or full raw prompts/responses by default.
 
-For AI features, follow AI Contract v1.0 and R3/CR-002:
+For AI features, follow AI Contract v1.0, Erratum 1, R3/CR-002 and CR-003:
 - Validate eligibility/minimum data, then capacity preflight **before** external dispatch; no `AIRequestLog` if no attempt starts.
 - Never silently truncate, sample, pre-summarize, page-limit, or chunk authoritative AI input to fit a model context.
 - Valid capacity profile + oversized input → public `422 AI_INPUT_TOO_LARGE`; missing/malformed/mismatched profile → public `502 AI_RUNTIME_FAILURE`; both pre-dispatch with no AI call/log.
@@ -103,7 +103,8 @@ For AI features, follow AI Contract v1.0 and R3/CR-002:
 - Teacher analysis + recommendations = exactly one external attempt; Admin success = Stage1 → backend validate/deduplicate/recount → Stage2, exactly two attempts/logs.
 - Admin Stage1 success + Stage2 preflight budget reject → only Stage1 SUCCESS log; no Stage2 attempt/log or `analysisRef`.
 - Limit each inference attempt to 60s; no automatic retry. Validate output with JSON Schema Draft 2020-12/Ajv 8 plus semantic/reference checks; AI cannot mutate business data.
-- Use the released 15-schema `AI_Contract_v1.0_schema_pack_rev4.zip` as normative companion. If absent, or if `promptVersion` binding contradicts the wire envelope, report `BLOCKED` for that contract task; do not fabricate schemas or silently change the frozen protocol.
+- The request envelope has no `promptVersion`; bind `task` through the registry and require registry/profile/deployed configuration equality before dispatch. A post-dispatch runtime `promptVersion` mismatch is `502 AI_RUNTIME_FAILURE` with one FAILED log and no retry; required AI output blank after trim is `502 AI_INCOMPLETE_DATA` with one FAILED log.
+- Use the approved 15-schema `docs/releases/ai-contract-v1.0-schema-pack-release1/AI_Contract_v1.0_schema_pack_release1.zip` as normative companion. It is a distinct approved release, not a recovered Rev.4 archive. Do not add `promptVersion` to the wire envelope.
 
 ## 7. Implementation Discipline
 Make the smallest traced change that satisfies the requirement.

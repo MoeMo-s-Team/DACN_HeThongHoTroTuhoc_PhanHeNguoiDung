@@ -1,0 +1,151 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "totalFeedback": 1,
+      "tagStatistics": {
+        "AI_PERFORMANCE": 0,
+        "STUDY_PLAN": 0,
+        "UI_UX": 1,
+        "LEARNING_ANALYTICS": 0,
+        "OTHER": 0
+      },
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ]
+        }
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "feedback"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "feedback": "wrong-type",
+      "totalFeedback": 1,
+      "tagStatistics": {
+        "AI_PERFORMANCE": 0,
+        "STUDY_PLAN": 0,
+        "UI_UX": 1,
+        "LEARNING_ANALYTICS": 0,
+        "OTHER": 0
+      },
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ]
+        }
+      ]
+    },
+    "keyword": "type",
+    "instancePath": "/feedback"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "feedback": [
+        {
+          "feedbackId": "feedback_1",
+          "tag": "UI_UX",
+          "rating": 4,
+          "content": "Difficult to find the main action"
+        }
+      ],
+      "totalFeedback": 1,
+      "tagStatistics": {
+        "AI_PERFORMANCE": 0,
+        "STUDY_PLAN": 0,
+        "UI_UX": 1,
+        "LEARNING_ANALYTICS": 0,
+        "OTHER": 0
+      },
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ]
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "feedback": [
+        {
+          "feedbackId": "feedback_1",
+          "tag": "__invalid_enum__",
+          "rating": 4,
+          "content": "Difficult to find the main action"
+        }
+      ],
+      "totalFeedback": 1,
+      "tagStatistics": {
+        "AI_PERFORMANCE": 0,
+        "STUDY_PLAN": 0,
+        "UI_UX": 1,
+        "LEARNING_ANALYTICS": 0,
+        "OTHER": 0
+      },
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ]
+        }
+      ]
+    },
+    "keyword": "enum",
+    "instancePath": "/feedback/0/tag"
+  },
+  {
+    "name": "missing-stage2-group-count",
+    "data": {
+      "feedback": [
+        {
+          "feedbackId": "feedback_1",
+          "tag": "UI_UX",
+          "rating": 4,
+          "content": "Difficult to find the main action"
+        }
+      ],
+      "totalFeedback": 1,
+      "tagStatistics": {
+        "AI_PERFORMANCE": 0,
+        "STUDY_PLAN": 0,
+        "UI_UX": 1,
+        "LEARNING_ANALYTICS": 0,
+        "OTHER": 0
+      },
+      "issueGroups": [
+        {
+          "title": "Main action visibility",
+          "summary": "Users report difficulty finding the main action.",
+          "feedbackIds": [
+            "feedback_1"
+          ]
+        }
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "/issueGroups/0",
+    "missingProperty": "count"
+  }
+]

@@ -1,0 +1,115 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "studentCount": 20,
+      "classAverageScore": 75.5,
+      "topicAverageScores": [
+        {
+          "topic": {
+            "id": "topic_1",
+            "name": "Data structures"
+          },
+          "averageScore": 58.7,
+          "weakTopic": true
+        }
+      ],
+      "classCompletionRate": 0.65,
+      "overdueTaskCount": 3,
+      "needsAttentionStudents": [
+        {
+          "studentId": "student_1",
+          "reasons": [
+            "LOW_PROGRESS"
+          ]
+        }
+      ],
+      "progressWarnings": [
+        {
+          "studentId": "student_1",
+          "actualProgress": 0.2,
+          "expectedProgress": 0.6
+        }
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "classId"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "classId": [],
+      "studentCount": 20,
+      "classAverageScore": 75.5,
+      "topicAverageScores": [
+        {
+          "topic": {
+            "id": "topic_1",
+            "name": "Data structures"
+          },
+          "averageScore": 58.7,
+          "weakTopic": true
+        }
+      ],
+      "classCompletionRate": 0.65,
+      "overdueTaskCount": 3,
+      "needsAttentionStudents": [
+        {
+          "studentId": "student_1",
+          "reasons": [
+            "LOW_PROGRESS"
+          ]
+        }
+      ],
+      "progressWarnings": [
+        {
+          "studentId": "student_1",
+          "actualProgress": 0.2,
+          "expectedProgress": 0.6
+        }
+      ]
+    },
+    "keyword": "type",
+    "instancePath": "/classId"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "classId": "class_1",
+      "studentCount": 20,
+      "classAverageScore": 75.5,
+      "topicAverageScores": [
+        {
+          "topic": {
+            "id": "topic_1",
+            "name": "Data structures"
+          },
+          "averageScore": 58.7,
+          "weakTopic": true
+        }
+      ],
+      "classCompletionRate": 0.65,
+      "overdueTaskCount": 3,
+      "needsAttentionStudents": [
+        {
+          "studentId": "student_1",
+          "reasons": [
+            "LOW_PROGRESS"
+          ]
+        }
+      ],
+      "progressWarnings": [
+        {
+          "studentId": "student_1",
+          "actualProgress": 0.2,
+          "expectedProgress": 0.6
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  }
+]

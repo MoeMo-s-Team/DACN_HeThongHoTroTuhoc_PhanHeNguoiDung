@@ -1,0 +1,118 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "todoTasks": [
+        {
+          "taskId": "task_1",
+          "title": "Review traversal",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "HIGH"
+        }
+      ],
+      "actualProgress": 20.0,
+      "expectedProgress": 60.0,
+      "overdueTasks": 1,
+      "goal": "Prepare for the exam",
+      "remainingMinutes": 300
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "plan"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "plan": {
+        "startDate": "2026-10-26T03:00:00.000Z",
+        "endDate": "2026-11-23T03:00:00.000Z"
+      },
+      "todoTasks": "wrong-type",
+      "actualProgress": 20.0,
+      "expectedProgress": 60.0,
+      "overdueTasks": 1,
+      "goal": "Prepare for the exam",
+      "remainingMinutes": 300
+    },
+    "keyword": "type",
+    "instancePath": "/todoTasks"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "plan": {
+        "startDate": "2026-10-26T03:00:00.000Z",
+        "endDate": "2026-11-23T03:00:00.000Z"
+      },
+      "todoTasks": [
+        {
+          "taskId": "task_1",
+          "title": "Review traversal",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "HIGH"
+        }
+      ],
+      "actualProgress": 20.0,
+      "expectedProgress": 60.0,
+      "overdueTasks": 1,
+      "goal": "Prepare for the exam",
+      "remainingMinutes": 300,
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "plan": {
+        "startDate": "2026-10-26T03:00:00.000Z",
+        "endDate": "2026-11-23T03:00:00.000Z"
+      },
+      "todoTasks": [
+        {
+          "taskId": "task_1",
+          "title": "Review traversal",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "__invalid_enum__"
+        }
+      ],
+      "actualProgress": 20.0,
+      "expectedProgress": 60.0,
+      "overdueTasks": 1,
+      "goal": "Prepare for the exam",
+      "remainingMinutes": 300
+    },
+    "keyword": "enum",
+    "instancePath": "/todoTasks/0/priority"
+  },
+  {
+    "name": "invalid-date-time",
+    "data": {
+      "plan": {
+        "startDate": "not-a-date-time",
+        "endDate": "2026-11-23T03:00:00.000Z"
+      },
+      "todoTasks": [
+        {
+          "taskId": "task_1",
+          "title": "Review traversal",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "HIGH"
+        }
+      ],
+      "actualProgress": 20.0,
+      "expectedProgress": 60.0,
+      "overdueTasks": 1,
+      "goal": "Prepare for the exam",
+      "remainingMinutes": 300
+    },
+    "keyword": "format",
+    "instancePath": "/plan/startDate"
+  }
+]
