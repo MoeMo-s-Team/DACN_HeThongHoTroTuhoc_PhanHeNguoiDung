@@ -9,7 +9,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "pnpm --filter @dacn/api test:integration",
-    "test:e2e": "pnpm --filter @dacn/web test:e2e",
+    "test:e2e": "pnpm --filter @dacn/api test:e2e:prepare && pnpm --filter @dacn/web test:e2e",
     "verify:baseline": "cd docs/baseline && sha256sum -c BASELINE_MANIFEST.sha256",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",

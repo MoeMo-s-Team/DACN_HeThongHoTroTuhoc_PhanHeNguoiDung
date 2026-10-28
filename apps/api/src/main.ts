@@ -10,6 +10,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   const config = app.get(ConfigService);
+  app.enableCors({ origin: config.getOrThrow<string>('FRONTEND_ORIGIN'), allowedHeaders: ['Content-Type', 'Authorization'] });
   if (config.get('NODE_ENV') !== 'production') {
     const swagger = new DocumentBuilder().setTitle('Self-study Support API').setVersion('1.0').build();
     SwaggerModule.setup('api/v1/docs', app, SwaggerModule.createDocument(app, swagger));

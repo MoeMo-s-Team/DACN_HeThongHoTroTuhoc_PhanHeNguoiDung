@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 3100",
     "build": "next build",
-    "lint": "eslint \"app/**/*.tsx\" \"e2e/**/*.ts\" \"*.config.ts\"",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"e2e/**/*.ts\" \"*.config.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test"
