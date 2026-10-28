@@ -6,7 +6,7 @@ after the plan or task has been approved.
 """
 
 model = "gpt-6-luna"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "low"
 
 developer_instructions = """
 You are an implementation subagent for the DACN project.
