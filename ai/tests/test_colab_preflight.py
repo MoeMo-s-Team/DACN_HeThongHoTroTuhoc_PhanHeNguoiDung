@@ -205,6 +205,8 @@ def test_notebook_checks_lock_and_provenance_before_dry_run():
     assert 'sourceProofSha256' in source and 'verify_torch_wheel' in source
     assert 'validate_install_plan' in source
     snapshot_cell=''.join(notebook['cells'][3]['source'])
+    assert 'import json, platform, torch, hashlib, sys, subprocess' in snapshot_cell
+    assert 'from pathlib import Path' in snapshot_cell
     assert "not str(rel).endswith('.pyc')" not in snapshot_cell
     assert "not str(rel).endswith('.pyc')" not in source
     assert source.count('installed_torch_files()!=snapshot') == 2
