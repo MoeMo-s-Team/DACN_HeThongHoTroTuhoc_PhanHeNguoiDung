@@ -363,7 +363,10 @@ def test_notebook_installs_only_after_isolated_venv_preinstall_gates():
     assert 'system_site_packages_inventory' in snapshot
     assert '_torch_file_inventory' in snapshot
     assert 'systemSitePackagesFiles' in snapshot
-    assert "[sys.executable,'-m','venv',str(VENV_ROOT)]" in joined
+    assert "[sys.executable,'-m','venv','--without-pip',str(VENV_ROOT)],check=True,env=PIP_ENV" in joined
+    assert "[sys.executable,'-m','pip','--python',str(VENV_ROOT),'install','--index-url','https://pypi.org/simple','pip']" in joined
+    assert "'pipRoot':str(Path(pip.__file__).resolve().parent)" in joined
+    assert "Path(venv_info['pipRoot']).is_relative_to(Path(venv_info['prefix']))" in joined
     assert '--system-site-packages' not in joined
     dry_run=next(cell for cell in code if "'--dry-run'" in cell)
     installer=next(cell for cell in code if "'install','--require-hashes'" in cell)
@@ -381,6 +384,7 @@ def test_notebook_installs_only_after_isolated_venv_preinstall_gates():
     assert 'venvPythonExecutable' in dry_run and 'venvPythonExecutable' in installer
     assert 'include-system-site-packages = false' in installer
     assert 'installedPackages' in dry_run and 'installedPackages' in installer
+    assert 'pip bootstrapped into isolated venv; locked application dependencies not installed.' in dry_run
     assert '/content/dacn-venv-after.json' in joined
     preflight=next(cell for cell in code if "'pip','check'" in cell)
     assert "'gpu':venv_probe['gpu'].split(',')[0].strip()" in preflight
@@ -402,10 +406,14 @@ def test_notebook_installs_only_after_isolated_venv_preinstall_gates():
     assert code.index(smoke) < code.index(benchmark)
     resolver=next(''.join(cell['source']) for cell in notebook['cells'] if cell['cell_type']=='markdown' and 'Dependency lock gate' in ''.join(cell['source']))
     assert '%%bash' in resolver
+    assert 'set -euo pipefail' in resolver
+    assert 'venv --without-pip' in resolver
+    assert 'pip --python "$RESOLVER" install' in resolver
+    assert 'mktemp -d /content/phase1d3-lock-resolver.' in resolver
     assert 'for name in ${!PIP_@}; do unset \"$name\"; done' in resolver
     assert 'unset PYTHONPATH PYTHONHOME PYTHONUSERBASE PYTHONEXECUTABLE PYTHONSTARTUP PYTHONNOUSERSITE VIRTUAL_ENV' in resolver
     import os, subprocess
-    cleanup='\n'.join(line for line in resolver.splitlines() if line.startswith('for name in ${!PIP_@}') or line.startswith('unset PYTHONPATH'))
+    cleanup='set -euo pipefail\n'+'\n'.join(line for line in resolver.splitlines() if line.startswith('for name in ${!PIP_@}') or line.startswith('unset PYTHONPATH'))
     inherited={**os.environ,'PIP_PYTHON':'/system/python','PIP_TARGET':'/system/site','PYTHONPATH':'/system/modules','PYTHONHOME':'/system/python'}
     clean=subprocess.run(['bash','-c',cleanup+'\nenv'],env=inherited,capture_output=True,text=True,check=True).stdout
     assert all(name+'=' not in clean for name in ('PIP_PYTHON','PIP_TARGET','PYTHONPATH','PYTHONHOME'))
