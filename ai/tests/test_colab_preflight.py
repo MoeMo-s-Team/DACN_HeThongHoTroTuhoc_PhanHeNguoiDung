@@ -73,6 +73,16 @@ def test_verified_torch_wheel_requires_official_url_hash_and_installed_record(tm
     assert not verify_torch_wheel(str(wheel),url,digest,{**installed,'torch/__pycache__/intruder.cpython-313.pyc':'1'*64})
 
 
+def test_official_torch_cdn_link_keeps_index_hash(tmp_path):
+    from ai.colab.torch_provenance import official_wheel_link
+    wheel_name='torch-2.11.0+cu130-cp313-cp313-manylinux_2_28_x86_64.whl'
+    digest='a'*64
+    html=f'<a href="https://download-r2.pytorch.org/whl/cu130/{wheel_name}#sha256={digest}">{wheel_name}</a>'
+    link,expected=official_wheel_link(html)
+    assert link.startswith('https://download-r2.pytorch.org/')
+    assert expected==digest
+
+
 def test_real_pip_install_preserves_wheel_record_with_generated_pyc_and_script(tmp_path):
     import base64, csv, hashlib, io, json, subprocess, sys, venv, zipfile
     from ai.colab.preflight import verify_torch_wheel

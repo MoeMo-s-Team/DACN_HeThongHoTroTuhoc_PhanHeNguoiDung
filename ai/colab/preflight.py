@@ -95,7 +95,7 @@ def lock_contains_torch_hash(lock_text, digest):
 def verify_torch_wheel(wheel_path, source_url, expected_sha256, installed_files, python_executable=None, installed_root=None):
     parsed = urlparse(source_url)
     path = Path(wheel_path)
-    if parsed.scheme != 'https' or parsed.hostname != 'download.pytorch.org' or not path.is_file() or Path(unquote(parsed.path)).name != path.name:
+    if parsed.scheme != 'https' or parsed.hostname not in {'download.pytorch.org', 'download-r2.pytorch.org'} or not path.is_file() or Path(unquote(parsed.path)).name != path.name:
         return False
     if not path.name.startswith('torch-2.11.0+cu130-'):
         return False

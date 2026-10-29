@@ -15,6 +15,7 @@ from ai.colab.preflight import verify_torch_wheel
 
 INDEX = 'https://download.pytorch.org/whl/cu130/torch/'
 WHEEL = 'torch-2.11.0+cu130-cp313-cp313-manylinux_2_28_x86_64.whl'
+OFFICIAL_HOSTS = {'download.pytorch.org', 'download-r2.pytorch.org'}
 
 
 class WheelLinks(HTMLParser):
@@ -32,7 +33,7 @@ def official_wheel_link(index_html):
     if len(links)!=1:
         raise ValueError('official index must provide exactly one matching wheel')
     parsed=urlparse(links[0]); digest=parse_qs(parsed.fragment).get('sha256',[])
-    if parsed.scheme!='https' or parsed.hostname!='download.pytorch.org' or len(digest)!=1 or len(digest[0])!=64:
+    if parsed.scheme!='https' or parsed.hostname not in OFFICIAL_HOSTS or len(digest)!=1 or len(digest[0])!=64:
         raise ValueError('official wheel link is missing a valid SHA-256')
     return links[0],digest[0]
 
