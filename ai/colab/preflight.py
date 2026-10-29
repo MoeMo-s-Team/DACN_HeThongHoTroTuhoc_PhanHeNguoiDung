@@ -268,13 +268,19 @@ def verify_torch_wheel(wheel_path, source_url, expected_sha256, installed_files,
                         if not separator or not target.strip() or not callable_name or not re.fullmatch(r'[A-Za-z0-9_.-]+',script):
                             return False
                         import_name=callable_name.split('.',1)[0]
-                        text=(f'#!{python_executable}\n# -*- coding: utf-8 -*-\nimport re\nimport sys\n'
+                        # pip versions emit either the legacy regex wrapper or the newer removesuffix wrapper.
+                        legacy=(f'#!{python_executable}\n# -*- coding: utf-8 -*-\nimport re\nimport sys\n'
                             f'from {target.strip()} import {import_name}\nif __name__ == \'__main__\':\n'
                             f"    sys.argv[0] = re.sub(r'(-script\\.pyw|\\.exe)?$', '', sys.argv[0])\n"
                             f'    sys.exit({callable_name}())\n')
+                        modern=(f'#!{python_executable}\nimport sys\n'
+                            f'from {target.strip()} import {import_name}\nif __name__ == "__main__":\n'
+                            '    sys.argv[0] = sys.argv[0].removesuffix(".exe")\n'
+                            f'    sys.exit({callable_name}())\n')
                         installed_name='../../../bin/'+script
                         path=Path(installed_root)/installed_name
-                        if not path.is_file() or installed_files.get(installed_name)!=hashlib.sha256(path.read_bytes()).hexdigest() or path.read_bytes()!=text.encode():
+                        contents=path.read_bytes() if path.is_file() else b''
+                        if not contents or installed_files.get(installed_name)!=hashlib.sha256(contents).hexdigest() or contents not in (legacy.encode(),modern.encode()):
                             return False
                         generated_scripts.add(installed_name)
             generated={name for name in installed_files if name in {record_name,record_name.replace('/RECORD','/INSTALLER'),record_name.replace('/RECORD','/REQUESTED'),record_name.replace('/RECORD','/direct_url.json')}}
