@@ -277,7 +277,7 @@ def verify_torch_wheel(wheel_path, source_url, expected_sha256, installed_files,
                             f'from {target.strip()} import {import_name}\nif __name__ == "__main__":\n'
                             '    sys.argv[0] = sys.argv[0].removesuffix(".exe")\n'
                             f'    sys.exit({callable_name}())\n')
-                        modern_single_quote=modern.replace('"__main__"', "'__main__'")
+                        modern_single_quote=modern.replace('"__main__"', "'__main__'").replace('".exe"', "'.exe'")
                         installed_name='../../../bin/'+script
                         path=Path(installed_root)/installed_name
                         contents=path.read_bytes() if path.is_file() else b''

@@ -154,7 +154,7 @@ def test_real_pip_install_preserves_wheel_record_with_generated_pyc_and_script(t
     script_path.write_bytes(modern_script)
     modern_files=dict(installed); modern_files[script]=hashlib.sha256(modern_script).hexdigest()
     assert verify_torch_wheel(str(wheel),url,digest,modern_files,str(python),root)
-    single_quote_script=modern_script.replace(b'"__main__"',b"'__main__'")
+    single_quote_script=modern_script.replace(b'"__main__"',b"'__main__'").replace(b'".exe"',b"'.exe'")
     script_path.write_bytes(single_quote_script)
     single_quote_files=dict(installed); single_quote_files[script]=hashlib.sha256(single_quote_script).hexdigest()
     assert verify_torch_wheel(str(wheel),url,digest,single_quote_files,str(python),root)
