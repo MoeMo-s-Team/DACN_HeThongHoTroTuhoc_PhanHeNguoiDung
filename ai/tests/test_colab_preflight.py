@@ -408,6 +408,10 @@ def test_notebook_installs_only_after_isolated_venv_preinstall_gates():
     assert '%%bash' in resolver
     assert 'set -euo pipefail' in resolver
     assert 'venv --without-pip' in resolver
+    assert 'pip==25.1.1' in resolver
+    assert 'click==8.4.2' in resolver
+    assert resolver.index('pip-tools==7.5.2') < resolver.rindex('version(\"pip-tools\")')
+    assert 'version(\"pip\") == \"25.1.1\" and version(\"click\") == \"8.4.2\" and version(\"pip-tools\") == \"7.5.2\"' in resolver
     assert 'pip --python "$RESOLVER" install' in resolver
     assert 'mktemp -d /content/phase1d3-lock-resolver.' in resolver
     assert 'for name in ${!PIP_@}; do unset \"$name\"; done' in resolver
