@@ -34,8 +34,7 @@ If required data is insufficient according to the approved contract/baseline, re
 
 ## 5. Output Rules
 Return structured output only.
-Output must conform to the approved AI Contract/schema when available.
-Backend validation remains mandatory even when the runtime believes the output is valid.
+Parsed model output that is a JSON object may be passed unchanged in the contract success envelope even when task-schema-invalid, under approved AI Contract v1.0 Erratum 2 / CR-004. This is a narrow validation-boundary exception: it is untrusted and must not be treated as business success until NestJS authoritative schema and semantic validation succeeds. If model text is malformed, empty, or parses to a non-object, return the existing correlated HTTP 500 `INFERENCE_FAILED` error envelope; do not fabricate, repair or echo output. Backend validation remains mandatory even when runtime checks pass.
 
 Do not:
 - return authoritative metrics that the backend can calculate exactly;
