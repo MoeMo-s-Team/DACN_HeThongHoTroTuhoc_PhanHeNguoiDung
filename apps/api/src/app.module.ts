@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
+import { AiModule } from './ai/ai.module';
 import { validateJwtAccessSecret } from './auth/auth.config';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { HealthController } from './health.controller';
@@ -27,6 +28,7 @@ function validateEnvironment(config: Record<string, unknown>) {
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env', '.env'], validate: validateEnvironment }),
     PrismaModule,
     AuthModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
