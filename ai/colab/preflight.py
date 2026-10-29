@@ -277,10 +277,11 @@ def verify_torch_wheel(wheel_path, source_url, expected_sha256, installed_files,
                             f'from {target.strip()} import {import_name}\nif __name__ == "__main__":\n'
                             '    sys.argv[0] = sys.argv[0].removesuffix(".exe")\n'
                             f'    sys.exit({callable_name}())\n')
+                        modern_single_quote=modern.replace('"__main__"', "'__main__'")
                         installed_name='../../../bin/'+script
                         path=Path(installed_root)/installed_name
                         contents=path.read_bytes() if path.is_file() else b''
-                        if not contents or installed_files.get(installed_name)!=hashlib.sha256(contents).hexdigest() or contents not in (legacy.encode(),modern.encode()):
+                        if not contents or installed_files.get(installed_name)!=hashlib.sha256(contents).hexdigest() or contents not in (legacy.encode(),modern.encode(),modern_single_quote.encode()):
                             return False
                         generated_scripts.add(installed_name)
             generated={name for name in installed_files if name in {record_name,record_name.replace('/RECORD','/INSTALLER'),record_name.replace('/RECORD','/REQUESTED'),record_name.replace('/RECORD','/direct_url.json')}}
