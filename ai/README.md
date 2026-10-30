@@ -1,5 +1,17 @@
 # AI demo smoke
 
+## Serve the runtime from VS Code and Google Colab
+
+Open [`colab/serve-ai.ipynb`](colab/serve-ai.ipynb) in VS Code and select a Google Colab kernel with a Tesla T4. In the first cell, enter the repository URL and full commit SHA containing the AI Runtime source, then run all cells. Choose the existing Colab PyTorch environment; the notebook checks it and installs only missing pinned runtime packages. The model uses the normal Hugging Face cache.
+
+Enter the AI Runtime token only at the hidden prompt. After the Start cell, Status reports HTTP availability separately from worker/model `READY_AT_STARTUP`; this runtime has no live worker health endpoint. Run All intentionally leaves the server running. When finished, run `stop_runtime()` in a new code cell. The notebook does not run inference fixtures or smoke tests.
+
+FastAPI is bound to `127.0.0.1:8000` inside Colab, so a NestJS process on your local machine cannot reach it through localhost. No tunnel is created by the notebook. Cloudflare Tunnel plus Access is described separately as an unapproved technical proposal. Colab may stop the runtime after disconnect; continuous availability is not promised.
+
+For the VS Code kernel picker and remote notebook basics, see [VS Code Jupyter notebooks](https://code.visualstudio.com/docs/datascience/jupyter-notebooks) and [Google Colab](https://colab.research.google.com/notebooks/welcome.ipynb).
+
+---
+
 AI model verification for the DACN demo uses the Lite Colab notebook. The Phase 1D.3 Full Benchmark is retired as required demo work. Qwen2.5-1.5B-Instruct is a verified **demo candidate**, not a production-certified model.
 
 ## Run the Lite smoke on Colab
