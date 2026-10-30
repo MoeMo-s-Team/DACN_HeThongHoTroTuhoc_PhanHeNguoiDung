@@ -1,5 +1,6 @@
 """Small real-runtime smoke for the separate Phase 1D.3-Lite demo lane."""
 import json
+import hashlib
 import os
 import re
 import signal
@@ -41,7 +42,12 @@ def validate_pip_report(path):
         if not isinstance(installs, list) or report.get('version') != '1' or not isinstance(report.get('environment'), dict):
             raise ValueError('required pip report fields missing')
         for item in installs:
-            name = item['metadata']['name'].lower().replace('_', '-').replace('.', '-')
+            if not isinstance(item, dict) or not isinstance(item.get('metadata'), dict):
+                raise ValueError('pip install entry metadata missing')
+            raw_name = item['metadata'].get('name')
+            if not isinstance(raw_name, str) or not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?', raw_name.strip()):
+                raise ValueError('pip install entry package name missing')
+            name = raw_name.strip().lower().replace('_', '-').replace('.', '-')
             if name in {'torch', 'torchvision', 'torchaudio', 'bitsandbytes'}:
                 raise ValueError(f'unsafe install planned: {name}')
     except (OSError, json.JSONDecodeError, KeyError, TypeError, AttributeError) as error:
@@ -189,30 +195,77 @@ def _redact(value, secret):
     if isinstance(value, list):
         return [_redact(item, secret) for item in value]
     if isinstance(value, dict):
-        return {key: _redact(item, secret) for key, item in value.items()}
+        return {key.replace(secret, '[REDACTED_KEY]') if secret and key != 'sha256' else key:
+                item if key == 'sha256' else _redact(item, secret) for key, item in value.items()}
     return value
 
 
 def _returned_error(raw, token, input_value, status=None):
+    raw_bytes = raw if isinstance(raw, bytes) else str(raw).encode('utf-8', errors='replace')
     try:
-        value = json.loads(raw)
+        value = json.loads(raw_bytes)
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
-        value = raw.decode('utf-8', errors='replace') if isinstance(raw, bytes) else str(raw)
-    value = _redact(value, token)
-    input_text = json.dumps(input_value, ensure_ascii=False, separators=(',', ':'))
+        value = raw_bytes.decode('utf-8', errors='replace')
+    sensitive = set()
+    def collect(item):
+        if isinstance(item, dict):
+            for key, part in item.items():
+                sensitive.add(str(key))
+                collect(part)
+        elif isinstance(item, list):
+            for part in item:
+                collect(part)
+        elif isinstance(item, str) and len(item) > 1:
+            sensitive.add(item)
+        elif isinstance(item, (int, float)) and not isinstance(item, bool) and len(str(item)) >= 3:
+            sensitive.add(str(item))
+    collect(input_value)
+    if token:
+        sensitive.add(token)
+    compact_input = json.dumps(input_value, ensure_ascii=False, separators=(',', ':'))
+    pretty_input = json.dumps(input_value, ensure_ascii=False, indent=2)
+    sensitive.update((compact_input, pretty_input))
+    sensitive = sorted((value for value in sensitive if value), key=len, reverse=True)
+    field_pattern = re.compile(r'prompt|input|auth|token|secret|credential|bearer|api.?key', re.I)
+    def clean_text(text):
+        text = text.replace(token, '[REDACTED]') if token else text
+        for value in sensitive:
+            text = text.replace(value, '[REDACTED_INPUT]')
+        if field_pattern.search(text) and re.search(r'prompt|instruction', text, re.I):
+            return '[PROMPT_OR_INSTRUCTION_CONTENT_REDACTED]'
+        return text
     def scrub(item):
-        if isinstance(item, str):
-            return item.replace(input_text, '[REDACTED_INPUT]') if input_text else item
+        if isinstance(item, dict):
+            cleaned = {}
+            for key, part in item.items():
+                key = str(key)
+                if field_pattern.search(key):
+                    cleaned['[REDACTED_FIELD]'] = '[REDACTED]'
+                    continue
+                safe_key = clean_text(key)
+                cleaned[safe_key if safe_key == key else '[REDACTED_KEY]'] = scrub(part)
+            return cleaned
         if isinstance(item, list):
             return [scrub(part) for part in item]
-        if isinstance(item, dict):
-            return {key: '[REDACTED]' if re.search(r'prompt|authorization|token', str(key), re.I) else scrub(part)
-                    for key, part in item.items()}
+        if not isinstance(item, (dict, list, bool)) and item in input_leaves:
+            return '[REDACTED_INPUT]'
+        if isinstance(item, str):
+            return clean_text(item)
         return item
-    result = scrub(value)
-    if status is not None and not result:
-        return f'HTTP {status}'
-    return result
+    input_leaves = set()
+    def collect_leaves(item):
+        if isinstance(item, dict):
+            for part in item.values(): collect_leaves(part)
+        elif isinstance(item, list):
+            for part in item: collect_leaves(part)
+        elif isinstance(item, (str, int, float)) and not isinstance(item, bool):
+            input_leaves.add(item)
+    collect_leaves(input_value)
+    safe_body = scrub(value)
+    if not isinstance(value, (dict, list, str)):
+        safe_body = '[RESPONSE_BODY_REDACTED]'
+    return {'body': safe_body, 'sha256': hashlib.sha256(raw_bytes).hexdigest(),
+            **({'httpStatus': status} if status is not None else {})}
 
 
 def main():

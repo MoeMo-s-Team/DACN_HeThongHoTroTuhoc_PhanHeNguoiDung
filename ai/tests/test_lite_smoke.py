@@ -10,6 +10,16 @@ TASKS = {
     'STUDENT_STUDY_PLAN_ADJUSTMENT', 'TEACHER_CLASS_ANALYSIS',
     'ADMIN_FEEDBACK_GROUPING_STAGE1', 'ADMIN_FEEDBACK_SUMMARY_STAGE2',
 }
+PIP_ENVIRONMENT = {
+    'implementation': {'name': 'CPython', 'version': '3.12.0'},
+    'os_name': 'posix', 'platform_machine': 'x86_64', 'platform_release': '6.8.0',
+    'platform_system': 'Linux', 'platform_version': 'Linux', 'python_full_version': '3.12.0',
+    'python_version': '3.12', 'sys_platform': 'linux',
+}
+
+
+def pip_report(installs):
+    return {'version': '1', 'environment': PIP_ENVIRONMENT, 'install': installs}
 
 
 def test_lite_fixtures_have_exactly_one_record_per_task():
@@ -37,14 +47,25 @@ def test_pip_report_fails_closed_when_missing_or_malformed(tmp_path, report):
 
 def test_pip_report_accepts_real_report_version_string(tmp_path):
     path = tmp_path / 'report.json'
-    path.write_text(json.dumps({'version': '1', 'environment': {}, 'install': []}))
+    path.write_text(json.dumps(pip_report([])))
     assert validate_pip_report(path) is True
 
 
 @pytest.mark.parametrize('name', ['torch', 'torchvision', 'bitsandbytes'])
 def test_pip_report_rejects_torch_install_plan(tmp_path, name):
     path = tmp_path / 'report.json'
-    path.write_text(json.dumps({'install': [{'metadata': {'name': name}}]}))
+    path.write_text(json.dumps(pip_report([{'metadata': {'name': name, 'version': '2.0'}}])))
+    with pytest.raises(ValueError):
+        validate_pip_report(path)
+
+
+@pytest.mark.parametrize('entry', [
+    {}, {'metadata': {}}, {'metadata': {'name': ''}}, {'metadata': {'name': '   '}},
+    {'metadata': {'name': None}}, {'metadata': {'name': 7}}, {'metadata': {'name': '@@invalid@@'}},
+])
+def test_pip_report_rejects_malformed_or_empty_install_names(tmp_path, entry):
+    path = tmp_path / 'report.json'
+    path.write_text(json.dumps(pip_report([entry])))
     with pytest.raises(ValueError):
         validate_pip_report(path)
 
@@ -121,7 +142,8 @@ def test_runner_records_actual_returned_error(monkeypatch, tmp_path):
         'error': {'code': 'INFERENCE_FAILED', 'message': 'real failure'},
     }))
     result = run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
-    assert result['results'][0]['error'] == {'code': 'INFERENCE_FAILED', 'message': 'real failure'}
+    assert result['results'][0]['error']['body'] == {'code': 'INFERENCE_FAILED', 'message': 'real failure'}
+    assert len(result['results'][0]['error']['sha256']) == 64
 
 
 def test_malformed_http_200_response_is_failed_with_parse_error(monkeypatch, tmp_path):
@@ -138,7 +160,9 @@ def test_malformed_http_200_response_is_failed_with_parse_error(monkeypatch, tmp
     fixture['input'] = {'private': 'do not save'}
     result = run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
     assert result['results'][0]['status'] == 'FAILED'
-    assert result['results'][0]['error'] == 'bad response [REDACTED] [REDACTED_INPUT]'
+    error = result['results'][0]['error']
+    assert error['body'] == 'bad response [REDACTED] [REDACTED_INPUT]'
+    assert len(error['sha256']) == 64
 
 
 def test_http_error_retains_non_json_body_and_redacts_token(monkeypatch, tmp_path):
@@ -151,7 +175,36 @@ def test_http_error_retains_non_json_body_and_redacts_token(monkeypatch, tmp_pat
     error = urllib.error.HTTPError('http://runtime', 502, 'bad gateway', {}, io.BytesIO(b'gateway token'))
     monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: (_ for _ in ()).throw(error))
     result = run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
-    assert result['results'][0]['error'] == 'gateway [REDACTED]'
+    assert result['results'][0]['error']['body'] == 'gateway [REDACTED]'
+    assert len(result['results'][0]['error']['sha256']) == 64
+
+
+def test_response_sanitizer_removes_nested_prompt_inputs_and_tokens_everywhere():
+    import ai.benchmark.lite_smoke as smoke
+
+    token = 'runtime-secret-123'
+    input_value = {'profile': {'name': 'Private Learner', 'score': 98765}}
+    payload = {
+        'result': {
+            'input': input_value,
+            'prompt': 'system prompt contents',
+            'authorization': f'Bearer {token}',
+            'token': token,
+            'echo': 'prefix Private Learner suffix',
+        },
+        f'header-{token}': 'credential-key-value',
+        'safe': 'preserved diagnostic detail',
+    }
+    sanitized = smoke._returned_error(json.dumps(payload, indent=3).encode(), token, input_value)
+    serialized = json.dumps(sanitized, ensure_ascii=False)
+    for secret in (token, 'Private Learner', '98765', 'system prompt contents', 'credential-key-value'):
+        assert secret not in serialized
+    assert '[REDACTED_FIELD]' in sanitized['body']['result']
+    assert sanitized['body']['result']['echo'] == 'prefix [REDACTED_INPUT] suffix'
+    assert sanitized['body']['safe'] == 'preserved diagnostic detail'
+    for key in ('input', 'prompt', 'authorization', 'token'):
+        assert f'"{key}"' not in serialized
+    assert len(sanitized['sha256']) == 64
 
 
 def test_notebook_initializes_block_recorder_before_source_validation_and_records_prerequisite_failures():
