@@ -1,10 +1,8 @@
-export type User = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: 'STUDENT' | 'TEACHER' | 'ADMINISTRATOR';
-  status: 'ACTIVE';
-};
+import type { components } from '@dacn/contracts';
+
+export type User = components['schemas']['UserSummaryDto'];
+export type LoginInput = components['schemas']['LoginDto'];
+export type LoginResponse = components['schemas']['LoginResponseDto'];
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) {

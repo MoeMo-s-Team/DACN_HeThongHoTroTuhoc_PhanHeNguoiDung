@@ -9,6 +9,7 @@
     "test": "jest --runInBand",
     "test:integration": "tsx scripts/run-integration-tests.ts",
     "test:e2e:prepare": "tsx scripts/prepare-e2e.ts",
+    "openapi:generate": "tsx scripts/generate-openapi.ts ../../packages/contracts/openapi.json",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts"

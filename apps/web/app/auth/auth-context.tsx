@@ -3,10 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ApiError, apiRequest, clearAccessToken, getAccessToken, setAccessToken, setAuthFailureHandler, User } from './api';
+import { ApiError, apiRequest, clearAccessToken, getAccessToken, setAccessToken, setAuthFailureHandler } from './api';
+import type { LoginInput, LoginResponse, User } from './api';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'error';
-type LoginInput = { email: string; password: string };
 type AuthContextValue = {
   user: User | null;
   status: AuthStatus;
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
   useEffect(() => { void retry(); }, [retry]);
 
   const login = useCallback(async (input: LoginInput) => {
-    const result = await apiRequest<{ accessToken: string; user: User }>('/auth/login', {
+    const result = await apiRequest<LoginResponse>('/auth/login', {
       method: 'POST', body: JSON.stringify(input),
     });
     setAccessToken(result.accessToken);
