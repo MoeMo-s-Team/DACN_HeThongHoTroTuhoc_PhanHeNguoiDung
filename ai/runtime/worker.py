@@ -265,7 +265,6 @@ def _worker_main(connection, config: WorkerConfig, factory: Callable[[WorkerConf
                     except (BrokenPipeError, EOFError, OSError):
                         break
                 else:
-                    _write_raw_observation(request, result)
                     try:
                         connection.send(("result", result))
                     except (BrokenPipeError, EOFError, OSError):
@@ -287,35 +286,6 @@ def _worker_main(connection, config: WorkerConfig, factory: Callable[[WorkerConf
             except Exception:
                 pass
         connection.close()
-
-
-def _write_raw_observation(request: dict, result: Any) -> None:
-    directory = os.environ.get("AI_RUNTIME_OBSERVATION_DIR")
-    if not directory or os.environ.get("AI_RUNTIME_BENCHMARK_MODE") != "1":
-        return
-    request_id = request.get("requestId") if isinstance(request, dict) else None
-    if not isinstance(request_id, str) or not re.fullmatch(r"[a-zA-Z0-9-]{1,100}", request_id):
-        raise RuntimeUnavailable("benchmark observation request ID is invalid")
-    path = Path(directory)
-    if path.is_symlink():
-        raise RuntimeUnavailable("benchmark observation directory cannot be a symlink")
-    if not path.exists():
-        path.mkdir(mode=0o700)
-        os.chmod(path, 0o700)
-    info = path.stat()
-    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
-        raise RuntimeUnavailable("benchmark observation directory permissions are unsafe")
-    observation = {
-        "requestId": request_id,
-        "generatedText": getattr(result, "raw_text", ""),
-        "terminationReason": getattr(result, "termination_reason", "unknown"),
-        "outputTokenCount": getattr(result, "output_token_count", None),
-    }
-    target = path / f"{request_id}.json"
-    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as stream:
-        import json
-        json.dump(observation, stream, ensure_ascii=False)
 
 
 class WorkerController:

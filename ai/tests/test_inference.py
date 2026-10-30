@@ -451,7 +451,7 @@ def test_worker_startup_timing_does_not_change_inference_envelope():
         def infer(self, _request):
             return GenerationResult('{"summary":"ok"}', 1, "eos")
 
-    with open("ai/benchmark/fixtures/fixtures.jsonl", encoding="utf-8") as stream:
+    with open("ai/benchmark/fixtures/lite-smoke.jsonl", encoding="utf-8") as stream:
         fixture = json.loads(stream.readline())
     payload = {
         "contractVersion": "1.0", "requestId": "load-timing-check",

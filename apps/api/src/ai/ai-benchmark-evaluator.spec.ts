@@ -8,7 +8,7 @@ import { SchemaRegistryService } from './schema-registry.service';
 
 const root = join(process.cwd(), '../..');
 const pack = join(root, 'docs/releases/ai-contract-v1.0-schema-pack-release1/fixtures/valid');
-const corpus = join(root, 'ai/benchmark/fixtures/fixtures.jsonl');
+const corpus = join(root, 'ai/benchmark/fixtures/lite-smoke.jsonl');
 const rows = readFileSync(corpus, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
 const mapStrings = (value: unknown, fixtureId: string): unknown => {
   if (Array.isArray(value)) return value.map((item) => mapStrings(item, fixtureId));
@@ -21,13 +21,22 @@ const mapStrings = (value: unknown, fixtureId: string): unknown => {
 };
 
 describe('AI benchmark evaluator', () => {
-  it('validates every synthetic fixture through the production schema and input semantic validators', () => {
+  it('validates one Lite fixture per task through production schema and input semantic validators', () => {
     const schemas = new SchemaRegistryService(); const validator = new AiSemanticValidator(schemas);
-    expect(rows).toHaveLength(120);
+    expect(rows).toHaveLength(6);
+    expect(new Set(rows.map((row) => row.task)).size).toBe(6);
     for (const row of rows) {
       expect(schemas.get(row.task).input(row.input)).toBe(true);
       expect(() => validator.validateInput(row.task, row.input, row.authoritativeContext)).not.toThrow();
     }
+  });
+
+  it('accepts a valid Teacher input with no students requiring attention', () => {
+    const schemas = new SchemaRegistryService(); const validator = new AiSemanticValidator(schemas);
+    const row = rows.find((item) => item.task === 'TEACHER_CLASS_ANALYSIS');
+    const input = { ...row.input, needsAttentionStudents: [] };
+    expect(schemas.get(row.task).input(input)).toBe(true);
+    expect(() => validator.validateInput(row.task, input, row.authoritativeContext)).not.toThrow();
   });
 
   it('uses the backend oracle and distinguishes invalid, unknown and invented references', () => {

@@ -7,7 +7,7 @@ Prefer correctness, traceability, and complete end-to-end flows over unnecessary
 
 ## 2. Authority
 Current approved freeze: `DACN-REQ-UC-BL-2026-10-26-R3` (CR-001 + CR-002 incorporated).
-Use `docs/governance/Document_Governance_and_Traceability_Index_v1.3.md` for active downstream AI artifact authority and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for the unchanged R3 requirements/use-case freeze scope. The original frozen governance index v1.2 remains historical baseline evidence.
+Use `docs/governance/Document_Governance_and_Traceability_Index_v1.6.md` for active downstream AI artifact authority and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for the unchanged R3 requirements/use-case freeze scope. Governance indexes v1.2–v1.5 remain preserved historical records.
 Use this order when decisions conflict:
 1. `docs/baseline/SRS_v1.6_baseline_final.md`
 2. `docs/baseline/Use_Case_Diagram_he_thong_ho_tro_tu_hoc_AI_v1.4_baseline_rev1.md`
@@ -16,12 +16,12 @@ Use this order when decisions conflict:
 5. `docs/baseline/API_Specification_v1.5_baseline_final.md` (public REST contract)
 6. `docs/baseline/Activity_Diagram_3_AI_Main_Flows_v1.3_baseline_final.md` (AI orchestration)
 7. `docs/baseline/UI_Sitemap_v1.1_baseline.md` + `docs/baseline/Wireframe_Screen_Specification_v1.1_baseline_final.md`
-8. `docs/baseline/AI_Contract_v1.0_baseline_final.md` plus approved `docs/releases/ai-contract-v1.0-schema-pack-release1/AI_Contract_v1.0_Erratum_1_approved.md` (internal NestJS ↔ AI Runtime contract)
+8. `docs/baseline/AI_Contract_v1.0_baseline_final.md` plus approved `docs/releases/ai-contract-v1.0-schema-pack-release1/AI_Contract_v1.0_Erratum_1_approved.md` (internal NestJS ↔ AI Runtime contract). The approved `docs/releases/phase-1d3-demo-acceptance-release1/Phase_1D3_Demo_Acceptance_Supplement.md` narrowly supersedes §17 only for DACN demo model-candidate smoke acceptance; it does not alter §15.4, CR-002 capacity requirements, or production certification. Retired Full Benchmark source is mapped in `docs/archive/phase-1d3-full-benchmark-source-v1.md`.
 9. `docs/architecture/Global UI Design System — Editorial Tech.md` (presentation only)
 10. `docs/baseline/System_Architecture_and_Technology_Stack_v1.1_baseline.md`
 11. Approved ADRs in `docs/decisions/`
 
-Follow approved `CR-001`/`CR-002` in `docs/baseline/` and approved downstream `CR-003` in `docs/releases/ai-contract-v1.0-schema-pack-release1/`. Higher-authority requirements/business/API sources win; the AI Contract and approved Erratum 1 govern internal inference only. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
+Follow approved `CR-001`/`CR-002` in `docs/baseline/`, approved downstream `CR-003` in `docs/releases/ai-contract-v1.0-schema-pack-release1/`, and the scoped Phase 1D.3 Demo Acceptance Supplement recorded in governance index v1.6. Higher-authority requirements/business/API sources win; the AI Contract and approved Erratum 1 govern internal inference except for that demo-only §17 supplement. It does not supersede AI Contract §15.4 or CR-002 capacity rules. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
 
 ## 3. Frozen Baseline and Proposal Mode
 Treat `docs/baseline/` as read-only during implementation. Never edit, rename, delete, regenerate, auto-format frozen files, or auto-update `BASELINE_MANIFEST.sha256`.

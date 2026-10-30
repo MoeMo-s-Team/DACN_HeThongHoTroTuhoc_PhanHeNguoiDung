@@ -5,7 +5,6 @@ import hmac
 import inspect
 import json
 import os
-import hashlib
 import logging
 import stat
 import uuid
@@ -170,13 +169,7 @@ def create_app(worker_factory: Callable[[RuntimeConfig], Any], config: Any) -> F
         except ValueError:
             return _error(request_id, "INVALID_REQUEST", "Invalid request", 400)
         if os.environ.get("AI_RUNTIME_BENCHMARK_MODE") == "1":
-            if any(os.environ.get(name, "").lower() == "production" for name in ("NODE_ENV", "AI_RUNTIME_ENV", "AI_DEPLOYMENT_MODE")):
-                return _error(request_id, "INVALID_REQUEST", "Invalid request", 400)
-            canonical = json.dumps({"task": value["task"], "input": value["input"]}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-            digest = hashlib.sha256(canonical.encode()).hexdigest()
-            allowed = set(filter(None, os.environ.get("AI_RUNTIME_BENCHMARK_ALLOWLIST", "").split(",")))
-            if digest not in allowed:
-                return _error(request_id, "INVALID_REQUEST", "Invalid request", 400)
+            return _error(request_id, "INVALID_REQUEST", "Invalid request", 400)
         generated = None
         try:
             generated = await asyncio.to_thread(worker.infer, value)

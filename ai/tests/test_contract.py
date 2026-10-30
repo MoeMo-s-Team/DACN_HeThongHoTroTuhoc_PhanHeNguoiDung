@@ -169,38 +169,21 @@ def test_missing_or_wrong_bearer_rejects_before_worker_admission(headers):
     assert "secret" not in response.text and "wrong" not in response.text
 
 
-def test_benchmark_mode_rejects_non_allowlisted_input_before_worker(monkeypatch):
-    monkeypatch.setenv("AI_RUNTIME_BENCHMARK_MODE", "1")
-    monkeypatch.setenv("AI_RUNTIME_BENCHMARK_ALLOWLIST", "a" * 64)
-    worker = FakeWorker('{}')
-    body = request('STUDENT_LEARNING_ANALYSIS')
-    with TestClient(build_app(worker)) as client:
-        response = client.post('/v1/infer', json=body, headers=auth())
-    assert response.status_code == 400
-    assert worker.calls == []
-
-
-def test_benchmark_mode_is_rejected_when_runtime_is_production(monkeypatch):
-    monkeypatch.setenv('AI_RUNTIME_BENCHMARK_MODE', '1')
-    monkeypatch.setenv('NODE_ENV', 'production')
-    worker = FakeWorker('{}')
-    with TestClient(build_app(worker)) as client:
-        response = client.post('/v1/infer', json=request('STUDENT_LEARNING_ANALYSIS'), headers=auth())
-    assert response.status_code == 400
-    assert worker.calls == []
-
-
-def test_benchmark_mode_accepts_only_exact_task_input_hash(monkeypatch):
-    import hashlib
+@pytest.mark.parametrize("runtime_env", ["development", "production"])
+def test_legacy_benchmark_mode_fails_closed_even_for_allowlisted_request(monkeypatch, runtime_env):
     body = request('STUDENT_LEARNING_ANALYSIS')
     canonical = json.dumps({'task': body['task'], 'input': body['input']}, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
     monkeypatch.setenv('AI_RUNTIME_BENCHMARK_MODE', '1')
     monkeypatch.setenv('AI_RUNTIME_BENCHMARK_ALLOWLIST', hashlib.sha256(canonical.encode()).hexdigest())
+    if runtime_env == "production":
+        monkeypatch.setenv('NODE_ENV', 'production')
+    else:
+        monkeypatch.delenv('NODE_ENV', raising=False)
     worker = FakeWorker('{"strengths":[],"areasToImprove":[],"priorityTopics":[],"reasons":[]}')
     with TestClient(build_app(worker)) as client:
         response = client.post('/v1/infer', json=body, headers=auth())
-    assert response.status_code == 200
-    assert worker.calls == [body]
+    assert response.status_code == 400
+    assert worker.calls == []
 
 
 @pytest.mark.parametrize("bad,code", [

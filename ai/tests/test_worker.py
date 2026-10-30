@@ -401,21 +401,15 @@ def test_default_worker_verifies_actual_gpu_uuid_before_model_load(monkeypatch):
         worker._verify_gpu_uuid("GPU-00000000-0000-0000-0000-000000000456")
 
 
-def test_gpu_uuid_is_bound_in_child_and_raw_observation_is_opt_in_private(tmp_path, monkeypatch):
+def test_gpu_uuid_is_bound_in_child(tmp_path):
     require_runtime()
-    monkeypatch.setenv('AI_RUNTIME_BENCHMARK_MODE', '1')
-    monkeypatch.setenv('AI_RUNTIME_OBSERVATION_DIR', str(tmp_path / 'observations'))
     visible = tmp_path / 'visible'
     controller = make_controller(tmp_path / 'locks', EnvFactory(visible, tmp_path / 'calls', tmp_path / 'started'))
     controller.config.lock_directory and Path(controller.config.lock_directory).mkdir(mode=0o700)
     controller.start()
-    controller.infer({'requestId': 'request-raw-test'})
+    controller.infer({'requestId': 'request-gpu-test'})
     controller.close()
-    observation = tmp_path / 'observations/request-raw-test.json'
     assert visible.read_text() == controller.config.gpu_uuid
-    assert observation.stat().st_mode & 0o777 == 0o600
-    assert observation.read_text() == '{"requestId": "request-raw-test", "generatedText": "{}", "terminationReason": "eos", "outputTokenCount": 1}'
-    assert 'input' not in observation.read_text()
 
 
 def test_canonical_lock_directory_creation_overrides_umask(tmp_path):
