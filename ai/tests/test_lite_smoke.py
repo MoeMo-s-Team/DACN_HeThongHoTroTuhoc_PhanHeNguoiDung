@@ -204,6 +204,7 @@ def test_persisted_hashless_http_error_with_results_token_is_sanitized(monkeypat
     monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture] * 6)
     error = urllib.error.HTTPError('http://runtime', 502, 'bad gateway', {}, io.BytesIO(b'gateway failure'))
     monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: (_ for _ in ()).throw(error))
+    monkeypatch.setattr(smoke, '_returned_error', lambda *_args, **_kwargs: {'body': 'gateway failure'})
 
     result = run_smoke('http://127.0.0.1:8000/v1/infer', 'results', tmp_path, model_id='model')
     evidence_path = next(tmp_path.glob('lite-*.json'))
@@ -212,6 +213,7 @@ def test_persisted_hashless_http_error_with_results_token_is_sanitized(monkeypat
     assert len(persisted['results']) == 6
     assert persisted['results'][0]['httpStatus'] == 502
     assert persisted['results'][0]['error']['body'] == 'gateway failure'
+    assert persisted['results'][0]['error']['sha256'] is None
     assert 'results' in persisted and len(result['results']) == 6
     assert 'results' not in json.dumps(persisted['results'][0]['error'])
 
