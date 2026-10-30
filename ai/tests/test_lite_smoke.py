@@ -326,13 +326,40 @@ def test_notebook_initializes_block_recorder_before_source_validation_and_record
     notebook = json.loads(Path('ai/colab/phase-1d3-lite.ipynb').read_text())
     setup = ''.join(notebook['cells'][1]['source'])
     prerequisites = ''.join(notebook['cells'][2]['source'])
-    assert setup.index('def block(') < setup.index('if not REPO_URL or not REPO_REF:')
+    node_setup = ''.join(notebook['cells'][3]['source'])
+    runtime_setup = ''.join(notebook['cells'][4]['source'])
+    smoke = ''.join(notebook['cells'][5]['source'])
+    assert setup.index('def block(') < setup.index("if not REPO_URL or not re.fullmatch")
+    assert 'shutil.rmtree' not in setup
+    assert "re.fullmatch(r'[0-9a-f]{40}', REPO_REF)" in setup
+    assert 'source_commit' in setup and 'sourceCommit' in smoke
+    assert "Path('/content/dacn')" not in prerequisites and 'str(repo)' in prerequisites
     assert 'try:' in prerequisites[:prerequisites.index('nvidia-smi')]
     assert 'except Exception as exc:' in prerequisites
     assert 'block(f"BLOCKED: GPU/Torch prerequisites unavailable:' in prerequisites
+    assert "['corepack', 'enable', '--install-directory'" in node_setup
+    assert 'run_id' in setup and 'run_id' in smoke
+    assert 'def stop_runtime()' in runtime_setup
+    assert 'finally:' in smoke and 'stop_runtime()' in smoke
+    assert "'nestjsLive': live" in smoke and 'check=False' in smoke
     for cell in notebook['cells']:
         if cell['cell_type'] == 'code':
             compile(''.join(cell['source']), 'notebook-cell', 'exec')
+
+
+def test_smoke_reruns_write_separate_evidence_files(monkeypatch, tmp_path):
+    import ai.benchmark.lite_smoke as smoke
+
+    fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
+    monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture])
+    monkeypatch.setattr(smoke, 'post_request', lambda *_args: (_ for _ in ()).throw(TimeoutError('late')))
+    stamps = iter((1, 2, 3, 4))
+    monkeypatch.setattr(smoke.time, 'time_ns', lambda: next(stamps))
+
+    run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
+    run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
+
+    assert len(list(tmp_path.glob('lite-*.json'))) == 2
 
 
 def test_timeout_and_startup_failure_are_evidence(monkeypatch, tmp_path):

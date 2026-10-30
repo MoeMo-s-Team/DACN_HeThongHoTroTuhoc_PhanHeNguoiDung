@@ -179,7 +179,7 @@ def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures
                   'dependencyVersions': dependencies,
               }}
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    path = Path(output_dir) / f"lite-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    path = Path(output_dir) / f"lite-{time.time_ns()}.json"
     for row in record['results']:
         error = row.get('error')
         if isinstance(error, dict):
