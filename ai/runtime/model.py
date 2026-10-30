@@ -30,12 +30,15 @@ class ModelConfig:
     max_new_tokens: int = 1024
     input_safety_margin_tokens: int = 128
     context_window_tokens: int | None = None
+    load_mode: str = "nf4"
 
     def __post_init__(self):
         if not self.model_id or not re.fullmatch(r"[0-9a-f]{40}", self.revision):
             raise ValueError("immutable model ID and revision are required")
         if self.max_new_tokens <= 0 or self.input_safety_margin_tokens < 0:
             raise ValueError("invalid model generation limits")
+        if self.load_mode not in {"nf4", "fp16"}:
+            raise ValueError("AI_RUNTIME_LOAD_MODE must be nf4 or fp16")
 
     @classmethod
     def from_environment(cls) -> "ModelConfig":
@@ -50,6 +53,7 @@ class ModelConfig:
             input_safety_margin_tokens=int(os.environ.get("AI_RUNTIME_INPUT_MARGIN_TOKENS", "128")),
             context_window_tokens=int(os.environ["AI_RUNTIME_CONTEXT_WINDOW_TOKENS"])
             if os.environ.get("AI_RUNTIME_CONTEXT_WINDOW_TOKENS") else None,
+            load_mode=os.environ.get("AI_RUNTIME_LOAD_MODE", "nf4"),
         )
 
 
@@ -62,6 +66,7 @@ class LoadedModel:
     input_safety_margin_tokens: int
     model_id: str
     prompt_versions: dict[str, str] = field(default_factory=lambda: dict(PROMPT_VERSIONS))
+    load_duration_seconds: float | None = None
 
 
 _model: LoadedModel | None = None
@@ -71,18 +76,28 @@ def load_model(config: ModelConfig) -> LoadedModel:
     if config.max_new_tokens <= 0 or config.input_safety_margin_tokens < 0:
         raise ValueError("invalid model generation limits")
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    quantization = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.float16,
-    )
+    load_options = {"device_map": "auto"}
+    if config.load_mode == "nf4":
+        from transformers import BitsAndBytesConfig
+        load_options["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.float16,
+        )
+    else:
+        load_options["torch_dtype"] = torch.float16
     tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision)
     model = AutoModelForCausalLM.from_pretrained(
-        config.model_id, revision=config.revision, quantization_config=quantization, device_map="auto",
+        config.model_id, revision=config.revision, **load_options,
     )
+    if config.load_mode == "fp16" and any(
+        not str(parameter.device).startswith("cuda") or parameter.dtype is not torch.float16
+        for parameter in model.parameters()
+    ):
+        raise RuntimeError("FP16 model parameters must be on CUDA and float16")
     model_context = getattr(model.config, "max_position_embeddings", None)
     context_window = min(config.context_window_tokens, model_context) if config.context_window_tokens else model_context
     if not isinstance(context_window, int) or context_window <= 0:

@@ -39,6 +39,7 @@ class FakeFactory:
 class FakeEngine:
     model_id = "test-model"
     prompt_versions = {"STUDENT_LEARNING_ANALYSIS": "stu-learning-analysis-v1"}
+    load_duration_seconds = 1.25
 
     def __init__(self, factory):
         self.factory = factory
@@ -114,6 +115,19 @@ def test_default_deadline_is_55_seconds_and_longer_is_rejected():
     assert DEFAULT_REQUEST_TIMEOUT_SECONDS == 55
     with pytest.raises(ValueError):
         WorkerConfig(gpu_uuid="GPU-00000000-0000-0000-0000-000000000123", request_timeout_seconds=55.1)
+
+
+def test_worker_preserves_model_load_duration_in_ready_metadata_only(tmp_path):
+    require_runtime()
+    controller = make_controller(tmp_path, FakeFactory(tmp_path / "calls", tmp_path / "started"))
+    controller.start()
+    try:
+        assert controller.load_duration_seconds == 1.25
+        result = controller.infer({"task": "STUDENT_LEARNING_ANALYSIS"})
+        assert result.raw_text == "{}"
+        assert not hasattr(result, "load_duration_seconds")
+    finally:
+        controller.close()
 
 
 def test_deadline_marks_unhealthy_terminates_kills_and_joins(tmp_path):

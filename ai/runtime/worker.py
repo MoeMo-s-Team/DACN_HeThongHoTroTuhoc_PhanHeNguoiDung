@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fcntl
+import logging
 import multiprocessing as mp
 import os
 import re
@@ -216,7 +217,12 @@ def _verify_gpu_uuid(gpu_uuid: str) -> None:
 
 def _default_factory(config: WorkerConfig):
     from ai.runtime.model import ModelConfig, load_model
-    return load_model(ModelConfig.from_environment())
+    model_config = ModelConfig.from_environment()
+    started = time.monotonic()
+    engine = load_model(model_config)
+    engine.load_duration_seconds = time.monotonic() - started
+    logging.getLogger(__name__).info("AI model loaded in %.3f seconds", engine.load_duration_seconds)
+    return engine
 
 
 def _run_inference(engine: Any, request: dict):
@@ -238,6 +244,7 @@ def _worker_main(connection, config: WorkerConfig, factory: Callable[[WorkerConf
             connection.send(("READY", {
                 "model_id": getattr(engine, "model_id", ""),
                 "prompt_versions": getattr(engine, "prompt_versions", {}),
+                "load_duration_seconds": getattr(engine, "load_duration_seconds", None),
             }))
             while True:
                 try:
@@ -315,6 +322,7 @@ class WorkerController:
         self.state = WorkerState.STOPPED
         self.model_id = ""
         self.prompt_versions: dict[str, str] = {}
+        self.load_duration_seconds: float | None = None
         self._process = None
         self._connection = None
         self._admission = threading.Lock()
@@ -348,6 +356,7 @@ class WorkerController:
             raise RuntimeUnavailable("runtime worker startup failed")
         self.model_id = metadata["model_id"]
         self.prompt_versions = metadata["prompt_versions"]
+        self.load_duration_seconds = metadata.get("load_duration_seconds")
         with self._state_lock:
             self.state = WorkerState.READY
 

@@ -179,6 +179,133 @@ def test_load_model_is_lazy_and_requests_pinned_nf4_configuration(monkeypatch):
     assert calls["eval"]
 
 
+def _install_fake_model_loaders(monkeypatch, parameter_devices=()):
+    import sys
+    import types
+    from ai.runtime.model import ModelConfig, load_model
+    calls = {}
+    class FakeQuant:
+        def __init__(self, **kwargs):
+            calls["quantization"] = kwargs
+    class FakeTokenizerLoader:
+        @staticmethod
+        def from_pretrained(model_id, revision):
+            return FakeTokenizer()
+    class FakeModelConfig:
+        max_position_embeddings = 4096
+    class FakeParameter:
+        def __init__(self, device, dtype):
+            self.device, self.dtype = device, dtype
+    class FakeLoadedModel:
+        config = FakeModelConfig()
+        def parameters(self):
+            return iter(FakeParameter(device, dtype) for device, dtype in parameter_devices)
+        def eval(self):
+            pass
+    class FakeModelLoader:
+        @staticmethod
+        def from_pretrained(model_id, **kwargs):
+            calls["model"] = kwargs
+            return FakeLoadedModel()
+    fake_torch = types.SimpleNamespace(float16="float16", cuda=types.SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "transformers", types.SimpleNamespace(
+        AutoModelForCausalLM=FakeModelLoader, AutoTokenizer=FakeTokenizerLoader,
+        BitsAndBytesConfig=FakeQuant,
+    ))
+    return ModelConfig, load_model, calls
+
+
+def test_load_model_fp16_uses_half_precision_without_quantization(monkeypatch):
+    require_runtime()
+    from ai.runtime.model import ModelConfig
+    monkeypatch.setenv("AI_RUNTIME_MODEL_ID", "candidate/model")
+    monkeypatch.setenv("AI_RUNTIME_MODEL_REVISION", "a" * 40)
+    monkeypatch.setenv("AI_RUNTIME_LOAD_MODE", "fp16")
+    config = ModelConfig.from_environment()
+    _, load_model, calls = _install_fake_model_loaders(monkeypatch, [("cuda:0", "float16")])
+    load_model(config)
+    assert calls["model"]["torch_dtype"] == "float16"
+    assert "quantization_config" not in calls["model"]
+    assert "quantization" not in calls
+
+
+@pytest.mark.parametrize("device,dtype", [("cpu", "float16"), ("cuda:0", "float32")])
+def test_load_model_rejects_fp16_parameters_not_on_cuda_or_half_precision(monkeypatch, device, dtype):
+    require_runtime()
+    from ai.runtime.model import ModelConfig
+    config = ModelConfig("candidate/model", "a" * 40, load_mode="fp16")
+    _, load_model, _ = _install_fake_model_loaders(monkeypatch, [(device, dtype)])
+    with pytest.raises(RuntimeError, match="CUDA and float16"):
+        load_model(config)
+
+
+def test_model_config_defaults_to_nf4_and_rejects_unsupported_load_mode(monkeypatch):
+    require_runtime()
+    from ai.runtime.model import ModelConfig
+    monkeypatch.setenv("AI_RUNTIME_MODEL_ID", "candidate/model")
+    monkeypatch.setenv("AI_RUNTIME_MODEL_REVISION", "a" * 40)
+    monkeypatch.delenv("AI_RUNTIME_LOAD_MODE", raising=False)
+    assert ModelConfig.from_environment().load_mode == "nf4"
+    monkeypatch.setenv("AI_RUNTIME_LOAD_MODE", "bf16")
+    with pytest.raises(ValueError, match="AI_RUNTIME_LOAD_MODE"):
+        ModelConfig.from_environment()
+
+
+def test_worker_startup_timing_does_not_change_inference_envelope():
+    require_runtime()
+    import asyncio
+    from starlette.requests import Request
+    from ai.runtime.app import create_app
+
+    class FakeWorker:
+        model_id = "test-model"
+        prompt_versions = {"STUDENT_LEARNING_ANALYSIS": "stu-learning-analysis-v1"}
+        load_duration_seconds = 1.25
+
+        def start(self):
+            pass
+
+        def close(self):
+            pass
+
+        def infer(self, _request):
+            return GenerationResult('{"summary":"ok"}', 1, "eos")
+
+    with open("ai/benchmark/fixtures/fixtures.jsonl", encoding="utf-8") as stream:
+        fixture = json.loads(stream.readline())
+    payload = {
+        "contractVersion": "1.0", "requestId": "load-timing-check",
+        "task": fixture["task"], "locale": "vi-VN", "input": fixture["input"],
+    }
+    app = create_app(lambda _config: FakeWorker(), {"AI_RUNTIME_TOKEN": None})
+    async def make_request():
+        async with app.router.lifespan_context(app):
+            body = json.dumps(payload).encode()
+            received = False
+
+            async def receive():
+                nonlocal received
+                if not received:
+                    received = True
+                    return {"type": "http.request", "body": body, "more_body": False}
+                return {"type": "http.disconnect"}
+
+            request = Request({
+                "type": "http", "method": "POST", "path": "/v1/infer",
+                "headers": [], "query_string": b"", "server": ("test", 80),
+                "scheme": "http", "http_version": "1.1", "client": ("test", 1), "app": app,
+            }, receive)
+            endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/v1/infer")
+            response = await endpoint(request)
+            return response.status_code, json.loads(response.body)
+
+    status, response = asyncio.run(make_request())
+    assert status == 200
+    assert set(response) == {"contractVersion", "requestId", "task", "output", "runtime"}
+    assert set(response["runtime"]) == {"modelId", "promptVersion"}
+
+
 def test_generation_returns_malformed_text_unchanged_for_runtime_classification(monkeypatch):
     require_runtime()
     fake_model, _ = install_model(monkeypatch, tokenizer=FakeTokenizer(decoded="not-json"))
