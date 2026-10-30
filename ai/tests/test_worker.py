@@ -197,6 +197,49 @@ def test_inference_crash_marks_unhealthy_without_retry(tmp_path):
         controller.close()
 
 
+def test_lite_diagnostic_keeps_safe_worker_error_type_only_for_synthetic_input(tmp_path, monkeypatch):
+    require_runtime()
+    import json
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    lite_fixture = next(
+        json.loads(line) for line in (Path("ai/benchmark/fixtures/lite-smoke.jsonl")).read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    request = {"task": task, "input": lite_fixture["input"]}
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+    controller = make_controller(tmp_path, FakeFactory(tmp_path / "calls", tmp_path / "started", error="private-detail"))
+    controller.start()
+    try:
+        with pytest.raises(InferenceFailure) as error:
+            controller.infer(request)
+        assert error.value.diagnostic_error_type == "RuntimeError"
+        assert "private-detail" not in str(error.value)
+        assert call_count(tmp_path / "calls") == 1
+    finally:
+        controller.close()
+
+
+def test_lite_diagnostic_worker_error_type_is_off_without_opt_in(tmp_path, monkeypatch):
+    require_runtime()
+    import json
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    lite_fixture = next(
+        json.loads(line) for line in (Path("ai/benchmark/fixtures/lite-smoke.jsonl")).read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    monkeypatch.delenv("AI_RUNTIME_LITE_DIAGNOSTICS", raising=False)
+    controller = make_controller(tmp_path, FakeFactory(tmp_path / "calls", tmp_path / "started", error="private-detail"))
+    controller.start()
+    try:
+        with pytest.raises(InferenceFailure) as error:
+            controller.infer({"task": task, "input": lite_fixture["input"]})
+        assert getattr(error.value, "diagnostic_error_type", None) is None
+    finally:
+        controller.close()
+
+
 def test_second_controller_cannot_initialize_same_gpu_until_lock_released(tmp_path):
     require_runtime()
     first_calls, first_started = tmp_path / "first-calls", tmp_path / "first-started"

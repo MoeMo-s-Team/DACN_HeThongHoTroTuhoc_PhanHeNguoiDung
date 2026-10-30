@@ -162,5 +162,10 @@ def generate(task: str, input: dict) -> GenerationResult:
         return GenerationResult(text, len(output_tokens), "eos" if eos else "length")
     except InputTooLarge:
         raise
-    except Exception:
-        raise GenerationFailure("inference failed") from None
+    except Exception as error:
+        failure = GenerationFailure("inference failed")
+        if os.environ.get("AI_RUNTIME_LITE_DIAGNOSTICS") == "1":
+            from ai.runtime.diagnostics import is_lite_stage1_fixture
+            if is_lite_stage1_fixture({"task": task, "input": input}):
+                failure.diagnostic_error_type = type(error).__name__
+        raise failure from None

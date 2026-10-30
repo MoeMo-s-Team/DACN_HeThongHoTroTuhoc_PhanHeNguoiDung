@@ -93,10 +93,15 @@ def evaluate_output(fixture, output):
 
 
 def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures_path=None, timeout=59,
-              evidence=None):
+              evidence=None, tasks=None):
     if not 0 < timeout <= 60:
         raise ValueError('per-attempt timeout must be at most 60 seconds')
+    selected_tasks = list(TASKS) if tasks is None else list(tasks)
+    if (not selected_tasks or len(set(selected_tasks)) != len(selected_tasks)
+            or any(task not in TASKS for task in selected_tasks)):
+        raise ValueError('task filter must contain unique supported tasks')
     fixtures = load_fixtures(fixtures_path or Path(__file__).parent / 'fixtures/lite-smoke.jsonl')
+    fixtures = [fixture for fixture in fixtures if fixture['task'] in selected_tasks]
     evaluate = evaluator or evaluate_output
     results = []
     for fixture in fixtures:
@@ -169,7 +174,10 @@ def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures
             dependencies[package] = version(package)
         except PackageNotFoundError:
             dependencies[package] = None
-    record = {'status': 'PASS' if len(results) == 6 and all(row['status'] == 'PASS' for row in results) else 'FAIL',
+    all_selected_pass = len(results) == len(selected_tasks) and all(row['status'] == 'PASS' for row in results)
+    full_scope = set(selected_tasks) == set(TASKS) and len(selected_tasks) == len(TASKS)
+    record = {'status': 'PASS' if full_scope and all_selected_pass else 'PARTIAL_PASS' if all_selected_pass else 'FAIL',
+              'selectedTasks': selected_tasks,
               'modelId': model_id, 'modelRevision': os.getenv('AI_RUNTIME_MODEL_REVISION', MODEL_REVISION),
               'results': results, 'evidence': evidence or {
                   'gpu': os.getenv('AI_RUNTIME_GPU_NAME'), 'gpuUuid': os.getenv('AI_RUNTIME_GPU_UUID'),
@@ -292,11 +300,13 @@ def main():
     parser.add_argument('--output-dir', default='ai/benchmark/lite-results')
     parser.add_argument('--endpoint', default=os.getenv('AI_RUNTIME_BASE_URL', 'http://127.0.0.1:8000') + '/v1/infer')
     parser.add_argument('--model-id', default=os.getenv('AI_RUNTIME_MODEL_ID', MODEL_ID))
+    parser.add_argument('--task', action='append', choices=TASKS)
     args = parser.parse_args()
     token = os.getenv('AI_RUNTIME_TOKEN')
     if not token:
         parser.error('AI_RUNTIME_TOKEN is required')
-    print(json.dumps(run_smoke(args.endpoint, token, args.output_dir, model_id=args.model_id), ensure_ascii=False))
+    print(json.dumps(run_smoke(args.endpoint, token, args.output_dir, model_id=args.model_id,
+                               tasks=args.task), ensure_ascii=False))
 
 
 if __name__ == '__main__':

@@ -333,16 +333,23 @@ def test_notebook_initializes_block_recorder_before_source_validation_and_record
     assert 'shutil.rmtree' not in setup
     assert "re.fullmatch(r'[0-9a-f]{40}', REPO_REF)" in setup
     assert 'source_commit' in setup and 'sourceCommit' in smoke
+    assert "LITE_TASK_FILTER = 'ADMIN_FEEDBACK_GROUPING_STAGE1'" in setup
+    assert 'ENABLE_LITE_DIAGNOSTICS = True' in setup
     assert "Path('/content/dacn')" not in prerequisites and 'str(repo)' in prerequisites
     assert 'try:' in prerequisites[:prerequisites.index('nvidia-smi')]
     assert 'except Exception as exc:' in prerequisites
     assert 'block(f"BLOCKED: GPU/Torch prerequisites unavailable:' in prerequisites
     assert "['corepack', 'enable', '--install-directory'" in node_setup
+    assert node_setup.index("['pnpm', 'install'") < node_setup.index("'prisma', 'generate'")
     assert 'run_id' in setup and 'run_id' in smoke
     assert 'def stop_runtime()' in runtime_setup
     assert runtime_setup.index('lite_evidence_dir.mkdir') < runtime_setup.index('open(lite_evidence_dir')
     assert 'finally:' in smoke and 'stop_runtime()' in smoke
     assert "'nestjsLive': live" in smoke and "'smokeDiagnostic': smoke.get('diagnostic')" in smoke and 'check=False' in smoke
+    assert "'AI_RUNTIME_LITE_DIAGNOSTICS': '1'" in runtime_setup
+    assert "'AI_RUNTIME_LITE_DIAGNOSTICS_DIR'" in runtime_setup
+    assert 'LITE_TASK_FILTER' in smoke and "command.extend(['--task'" in smoke
+    assert 'RUN_LIVE_NESTJS_SMOKE' in smoke
     for cell in notebook['cells']:
         if cell['cell_type'] == 'code':
             compile(''.join(cell['source']), 'notebook-cell', 'exec')
@@ -361,6 +368,34 @@ def test_smoke_reruns_write_separate_evidence_files(monkeypatch, tmp_path):
     run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
 
     assert len(list(tmp_path.glob('lite-*.json'))) == 2
+
+
+def test_lite_smoke_can_run_one_task_without_marking_partial_run_as_full_pass(monkeypatch, tmp_path):
+    import ai.benchmark.lite_smoke as smoke
+
+    task = 'ADMIN_FEEDBACK_GROUPING_STAGE1'
+    def response(_endpoint, _token, envelope, _timeout):
+        return 200, {
+            'contractVersion': '1.0', 'requestId': envelope['requestId'], 'task': task,
+            'output': {}, 'runtime': {'modelId': 'model', 'promptVersion': smoke.PROMPT_VERSIONS[task]},
+        }
+    monkeypatch.setattr(smoke, 'post_request', response)
+
+    record = run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model',
+                       tasks=[task], evaluator=lambda *_: {
+                           'schemaPass': True, 'semanticPass': True, 'referenceStatus': 'PASS',
+                       })
+
+    assert record['status'] == 'PARTIAL_PASS'
+    assert record['selectedTasks'] == [task]
+    assert len(record['results']) == 1
+    assert record['results'][0]['status'] == 'PASS'
+
+
+def test_lite_smoke_rejects_unknown_task_filter(tmp_path):
+    with pytest.raises(ValueError, match='task filter'):
+        run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path,
+                  model_id='model', tasks=['NOT_A_TASK'])
 
 
 def test_timeout_and_startup_failure_are_evidence(monkeypatch, tmp_path):

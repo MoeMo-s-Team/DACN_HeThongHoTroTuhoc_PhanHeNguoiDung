@@ -255,8 +255,13 @@ def _worker_main(connection, config: WorkerConfig, factory: Callable[[WorkerConf
                     result = _run_inference(engine, request)
                 except Exception as error:
                     kind = "too_large" if error.__class__.__name__ == "InputTooLarge" else "inference_error"
+                    failure_type = None
+                    if kind == "inference_error" and os.environ.get("AI_RUNTIME_LITE_DIAGNOSTICS") == "1":
+                        from ai.runtime.diagnostics import is_lite_stage1_fixture
+                        if is_lite_stage1_fixture(request):
+                            failure_type = getattr(error, "diagnostic_error_type", type(error).__name__)
                     try:
-                        connection.send((kind, None))
+                        connection.send((kind, failure_type))
                     except (BrokenPipeError, EOFError, OSError):
                         break
                 else:
@@ -387,7 +392,10 @@ class WorkerController:
             self._mark_unhealthy()
             if kind == "too_large":
                 raise RuntimeUnavailable("complete input exceeds model context")
-            raise InferenceFailure("runtime inference failed")
+            failure = InferenceFailure("runtime inference failed")
+            if isinstance(result, str):
+                failure.diagnostic_error_type = result
+            raise failure
         finally:
             self._admission.release()
 

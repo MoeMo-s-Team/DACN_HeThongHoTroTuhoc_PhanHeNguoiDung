@@ -129,6 +129,28 @@ def test_generation_exception_does_not_expose_secret_or_retry(monkeypatch):
     assert len(fake_model.calls) == 1
 
 
+def test_lite_stage1_generation_failure_keeps_only_exception_type_when_opted_in(monkeypatch):
+    import json
+    from pathlib import Path
+    require_runtime()
+    from ai.runtime.model import GenerationFailure
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    fixture = next(
+        json.loads(line) for line in Path("ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    fake_model, _ = install_model(monkeypatch, fake_model=FakeModel(error=RuntimeError("private-detail")))
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+
+    with pytest.raises(GenerationFailure) as error:
+        generate(task, fixture["input"])
+
+    assert error.value.diagnostic_error_type == "RuntimeError"
+    assert "private-detail" not in str(error.value)
+    assert len(fake_model.calls) == 1
+
+
 def test_non_eos_output_reports_bounded_length_termination(monkeypatch):
     require_runtime()
     fake_model, _ = install_model(monkeypatch, fake_model=FakeModel(output=[1, 2, 3, 7, 8]))

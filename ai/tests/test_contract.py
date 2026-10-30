@@ -259,6 +259,83 @@ def test_e5_unparseable_empty_or_non_object_output_is_correlated_error(raw):
     assert len(worker.calls) == 1
 
 
+def test_lite_stage1_diagnostic_records_raw_generation_privately_without_changing_response(monkeypatch, tmp_path):
+    import stat
+    from ai.runtime.model import GenerationResult
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    lite_fixture = next(
+        json.loads(line) for line in (ROOT / "ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    body = {"contractVersion": "1.0", "requestId": "lite-stage1-debug", "task": task,
+            "locale": "vi-VN", "input": lite_fixture["input"]}
+    raw_output = '{"issueGroups": ["diagnostic-auth-secret"'
+
+    class GeneratedWorker(FakeWorker):
+        def infer(self, value):
+            self.calls.append(value)
+            return GenerationResult(raw_output, 23, "length")
+
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS_DIR", str(tmp_path / "private"))
+    worker = GeneratedWorker(raw_output)
+    with TestClient(build_app(worker, token="diagnostic-auth-secret")) as client:
+        response = client.post("/v1/infer", json=body, headers=auth("diagnostic-auth-secret"))
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "contractVersion": "1.0", "requestId": body["requestId"],
+        "error": {"code": "INFERENCE_FAILED", "message": "Inference could not be completed"},
+    }
+    assert raw_output not in response.text
+    files = list((tmp_path / "private").glob("*.json"))
+    assert len(files) == 1
+    diagnostic = json.loads(files[0].read_text())
+    content = files[0].read_text()
+    assert diagnostic["rawGeneratedOutput"] == '{"issueGroups": ["[REDACTED]"'
+    assert diagnostic["outputTokenCount"] == 23
+    assert diagnostic["terminationReason"] == "length"
+    assert diagnostic["maxNewTokens"] == 1024
+    assert diagnostic["jsonParsingError"]["type"] == "JSONDecodeError"
+    assert diagnostic["jsonParsingError"]["message"]
+    assert "diagnostic-auth-secret" not in content
+    assert json.dumps(body["input"], ensure_ascii=False) not in content
+    assert stat.S_IMODE(files[0].stat().st_mode) == 0o600
+    assert stat.S_IMODE(files[0].parent.stat().st_mode) == 0o700
+
+
+@pytest.mark.parametrize("diagnostics_enabled, use_lite_fixture", [(False, True), (True, False)])
+def test_lite_stage1_diagnostic_is_disabled_or_rejects_non_lite_input(
+    monkeypatch, tmp_path, diagnostics_enabled, use_lite_fixture,
+):
+    from ai.runtime.model import GenerationResult
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    if use_lite_fixture:
+        row = next(json.loads(line) for line in (ROOT / "ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
+                   if json.loads(line)["task"] == task)
+        input_value = row["input"]
+    else:
+        input_value = fixture("admin-feedback-grouping-stage1.input.json")
+
+    class GeneratedWorker(FakeWorker):
+        def infer(self, value):
+            self.calls.append(value)
+            return GenerationResult("not-json", 2, "eos")
+
+    if diagnostics_enabled:
+        monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS_DIR", str(tmp_path / "private"))
+    body = {"contractVersion": "1.0", "requestId": "stage1", "task": task,
+            "locale": "vi-VN", "input": input_value}
+    with TestClient(build_app(GeneratedWorker("not-json"))) as client:
+        response = client.post("/v1/infer", json=body, headers=auth())
+
+    assert response.status_code == 500
+    assert not list(tmp_path.rglob("*.json"))
+
+
 @pytest.mark.parametrize("task", TASKS)
 def test_e6_forwards_parsed_objects_unchanged_even_when_task_invalid(task):
     obj = {"invalid-but-parsed": [1, "x"]}

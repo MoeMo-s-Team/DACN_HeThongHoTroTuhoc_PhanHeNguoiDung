@@ -7,13 +7,17 @@ import json
 import os
 import hashlib
 import logging
+import stat
+import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
+from ai.runtime.diagnostics import is_lite_stage1_fixture
 from ai.runtime.schemas import TASK_FILES, validate_envelope, validate_request
 from ai.runtime.worker import InferenceFailure, InferenceTimeout, RuntimeUnavailable, WorkerConfig, WorkerController
 
@@ -51,6 +55,51 @@ def _reject_json_constant(value: str):
 
 def _worker_factory(_config: RuntimeConfig):
     return WorkerController(WorkerConfig.from_environment())
+
+
+def _write_lite_diagnostic(value: dict, worker: Any, generated: Any = None,
+                           error: Exception | None = None, auth_token: str | None = None) -> None:
+    if os.environ.get("AI_RUNTIME_LITE_DIAGNOSTICS") != "1" or not is_lite_stage1_fixture(value):
+        return
+    directory_value = os.environ.get("AI_RUNTIME_LITE_DIAGNOSTICS_DIR")
+    if not directory_value:
+        return
+    directory = Path(directory_value).expanduser()
+    try:
+        directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+        info = directory.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) & 0o077):
+            return
+        parse_error = None
+        runtime_error = None
+        if isinstance(error, json.JSONDecodeError):
+            parse_error = {"type": type(error).__name__, "message": error.msg,
+                           "position": error.pos, "line": error.lineno, "column": error.colno}
+        elif isinstance(error, ValueError):
+            parse_error = {"type": type(error).__name__, "message": str(error)}
+        elif error is not None:
+            runtime_error = getattr(error, "diagnostic_error_type", type(error).__name__)
+        raw_output = getattr(generated, "raw_text", None)
+        if isinstance(raw_output, str) and auth_token:
+            raw_output = raw_output.replace(auth_token, "[REDACTED]")
+        record = {
+            "task": value["task"], "requestId": value["requestId"],
+            "modelId": getattr(worker, "model_id", None),
+            "rawGeneratedOutput": raw_output,
+            "outputTokenCount": getattr(generated, "output_token_count", None),
+            "terminationReason": getattr(generated, "termination_reason", None),
+            "maxNewTokens": int(os.environ.get("AI_RUNTIME_MAX_NEW_TOKENS", "1024")),
+            "jsonParsingError": parse_error,
+            "runtimeErrorType": runtime_error,
+        }
+        path = directory / f"stage1-{uuid.uuid4().hex}.json"
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(record, output, ensure_ascii=False, indent=2)
+            output.write("\n")
+    except OSError:
+        return
 
 
 def create_app(worker_factory: Callable[[RuntimeConfig], Any], config: Any) -> FastAPI:
@@ -125,19 +174,28 @@ def create_app(worker_factory: Callable[[RuntimeConfig], Any], config: Any) -> F
             allowed = set(filter(None, os.environ.get("AI_RUNTIME_BENCHMARK_ALLOWLIST", "").split(",")))
             if digest not in allowed:
                 return _error(request_id, "INVALID_REQUEST", "Invalid request", 400)
+        generated = None
         try:
             generated = await asyncio.to_thread(worker.infer, value)
             raw_text = generated.raw_text
-            output = json.loads(raw_text, parse_constant=_reject_json_constant)
+            try:
+                output = json.loads(raw_text, parse_constant=_reject_json_constant)
+            except (json.JSONDecodeError, ValueError) as error:
+                _write_lite_diagnostic(value, worker, generated, error, current_config.token)
+                return _error(request_id, "INFERENCE_FAILED", "Inference could not be completed", 500)
             if not isinstance(output, dict):
-                raise ValueError("generated JSON is not an object")
+                error = ValueError("generated JSON is not an object")
+                _write_lite_diagnostic(value, worker, generated, error, current_config.token)
+                return _error(request_id, "INFERENCE_FAILED", "Inference could not be completed", 500)
         except InferenceTimeout:
             return _error(request_id, "RUNTIME_UNAVAILABLE", "Runtime is unavailable", 504)
         except RuntimeUnavailable:
             return _error(request_id, "RUNTIME_UNAVAILABLE", "Runtime is unavailable", 503)
-        except InferenceFailure:
+        except InferenceFailure as error:
+            _write_lite_diagnostic(value, worker, generated, error, current_config.token)
             return _error(request_id, "INFERENCE_FAILED", "Inference could not be completed", 500)
-        except Exception:
+        except Exception as error:
+            _write_lite_diagnostic(value, worker, generated, error, current_config.token)
             return _error(request_id, "INFERENCE_FAILED", "Inference could not be completed", 500)
         prompt_versions = worker.prompt_versions
         runtime = {
