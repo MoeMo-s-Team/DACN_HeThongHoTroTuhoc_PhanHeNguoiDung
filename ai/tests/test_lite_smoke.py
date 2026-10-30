@@ -26,13 +26,19 @@ def test_fixture_loader_rejects_missing_or_duplicate_tasks(tmp_path, rows):
         load_fixtures(path)
 
 
-@pytest.mark.parametrize('report', [None, '{', '{}', '{"version":true,"environment":{},"install":[]}'])
+@pytest.mark.parametrize('report', [None, '{', '{}', '{"version":2,"environment":{},"install":[]}'])
 def test_pip_report_fails_closed_when_missing_or_malformed(tmp_path, report):
     path = tmp_path / 'report.json'
     if report is not None:
         path.write_text(report)
     with pytest.raises(ValueError):
         validate_pip_report(path)
+
+
+def test_pip_report_accepts_real_report_version_string(tmp_path):
+    path = tmp_path / 'report.json'
+    path.write_text(json.dumps({'version': '1', 'environment': {}, 'install': []}))
+    assert validate_pip_report(path) is True
 
 
 @pytest.mark.parametrize('name', ['torch', 'torchvision', 'bitsandbytes'])
@@ -123,10 +129,42 @@ def test_malformed_http_200_response_is_failed_with_parse_error(monkeypatch, tmp
 
     fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
     monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture])
-    monkeypatch.setattr(smoke, 'post_request', lambda *_args: (_ for _ in ()).throw(ValueError('malformed JSON response')))
+    class Response:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+        def read(self): return b'bad response token {"private":"do not save"}'
+    monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: Response())
+    fixture['input'] = {'private': 'do not save'}
     result = run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
     assert result['results'][0]['status'] == 'FAILED'
-    assert result['results'][0]['error'] == 'ValueError: malformed JSON response'
+    assert result['results'][0]['error'] == 'bad response [REDACTED] [REDACTED_INPUT]'
+
+
+def test_http_error_retains_non_json_body_and_redacts_token(monkeypatch, tmp_path):
+    import io
+    import urllib.error
+    import ai.benchmark.lite_smoke as smoke
+
+    fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
+    monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture])
+    error = urllib.error.HTTPError('http://runtime', 502, 'bad gateway', {}, io.BytesIO(b'gateway token'))
+    monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: (_ for _ in ()).throw(error))
+    result = run_smoke('http://127.0.0.1:8000/v1/infer', 'token', tmp_path, model_id='model')
+    assert result['results'][0]['error'] == 'gateway [REDACTED]'
+
+
+def test_notebook_initializes_block_recorder_before_source_validation_and_records_prerequisite_failures():
+    notebook = json.loads(Path('ai/colab/phase-1d3-lite.ipynb').read_text())
+    setup = ''.join(notebook['cells'][1]['source'])
+    prerequisites = ''.join(notebook['cells'][2]['source'])
+    assert setup.index('def block(') < setup.index('if not REPO_URL or not REPO_REF:')
+    assert 'try:' in prerequisites[:prerequisites.index('nvidia-smi')]
+    assert 'except Exception as exc:' in prerequisites
+    assert 'block(f"BLOCKED: GPU/Torch prerequisites unavailable:' in prerequisites
+    for cell in notebook['cells']:
+        if cell['cell_type'] == 'code':
+            compile(''.join(cell['source']), 'notebook-cell', 'exec')
 
 
 def test_timeout_and_startup_failure_are_evidence(monkeypatch, tmp_path):

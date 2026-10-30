@@ -35,14 +35,18 @@ const principal: AuthUser = {
   role: 'STUDENT', status: 'ACTIVE',
 };
 const prompts = Object.fromEntries(tasks.map((task) => [task, `prompt-${task}`]));
-const registryPrompts: Record<AiTask, string> = {
-  STUDENT_LEARNING_ANALYSIS: 'stu-learning-analysis-v1',
-  STUDENT_STUDY_PLAN_GENERATION: 'stu-study-plan-v1',
-  STUDENT_STUDY_PLAN_ADJUSTMENT: 'stu-study-adjust-v1',
-  TEACHER_CLASS_ANALYSIS: 'tea-class-analysis-v1',
-  ADMIN_FEEDBACK_GROUPING_STAGE1: 'adm-feedback-group-v1',
-  ADMIN_FEEDBACK_SUMMARY_STAGE2: 'adm-feedback-summary-v1',
-};
+
+function readLivePromptBindings(raw = process.env.AI_RUNTIME_PROMPT_VERSIONS): Record<AiTask, string> {
+  if (!raw) throw new Error('live smoke requires AI_RUNTIME_PROMPT_VERSIONS from the runtime registry');
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { throw new Error('live prompt bindings are not valid JSON'); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)
+    || tasks.some((task) => typeof (parsed as Record<string, unknown>)[task] !== 'string'
+      || !(parsed as Record<string, string>)[task].trim())) {
+    throw new Error('live prompt bindings must include every current AI task');
+  }
+  return parsed as Record<AiTask, string>;
+}
 
 async function startPythonRuntime(raw: string): Promise<{ baseUrl: string; close(): Promise<void> }> {
   const reservation = createServer();
@@ -105,11 +109,17 @@ async function publicError(action: Promise<unknown>): Promise<HttpException> {
 }
 
 describe('AI Runtime E5/E6 receive boundary', () => {
+  it('loads live prompt bindings from the runtime configuration map', () => {
+    const expected = Object.fromEntries(tasks.map((task) => [task, `runtime-${task}`]));
+    expect(readLivePromptBindings(JSON.stringify(expected))).toEqual(expected);
+  });
+
   (process.env.AI_RUNTIME_LIVE_SMOKE === '1' ? it : it.skip)('validates one real output through the live Colab runtime', async () => {
     const baseUrl = process.env.AI_RUNTIME_BASE_URL;
     const token = process.env.AI_RUNTIME_TOKEN;
     if (baseUrl !== 'http://127.0.0.1:8000' || !token) throw new Error('live smoke requires the notebook loopback runtime and token');
     const task: AiTask = 'STUDENT_LEARNING_ANALYSIS';
+    const livePromptBindings = readLivePromptBindings();
     const schemas = new SchemaRegistryService();
     const client = new RuntimeHttpClient({ baseUrl, apiKey: token });
     const gateway = new AiGatewayService(client, schemas);
@@ -121,7 +131,7 @@ describe('AI Runtime E5/E6 receive boundary', () => {
       gateway,
       { createTerminal: jest.fn(async (entry) => { logs.push(entry); }) } as unknown as AiRequestLogRepository,
       { authorize: jest.fn(), checkEligibility: jest.fn() },
-      { registryPromptVersions: registryPrompts, profilePromptVersions: registryPrompts },
+      { registryPromptVersions: livePromptBindings, profilePromptVersions: livePromptBindings },
     );
     const output = await service.execute(
       buildRequest(task, fixture(`${slugs[task]}.input.json`), `live-${Date.now()}`), principal, {},

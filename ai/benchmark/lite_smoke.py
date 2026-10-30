@@ -1,6 +1,7 @@
 """Small real-runtime smoke for the separate Phase 1D.3-Lite demo lane."""
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -37,7 +38,7 @@ def validate_pip_report(path):
     try:
         report = json.loads(Path(path).read_text(encoding='utf-8'))
         installs = report['install']
-        if not isinstance(installs, list) or type(report.get('version')) is not int or not isinstance(report.get('environment'), dict):
+        if not isinstance(installs, list) or report.get('version') != '1' or not isinstance(report.get('environment'), dict):
             raise ValueError('required pip report fields missing')
         for item in installs:
             name = item['metadata']['name'].lower().replace('_', '-').replace('.', '-')
@@ -64,11 +65,17 @@ def post_request(endpoint, token, envelope, timeout):
             try:
                 body = json.loads(raw)
             except (json.JSONDecodeError, UnicodeDecodeError) as error:
-                raise ValueError(f'malformed JSON response: {error}') from error
+                raise ReturnedBodyError(f'malformed JSON response: {error}', raw) from error
             return response.status, body
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
         signal.signal(signal.SIGALRM, previous)
+
+
+class ReturnedBodyError(ValueError):
+    def __init__(self, message, body):
+        super().__init__(message)
+        self.body = body
 
 
 def evaluate_output(fixture, output):
@@ -100,11 +107,16 @@ def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures
             status, body = post_request(endpoint, token, envelope, timeout)
             row['httpStatus'] = status
             if status != 200 or not isinstance(body, dict):
+                if isinstance(body, dict):
+                    row['output'] = body.get('output')
+                    row['error'] = _returned_error(json.dumps(body.get('error', body)).encode(), token, fixture['input'])
+                elif body is not None:
+                    row['error'] = _returned_error(json.dumps(body).encode(), token, fixture['input'])
                 row['diagnostic'] = f'HTTP {status} or invalid response envelope'
             else:
                 row['output'] = body.get('output')
                 if row['output'] is None and body.get('error') is not None:
-                    row['error'] = body['error']
+                    row['error'] = _returned_error(json.dumps(body['error']).encode(), token, fixture['input'])
                 runtime = body.get('runtime')
                 if isinstance(runtime, dict):
                     row['modelId'] = runtime.get('modelId')
@@ -132,14 +144,14 @@ def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures
                         row['diagnostic'] = row['diagnostic'] or evaluation.get('diagnostic') or 'schema, semantic, or reference validation failed'
         except urllib.error.HTTPError as error:
             row['httpStatus'] = error.code
-            try:
-                row['error'] = json.loads(error.read())
-            except Exception:
-                row['error'] = f'HTTP {error.code}'
+            row['error'] = _returned_error(error.read(), token, fixture['input'], error.code)
             row['diagnostic'] = f'HTTP {error.code}'
         except (TimeoutError, urllib.error.URLError, OSError, ValueError) as error:
             row['status'] = 'TIMED_OUT' if isinstance(error, TimeoutError) else 'FAILED'
-            row['error'] = f'{type(error).__name__}: {error}'
+            if isinstance(error, ReturnedBodyError):
+                row['error'] = _returned_error(error.body, token, fixture['input'])
+            else:
+                row['error'] = _redact(f'{type(error).__name__}: {error}', token)
             row['diagnostic'] = row['error']
         finally:
             row['elapsedSeconds'] = round(time.monotonic() - started, 3)
@@ -179,6 +191,28 @@ def _redact(value, secret):
     if isinstance(value, dict):
         return {key: _redact(item, secret) for key, item in value.items()}
     return value
+
+
+def _returned_error(raw, token, input_value, status=None):
+    try:
+        value = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        value = raw.decode('utf-8', errors='replace') if isinstance(raw, bytes) else str(raw)
+    value = _redact(value, token)
+    input_text = json.dumps(input_value, ensure_ascii=False, separators=(',', ':'))
+    def scrub(item):
+        if isinstance(item, str):
+            return item.replace(input_text, '[REDACTED_INPUT]') if input_text else item
+        if isinstance(item, list):
+            return [scrub(part) for part in item]
+        if isinstance(item, dict):
+            return {key: '[REDACTED]' if re.search(r'prompt|authorization|token', str(key), re.I) else scrub(part)
+                    for key, part in item.items()}
+        return item
+    result = scrub(value)
+    if status is not None and not result:
+        return f'HTTP {status}'
+    return result
 
 
 def main():
