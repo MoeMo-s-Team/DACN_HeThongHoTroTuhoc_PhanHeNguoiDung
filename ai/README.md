@@ -1,6 +1,16 @@
 # AI demo smoke
 
-## Serve the runtime from VS Code and Google Colab
+## Approved Local GPU target (hardware acceptance pending)
+
+CP-005 approves two independent application clones and one AI Runtime: the teammate's Windows 11/WSL2 RTX 3050 4GB host runs FastAPI/Qwen NF4; their Windows NestJS clone calls `http://127.0.0.1:8000`; the user's Linux NestJS clone calls the same runtime over HTTPS Tailscale Serve. Keep FastAPI loopback-only, retain the runtime Bearer token, and restrict Serve with tailnet ACL. Do not enable Funnel or start a second model process.
+
+Follow [`LOCAL_GPU_HANDOFF.md`](LOCAL_GPU_HANDOFF.md) for setup and verification. Local GPU/Tailscale acceptance has not passed until the teammate completes the real hardware and network checks, including all six Lite tasks. Colab serving and Lite evidence remain available and unchanged until then. Application AI authorization/capacity blockers remain separate and must not be bypassed.
+
+## Colab serving (retained until Local GPU acceptance)
+
+The Colab notebook remains a historical/reproducible serving path while the Local GPU acceptance gate is pending; it is not the approved target topology after CP-005 and is not evidence of Local GPU PASS.
+
+### Serve the runtime from VS Code and Google Colab
 
 Open [`colab/serve-ai.ipynb`](colab/serve-ai.ipynb) in VS Code and select a Google Colab kernel with a Tesla T4. In the first cell, enter the repository URL and full commit SHA containing the AI Runtime source, then run all cells. Choose the existing Colab PyTorch environment; the notebook checks it, reuses installed FastAPI `>=0.93.0,<1.0`, Uvicorn `>=0.21.0,<1.0`, and Transformers `>=4.37.0,<6.0`, and installs only missing pinned runtime packages. It preserves existing package versions and uses the normal Hugging Face cache.
 

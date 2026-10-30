@@ -36,6 +36,66 @@ const principal: AuthUser = {
 };
 const prompts = Object.fromEntries(tasks.map((task) => [task, `prompt-${task}`]));
 
+describe('live-smoke configuration', () => {
+  const promptBindings = JSON.stringify(prompts);
+  const requiredEnv = {
+    AI_RUNTIME_LIVE_SMOKE: '1',
+    AI_RUNTIME_LIVE_ROUTE: 'loopback',
+    AI_RUNTIME_EXPECTED_ORIGIN: 'http://127.0.0.1:8000',
+    AI_RUNTIME_BASE_URL: 'http://127.0.0.1:8000',
+    AI_RUNTIME_TOKEN: 'test-token',
+    AI_RUNTIME_PROMPT_VERSIONS: promptBindings,
+  };
+
+  it.each([
+    ['loopback', 'http://127.0.0.1:8000'],
+    ['tailscale-serve', 'https://gpu-host.example.ts.net'],
+  ])('accepts the explicit %s origin', (route, origin) => {
+    const env = {
+      ...requiredEnv,
+      AI_RUNTIME_LIVE_ROUTE: route,
+      AI_RUNTIME_EXPECTED_ORIGIN: origin,
+      AI_RUNTIME_BASE_URL: origin,
+    };
+    expect(readLiveSmokeConfiguration(env)).toMatchObject({ baseUrl: origin, token: 'test-token' });
+  });
+
+  it.each([
+    ['opt-in', { AI_RUNTIME_LIVE_SMOKE: undefined }],
+    ['route', { AI_RUNTIME_LIVE_ROUTE: undefined }],
+    ['expected origin', { AI_RUNTIME_EXPECTED_ORIGIN: undefined }],
+    ['runtime URL', { AI_RUNTIME_BASE_URL: undefined }],
+    ['token', { AI_RUNTIME_TOKEN: undefined }],
+    ['prompt bindings', { AI_RUNTIME_PROMPT_VERSIONS: undefined }],
+  ])('rejects missing %s before fetch', (_name, overrides) => {
+    expect(() => readLiveSmokeConfiguration({ ...requiredEnv, ...overrides })).toThrow();
+  });
+
+  it.each([
+    ['unknown route', { AI_RUNTIME_LIVE_ROUTE: 'public' }],
+    ['origin mismatch', { AI_RUNTIME_BASE_URL: 'https://other-host.example.ts.net' }],
+    ['loopback non-origin URL', { AI_RUNTIME_BASE_URL: 'http://127.0.0.1:8000/path' }],
+    ['malformed prompt bindings', { AI_RUNTIME_PROMPT_VERSIONS: '{' }],
+    ['incomplete prompt bindings', { AI_RUNTIME_PROMPT_VERSIONS: JSON.stringify({ STUDENT_LEARNING_ANALYSIS: 'v1' }) }],
+    ['Serve URL with credentials', {
+      AI_RUNTIME_LIVE_ROUTE: 'tailscale-serve',
+      AI_RUNTIME_EXPECTED_ORIGIN: 'https://user:secret@gpu-host.example.ts.net',
+      AI_RUNTIME_BASE_URL: 'https://user:secret@gpu-host.example.ts.net',
+    }],
+    ['Serve URL outside ts.net', {
+      AI_RUNTIME_LIVE_ROUTE: 'tailscale-serve',
+      AI_RUNTIME_EXPECTED_ORIGIN: 'https://gpu-host.example.com',
+      AI_RUNTIME_BASE_URL: 'https://gpu-host.example.com',
+    }],
+  ])('rejects %s before fetch', (_name, overrides) => {
+    expect(() => readLiveSmokeConfiguration({ ...requiredEnv, ...overrides })).toThrow();
+  });
+
+  it('rejects the live route when CI=true even with explicit opt-in', () => {
+    expect(() => readLiveSmokeConfiguration({ ...requiredEnv, CI: 'true' })).toThrow();
+  });
+});
+
 function readLivePromptBindings(raw = process.env.AI_RUNTIME_PROMPT_VERSIONS): Record<AiTask, string> {
   if (!raw) throw new Error('live smoke requires AI_RUNTIME_PROMPT_VERSIONS from the runtime registry');
   let parsed: unknown;
@@ -46,6 +106,54 @@ function readLivePromptBindings(raw = process.env.AI_RUNTIME_PROMPT_VERSIONS): R
     throw new Error('live prompt bindings must include every current AI task');
   }
   return parsed as Record<AiTask, string>;
+}
+
+function readLiveSmokeConfiguration(env: NodeJS.ProcessEnv): {
+  baseUrl: string;
+  token: string;
+  promptVersions: Record<AiTask, string>;
+} {
+  if (env.CI?.toLowerCase() === 'true' || env.AI_RUNTIME_LIVE_SMOKE !== '1') {
+    throw new Error('live smoke is not explicitly enabled outside CI');
+  }
+  const route = env.AI_RUNTIME_LIVE_ROUTE;
+  const expectedOrigin = env.AI_RUNTIME_EXPECTED_ORIGIN;
+  const baseUrl = env.AI_RUNTIME_BASE_URL;
+  const token = env.AI_RUNTIME_TOKEN;
+  if (!route || !expectedOrigin || !baseUrl || !token?.trim() || !env.AI_RUNTIME_PROMPT_VERSIONS) {
+    throw new Error('live smoke configuration is incomplete');
+  }
+
+  let expectedUrl: URL;
+  let configuredUrl: URL;
+  try {
+    expectedUrl = new URL(expectedOrigin);
+    configuredUrl = new URL(baseUrl);
+  } catch {
+    throw new Error('live smoke origin is invalid');
+  }
+  const isExactOrigin = (value: string, parsed: URL) => value === parsed.origin
+    && parsed.pathname === '/' && !parsed.search && !parsed.hash && !parsed.username && !parsed.password;
+  if (!isExactOrigin(expectedOrigin, expectedUrl) || !isExactOrigin(baseUrl, configuredUrl)
+    || baseUrl !== expectedOrigin) {
+    throw new Error('live smoke must use the exact expected origin');
+  }
+
+  if (route === 'loopback') {
+    if (expectedOrigin !== 'http://127.0.0.1:8000') throw new Error('loopback route must use the local runtime origin');
+  } else if (route === 'tailscale-serve') {
+    if (expectedUrl.protocol !== 'https:' || !/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net$/i.test(expectedUrl.hostname)) {
+      throw new Error('Tailscale Serve route must use an HTTPS ts.net origin');
+    }
+  } else {
+    throw new Error('live smoke route is invalid');
+  }
+
+  return {
+    baseUrl,
+    token,
+    promptVersions: readLivePromptBindings(env.AI_RUNTIME_PROMPT_VERSIONS),
+  };
 }
 
 async function startPythonRuntime(raw: string): Promise<{ baseUrl: string; close(): Promise<void> }> {
@@ -114,12 +222,10 @@ describe('AI Runtime E5/E6 receive boundary', () => {
     expect(readLivePromptBindings(JSON.stringify(expected))).toEqual(expected);
   });
 
-  (process.env.AI_RUNTIME_LIVE_SMOKE === '1' ? it : it.skip)('validates one real output through the live Colab runtime', async () => {
-    const baseUrl = process.env.AI_RUNTIME_BASE_URL;
-    const token = process.env.AI_RUNTIME_TOKEN;
-    if (baseUrl !== 'http://127.0.0.1:8000' || !token) throw new Error('live smoke requires the notebook loopback runtime and token');
+  (process.env.AI_RUNTIME_LIVE_SMOKE === '1' && process.env.CI?.toLowerCase() !== 'true' ? it : it.skip)(
+    'validates one real output through the explicitly selected live Runtime route', async () => {
+    const { baseUrl, token, promptVersions: livePromptBindings } = readLiveSmokeConfiguration(process.env);
     const task: AiTask = 'STUDENT_LEARNING_ANALYSIS';
-    const livePromptBindings = readLivePromptBindings();
     const schemas = new SchemaRegistryService();
     const client = new RuntimeHttpClient({ baseUrl, apiKey: token });
     const gateway = new AiGatewayService(client, schemas);
@@ -139,7 +245,8 @@ describe('AI Runtime E5/E6 receive boundary', () => {
     expect(schemas.get(task).output(output)).toBe(true);
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatchObject({ feature: task, status: 'SUCCESS' });
-  }, 60_000);
+    }, 60_000,
+  );
 
   it.each(tasks)('maps E5 inference failure for %s to one failed log', async (task) => {
     const requestId = `wire-${task}`;

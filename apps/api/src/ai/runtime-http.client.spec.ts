@@ -8,10 +8,13 @@ describe('RuntimeHttpClient', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('posts to the fixed runtime route with configured auth and caps timeout at 60s', async () => {
+  it.each([
+    ['http://127.0.0.1:8000', 'http://127.0.0.1:8000/v1/infer'],
+    ['https://gpu-host.example.ts.net', 'https://gpu-host.example.ts.net/v1/infer'],
+  ])('posts to the fixed route from configured origin %s with Bearer auth', async (baseUrl, expectedUrl) => {
     const timeout = jest.spyOn(AbortSignal, 'timeout');
     const send = jest.fn().mockResolvedValue({ status: 200, text: async () => '{"ok":true}' }) as unknown as typeof fetch;
-    const client = new RuntimeHttpClient({ baseUrl: 'https://runtime.example/api/', apiKey: 'runtime-secret' }, send);
+    const client = new RuntimeHttpClient({ baseUrl, apiKey: 'runtime-secret' }, send);
 
     await expect(client.post('/ignored', '{"requestId":"r1"}', {}, 90_000)).resolves.toEqual({
       status: 200,
@@ -19,7 +22,7 @@ describe('RuntimeHttpClient', () => {
     });
 
     const [url, init] = (send as jest.Mock).mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://runtime.example/v1/infer');
+    expect(url).toBe(expectedUrl);
     expect(init.method).toBe('POST');
     expect(init.headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer runtime-secret' });
     expect(init.body).toBe('{"requestId":"r1"}');

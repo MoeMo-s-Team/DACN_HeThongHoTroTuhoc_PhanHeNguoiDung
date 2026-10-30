@@ -7,7 +7,7 @@ Prefer correctness, traceability, and complete end-to-end flows over unnecessary
 
 ## 2. Authority
 Current approved freeze: `DACN-REQ-UC-BL-2026-10-26-R3` (CR-001 + CR-002 incorporated).
-Use `docs/governance/Document_Governance_and_Traceability_Index_v1.6.md` for active downstream AI artifact authority and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for the unchanged R3 requirements/use-case freeze scope. Governance indexes v1.2–v1.5 remain preserved historical records.
+Use `docs/governance/Document_Governance_and_Traceability_Index_v1.7.md` for active downstream AI artifact authority and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for the unchanged R3 requirements/use-case freeze scope. Governance indexes v1.2–v1.6 remain preserved historical records.
 Use this order when decisions conflict:
 1. `docs/baseline/SRS_v1.6_baseline_final.md`
 2. `docs/baseline/Use_Case_Diagram_he_thong_ho_tro_tu_hoc_AI_v1.4_baseline_rev1.md`
@@ -21,7 +21,7 @@ Use this order when decisions conflict:
 10. `docs/baseline/System_Architecture_and_Technology_Stack_v1.1_baseline.md`
 11. Approved ADRs in `docs/decisions/`
 
-Follow approved `CR-001`/`CR-002` in `docs/baseline/`, approved downstream `CR-003` in `docs/releases/ai-contract-v1.0-schema-pack-release1/`, and the scoped Phase 1D.3 Demo Acceptance Supplement recorded in governance index v1.6. Higher-authority requirements/business/API sources win; the AI Contract and approved Erratum 1 govern internal inference except for that demo-only §17 supplement. It does not supersede AI Contract §15.4 or CR-002 capacity rules. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
+Follow approved `CR-001`/`CR-002` in `docs/baseline/`, approved downstream `CR-003` in `docs/releases/ai-contract-v1.0-schema-pack-release1/`, and the scoped Phase 1D.3 Demo Acceptance Supplement and CP-005 Local AI Runtime release recorded in governance index v1.7. Higher-authority requirements/business/API sources win; the AI Contract and approved Erratum 1 govern internal inference except for that demo-only §17 supplement. CP-005 changes only the development/demo runtime host; it does not supersede AI Contract §15.4 or CR-002 capacity rules. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
 
 ## 3. Frozen Baseline and Proposal Mode
 Treat `docs/baseline/` as read-only during implementation. Never edit, rename, delete, regenerate, auto-format frozen files, or auto-update `BASELINE_MANIFEST.sha256`.
@@ -72,7 +72,7 @@ RTK affects output efficiency only; it never weakens governance, Git safety, TDD
 Do not expand scope because something is common or a "best practice".
 
 ## 5. Architecture and Scope
-Stack: pnpm + Turborepo; Next.js + TypeScript + Tailwind + TanStack Query + React Hook Form; NestJS + TypeScript + Prisma + PostgreSQL; self-managed AI runtime on Google Colab through NestJS.
+Stack: pnpm + Turborepo; Next.js + TypeScript + Tailwind + TanStack Query + React Hook Form; NestJS + TypeScript + Prisma + PostgreSQL; one self-managed AI runtime on the teammate's Windows 11 + WSL2 Local GPU host, reached by its NestJS over loopback and the user's Linux NestJS over HTTPS Tailscale Serve. Local GPU/Tailscale acceptance is pending actual hardware verification; preserve Colab Lite evidence and serving until PASS.
 
 Required boundaries:
 - Browser/frontend → NestJS REST API; no default BFF/proxy.

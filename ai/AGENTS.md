@@ -18,10 +18,11 @@ Never implement:
 The backend owns business eligibility, exact metrics, authorization, validation, persistence, and state transitions.
 
 ## 3. Runtime Boundary
-The MVP AI Runtime is self-managed and runs on Google Colab.
+The approved development/demo target under CP-005 is one self-managed AI Runtime on the teammate's Windows 11 GPU host inside WSL2, with FastAPI bound to WSL loopback. The teammate's Windows NestJS uses `http://127.0.0.1:8000`; the user's Linux NestJS reaches that same process over HTTPS Tailscale Serve. This target remains pending actual Local GPU/Tailscale acceptance; Colab Lite PASS and Colab serving remain preserved until then.
 Communicate with NestJS through HTTP/HTTPS JSON.
 Runtime URLs and secrets are configuration, not business logic.
-Do not hard-code a temporary Colab URL into notebooks, contracts, or application logic.
+Do not hard-code a temporary runtime URL into notebooks, contracts, or application logic.
+Do not start a second FastAPI/model instance, bind FastAPI to `0.0.0.0`, enable Tailscale Funnel, or expose an unauthenticated public endpoint.
 Do not require the frontend to know AI credentials.
 
 ## 4. Input Rules
@@ -82,7 +83,7 @@ Cover at least:
 - timeout/provider failure behavior at the integration boundary;
 - enum/reference/schema violations once the AI Contract defines them.
 
-Real Colab integration may be unavailable during local development; use mocks/fakes for technical contract testing where appropriate, then verify the real runtime before an AI-dependent demo.
+Real Local GPU/Tailscale integration may be unavailable during development; use mocks/fakes for technical contract testing where appropriate, then complete the target-machine acceptance in `ai/LOCAL_GPU_HANDOFF.md` before an AI-dependent demo. Keep the Colab Lite reproduction instructions and evidence as historical T4/FP16 verification until Local GPU PASS; do not run Full Benchmark.
 
 ## 11. Escalation
 If an AI implementation request would change business behavior, authorization, exact calculations, human-confirmation requirements, API semantics, or allow AI direct data mutation:
