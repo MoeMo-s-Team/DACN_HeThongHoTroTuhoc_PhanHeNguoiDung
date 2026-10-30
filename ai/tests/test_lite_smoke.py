@@ -195,6 +195,53 @@ def test_http_error_token_matching_error_key_preserves_sanitized_hash(monkeypatc
     assert len(result['results'][0]['error']['sha256']) == 64
 
 
+def test_persisted_hashless_http_error_with_results_token_is_sanitized(monkeypatch, tmp_path):
+    import io
+    import urllib.error
+    import ai.benchmark.lite_smoke as smoke
+
+    fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
+    monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture] * 6)
+    error = urllib.error.HTTPError('http://runtime', 502, 'bad gateway', {}, io.BytesIO(b'gateway failure'))
+    monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: (_ for _ in ()).throw(error))
+
+    result = run_smoke('http://127.0.0.1:8000/v1/infer', 'results', tmp_path, model_id='model')
+    evidence_path = next(tmp_path.glob('lite-*.json'))
+    persisted = json.loads(evidence_path.read_text())
+
+    assert len(persisted['results']) == 6
+    assert persisted['results'][0]['httpStatus'] == 502
+    assert persisted['results'][0]['error']['body'] == 'gateway failure'
+    assert 'results' in persisted and len(result['results']) == 6
+    assert 'results' not in json.dumps(persisted['results'][0]['error'])
+
+
+def test_persisted_error_omits_digest_when_digest_contains_token(monkeypatch, tmp_path):
+    import hashlib
+    import itertools
+    import string
+    import io
+    import urllib.error
+    import ai.benchmark.lite_smoke as smoke
+
+    raw = b'gateway failure'
+    digest = hashlib.sha256(raw).hexdigest()
+    token = next(''.join(chars) for width in range(1, 4)
+                 for chars in itertools.product(string.hexdigits.lower()[:16], repeat=width)
+                 if ''.join(chars) in digest)
+    fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
+    monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture] * 6)
+    error = urllib.error.HTTPError('http://runtime', 502, 'bad gateway', {}, io.BytesIO(raw))
+    monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: (_ for _ in ()).throw(error))
+
+    run_smoke('http://127.0.0.1:8000/v1/infer', token, tmp_path, model_id='model')
+    persisted = json.loads(next(tmp_path.glob('lite-*.json')).read_text())
+
+    assert len(persisted['results']) == 6
+    assert persisted['results'][0]['error']['sha256'] is None
+    assert token not in (persisted['results'][0]['error']['sha256'] or '')
+
+
 def test_response_digest_is_unavailable_when_it_contains_short_bearer_token():
     import hashlib
     import itertools

@@ -81,3 +81,13 @@ The error-body sanitizer now scrubs partial input words case-insensitively and r
 - GREEN — `DACN_PYTHON=/tmp/dacn-phase1d3-lite-test/bin/python pnpm --filter @dacn/api exec jest --runInBand src/ai/ai-runtime-wire.spec.ts` → 17 passed, 1 opt-in live-runtime case skipped.
 
 Runner now retains each original error mapping and response digest separately while sanitizing the containing evidence record, then restores the sanitized error under the stable evidence field without looking it up through the redacted map. A digest containing the bearer token is marked unavailable (`sha256: null`). Existing body/key/value redaction coverage and ordinary successful output behavior remain covered. No Colab/T4 result is claimed; Lite report remains Pending.
+
+## Review round 5 corrections
+
+- RED — `/tmp/dacn-phase1d3-lite-test/bin/python -m pytest ai/tests/test_lite_smoke.py -q -k 'persisted_hashless_http_error_with_results_token or persisted_error_omits_digest_when_digest_contains_token'` → 2 failed, 34 deselected. Token `results` caused `KeyError` after outer-record redaction; a short token embedded in the response hash was restored as a digest string rather than tested in persisted evidence.
+- GREEN — same focused command → 2 passed, 34 deselected.
+- GREEN — `/tmp/dacn-phase1d3-lite-test/bin/python -m pytest ai/tests/test_lite_smoke.py -q` → 36 passed.
+- GREEN — `DACN_PYTHON=/tmp/dacn-phase1d3-lite-test/bin/python pnpm --filter @dacn/api exec jest --runInBand src/ai/ai-runtime-wire.spec.ts` → 17 passed, 1 opt-in live-runtime case skipped.
+- PASS — `git diff --check`.
+
+Evidence redaction now preserves trusted result/row structure and sanitizes row values before persistence, avoiding lookups through token-redacted keys. End-to-end tests read the written JSON for a hashless HTTP 502 with token `results` and for a token embedded in the digest; six rows and useful sanitized status/body remain, and the digest is `null` when it contains the token. No Colab/T4 result is claimed; Lite report remains Pending.
