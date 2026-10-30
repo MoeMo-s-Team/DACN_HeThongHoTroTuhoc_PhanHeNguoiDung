@@ -180,14 +180,23 @@ def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures
               }}
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     path = Path(output_dir) / f"lite-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    raw_errors = {}
     raw_hashes = {}
     for index, row in enumerate(record['results']):
         error = row.get('error')
-        if isinstance(error, dict) and isinstance(error.get('sha256'), str) and len(error['sha256']) == 64:
-            raw_hashes[index] = error.pop('sha256')
+        if isinstance(error, dict):
+            error = error.copy()
+            digest = error.pop('sha256', None)
+            raw_errors[index] = error
+            if isinstance(digest, str) and len(digest) == 64:
+                raw_hashes[index] = digest
     record = _redact(record, token)
-    for index, digest in raw_hashes.items():
-        record['results'][index]['error']['sha256'] = digest
+    for index, error in raw_errors.items():
+        sanitized_error = _redact(error, token)
+        digest = raw_hashes.get(index)
+        if digest is not None:
+            sanitized_error['sha256'] = digest if not token or token not in digest else None
+        record['results'][index]['error'] = sanitized_error
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return record
 
@@ -279,7 +288,8 @@ def _returned_error(raw, token, input_value, status=None):
     safe_body = scrub(value)
     if not isinstance(value, (dict, list, str)):
         safe_body = '[RESPONSE_BODY_REDACTED]'
-    return {'body': safe_body, 'sha256': hashlib.sha256(raw_bytes).hexdigest(),
+    digest = hashlib.sha256(raw_bytes).hexdigest()
+    return {'body': safe_body, 'sha256': digest if not token or token not in digest else None,
             **({'httpStatus': status} if status is not None else {})}
 
 

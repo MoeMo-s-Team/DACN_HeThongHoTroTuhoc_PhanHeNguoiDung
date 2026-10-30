@@ -179,6 +179,40 @@ def test_http_error_retains_non_json_body_and_redacts_token(monkeypatch, tmp_pat
     assert len(result['results'][0]['error']['sha256']) == 64
 
 
+def test_http_error_token_matching_error_key_preserves_sanitized_hash(monkeypatch, tmp_path):
+    import io
+    import urllib.error
+    import ai.benchmark.lite_smoke as smoke
+
+    fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
+    monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture])
+    error = urllib.error.HTTPError('http://runtime', 502, 'bad gateway', {}, io.BytesIO(b'{"error":"failure"}'))
+    monkeypatch.setattr(smoke.urllib.request, 'urlopen', lambda *_args, **_kwargs: (_ for _ in ()).throw(error))
+    result = run_smoke('http://127.0.0.1:8000/v1/infer', 'error', tmp_path, model_id='model')
+
+    assert result['results'][0]['httpStatus'] == 502
+    assert result['results'][0]['error']['body'] == {'[REDACTED_KEY]': 'failure'}
+    assert len(result['results'][0]['error']['sha256']) == 64
+
+
+def test_response_digest_is_unavailable_when_it_contains_short_bearer_token():
+    import hashlib
+    import itertools
+    import string
+    import ai.benchmark.lite_smoke as smoke
+
+    raw = b'gateway failure'
+    digest = hashlib.sha256(raw).hexdigest()
+    token = next(''.join(chars) for width in range(1, 4)
+                 for chars in itertools.product(string.hexdigits.lower()[:16], repeat=width)
+                 if ''.join(chars) in digest)
+
+    result = smoke._returned_error(raw, token, {})
+
+    assert result['sha256'] is None
+    assert token not in json.dumps(result)
+
+
 def test_response_sanitizer_removes_nested_prompt_inputs_and_tokens_everywhere():
     import ai.benchmark.lite_smoke as smoke
 
