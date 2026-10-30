@@ -2,6 +2,12 @@
 
 The Python service is a Colab demonstration runtime. It listens on `127.0.0.1`; expose it to NestJS only through an owner-authorized private network path. This repository never starts a public tunnel.
 
+## Phase 1D.3-Lite demo
+
+Run `ai/colab/phase-1d3-lite.ipynb` with **Run all** on a Tesla T4. Provide the owner-authorized repository URL and immutable commit/ref when prompted; the runtime token is entered in a hidden prompt. The notebook checks Colab's existing Torch before installing the pinned Lite dependencies, starts the loopback runtime once, records six real fixture attempts, and runs the opt-in NestJS live-runtime case. Download `/content/lite-evidence` after the run. Failures stay in the report; reruns are separate notebook runs. This demo does not satisfy or complete official Phase 1D.3.
+
+For local harness checks without GPU, run `/tmp/dacn-phase1d3-lite-test/bin/python -m pytest ai/tests/test_lite_smoke.py -q`. Do not treat scripted test responses as model evidence.
+
 ## Local checks
 
 Use the CPU test environment described in `requirements.lock.pending.md`; do not install or replace PyTorch locally. Run `python ai/benchmark/validate_fixtures.py`, then the Python tests. The 120 fixtures are synthetic test inputs, not model output or quality evidence.

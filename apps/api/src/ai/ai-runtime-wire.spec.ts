@@ -35,6 +35,14 @@ const principal: AuthUser = {
   role: 'STUDENT', status: 'ACTIVE',
 };
 const prompts = Object.fromEntries(tasks.map((task) => [task, `prompt-${task}`]));
+const registryPrompts: Record<AiTask, string> = {
+  STUDENT_LEARNING_ANALYSIS: 'stu-learning-analysis-v1',
+  STUDENT_STUDY_PLAN_GENERATION: 'stu-study-plan-v1',
+  STUDENT_STUDY_PLAN_ADJUSTMENT: 'stu-study-adjust-v1',
+  TEACHER_CLASS_ANALYSIS: 'tea-class-analysis-v1',
+  ADMIN_FEEDBACK_GROUPING_STAGE1: 'adm-feedback-group-v1',
+  ADMIN_FEEDBACK_SUMMARY_STAGE2: 'adm-feedback-summary-v1',
+};
 
 async function startPythonRuntime(raw: string): Promise<{ baseUrl: string; close(): Promise<void> }> {
   const reservation = createServer();
@@ -97,6 +105,32 @@ async function publicError(action: Promise<unknown>): Promise<HttpException> {
 }
 
 describe('AI Runtime E5/E6 receive boundary', () => {
+  (process.env.AI_RUNTIME_LIVE_SMOKE === '1' ? it : it.skip)('validates one real output through the live Colab runtime', async () => {
+    const baseUrl = process.env.AI_RUNTIME_BASE_URL;
+    const token = process.env.AI_RUNTIME_TOKEN;
+    if (baseUrl !== 'http://127.0.0.1:8000' || !token) throw new Error('live smoke requires the notebook loopback runtime and token');
+    const task: AiTask = 'STUDENT_LEARNING_ANALYSIS';
+    const schemas = new SchemaRegistryService();
+    const client = new RuntimeHttpClient({ baseUrl, apiKey: token });
+    const gateway = new AiGatewayService(client, schemas);
+    const logs: unknown[] = [];
+    const service = new AiInferenceService(
+      { preflight: jest.fn() } as never,
+      schemas,
+      new AiSemanticValidator(schemas),
+      gateway,
+      { createTerminal: jest.fn(async (entry) => { logs.push(entry); }) } as unknown as AiRequestLogRepository,
+      { authorize: jest.fn(), checkEligibility: jest.fn() },
+      { registryPromptVersions: registryPrompts, profilePromptVersions: registryPrompts },
+    );
+    const output = await service.execute(
+      buildRequest(task, fixture(`${slugs[task]}.input.json`), `live-${Date.now()}`), principal, {},
+    );
+    expect(schemas.get(task).output(output)).toBe(true);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({ feature: task, status: 'SUCCESS' });
+  }, 60_000);
+
   it.each(tasks)('maps E5 inference failure for %s to one failed log', async (task) => {
     const requestId = `wire-${task}`;
     const server = await startPythonRuntime('{malformed-model-output');
