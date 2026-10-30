@@ -62,6 +62,7 @@ def test_notebook_is_five_code_cells_with_separate_setup_environment_start_statu
     cells = notebook()["cells"]
     sources = code_sources()
     assert len(sources) == 5
+    assert all(cell.get("execution_count") is None and cell.get("outputs") == [] for cell in cells if cell["cell_type"] == "code")
     joined = "\n".join(sources)
     assert "checkout_source" in joined
     assert "verify_colab_environment" in joined
@@ -506,6 +507,25 @@ def test_dependency_plan_reuses_compatible_colab_fastapi_and_uvicorn_versions():
     assert "uvicorn==0.35.0" in plan["constraints"]
 
 
+def test_dependency_plan_reuses_transformers_that_support_qwen2():
+    namespace = helper_namespace()
+    installed = {"transformers": "5.20.2", "torch": "2.11.0+cu130"}
+    plan = namespace["dependency_plan"](installed, installed["torch"])
+    assert "transformers==5.21.0" not in plan["install"]
+    assert "transformers==5.20.2" in plan["constraints"]
+
+
+def test_dependency_plan_rejects_transformers_outside_qwen_supported_major_range():
+    namespace = helper_namespace()
+    for version in ("4.36.9", "6.0.0"):
+        try:
+            namespace["dependency_plan"]({"transformers": version, "torch": "2.11.0+cu130"}, "2.11.0+cu130")
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"unsupported Transformers version must fail closed: {version}")
+
+
 def test_dependency_plan_rejects_fastapi_without_lifespan_support():
     namespace = helper_namespace()
     try:
@@ -694,9 +714,12 @@ def test_installed_dependencies_and_torch_are_verified_after_install(monkeypatch
 
 
 def test_installer_preserves_compatible_colab_fastapi_and_uvicorn_versions():
-    initial = {"fastapi": "0.116.1", "uvicorn": "0.35.0", "torch": "2.11.0+cu130"}
+    initial = {
+        "fastapi": "0.116.1", "uvicorn": "0.35.0", "transformers": "5.20.2",
+        "torch": "2.11.0+cu130",
+    }
     after = {
-        **initial, "jsonschema": "4.26.0", "transformers": "5.21.0",
+        **initial, "jsonschema": "4.26.0",
         "accelerate": "1.15.0", "lm-format-enforcer": "0.11.3",
     }
     versions = iter([initial, after])
@@ -714,7 +737,12 @@ def test_installer_preserves_compatible_colab_fastapi_and_uvicorn_versions():
     result = namespace["install_missing_runtime_dependencies"]()
     assert result["fastapi"] == "0.116.1"
     assert result["uvicorn"] == "0.35.0"
-    assert all("fastapi==0.162.0" not in call and "uvicorn==0.54.0" not in call for call in calls)
+    assert result["transformers"] == "5.20.2"
+    assert all(
+        "fastapi==0.162.0" not in call and "uvicorn==0.54.0" not in call
+        and "transformers==5.21.0" not in call
+        for call in calls
+    )
 
 
 def test_dependency_installer_fails_if_post_install_versions_changed(monkeypatch):
