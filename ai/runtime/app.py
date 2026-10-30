@@ -70,7 +70,7 @@ def create_app(worker_factory: Callable[[RuntimeConfig], Any], config: Any) -> F
                 await result
             load_duration = getattr(worker, "load_duration_seconds", None)
             if isinstance(load_duration, (int, float)):
-                logging.getLogger(__name__).info("AI model loaded in %.3f seconds", load_duration)
+                logging.getLogger("uvicorn.error").info("AI model loaded in %.3f seconds", load_duration)
             yield
         except BaseException:
             result = worker.close()

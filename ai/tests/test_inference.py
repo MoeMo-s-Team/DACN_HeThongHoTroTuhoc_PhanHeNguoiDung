@@ -306,10 +306,10 @@ def test_worker_startup_timing_does_not_change_inference_envelope():
     assert set(response["runtime"]) == {"modelId", "promptVersion"}
 
 
-def test_app_logs_worker_load_duration_after_ready(caplog):
+def test_app_logs_worker_load_duration_after_ready(capsys):
     require_runtime()
     import asyncio
-    import logging
+    import uvicorn
     from ai.runtime.app import create_app
 
     class FakeWorker:
@@ -322,14 +322,14 @@ def test_app_logs_worker_load_duration_after_ready(caplog):
             pass
 
     app = create_app(lambda _config: FakeWorker(), {"AI_RUNTIME_TOKEN": None})
+    uvicorn.Config(app, log_level="info").configure_logging()
 
     async def start_and_stop():
         async with app.router.lifespan_context(app):
             pass
 
-    with caplog.at_level(logging.INFO, logger="ai.runtime.app"):
-        asyncio.run(start_and_stop())
-    assert "AI model loaded in 1.250 seconds" in caplog.text
+    asyncio.run(start_and_stop())
+    assert "AI model loaded in 1.250 seconds" in capsys.readouterr().err
 
 
 def test_generation_returns_malformed_text_unchanged_for_runtime_classification(monkeypatch):
