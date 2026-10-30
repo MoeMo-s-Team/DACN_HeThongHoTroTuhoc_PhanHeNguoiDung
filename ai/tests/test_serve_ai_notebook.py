@@ -489,11 +489,56 @@ def test_dependency_plan_installs_jsonschema_format_extras_if_base_package_lacks
 def test_dependency_plan_fails_closed_for_incompatible_installed_runtime_dependency():
     namespace = helper_namespace()
     try:
-        namespace["dependency_plan"]({"fastapi": "0.99.0", "torch": "2.11.0+cu130"}, "2.11.0+cu130")
+        namespace["dependency_plan"]({"fastapi": "0.80.0", "torch": "2.11.0+cu130"}, "2.11.0+cu130")
     except RuntimeError:
         pass
     else:
         raise AssertionError("wrong installed runtime versions must not be upgraded")
+
+
+def test_dependency_plan_reuses_compatible_colab_fastapi_and_uvicorn_versions():
+    namespace = helper_namespace()
+    installed = {"fastapi": "0.116.1", "uvicorn": "0.35.0", "torch": "2.11.0+cu130"}
+    plan = namespace["dependency_plan"](installed, installed["torch"])
+    assert "fastapi==0.162.0" not in plan["install"]
+    assert "uvicorn==0.54.0" not in plan["install"]
+    assert "fastapi==0.116.1" in plan["constraints"]
+    assert "uvicorn==0.35.0" in plan["constraints"]
+
+
+def test_dependency_plan_rejects_fastapi_without_lifespan_support():
+    namespace = helper_namespace()
+    try:
+        namespace["dependency_plan"]({"fastapi": "0.92.0", "torch": "2.11.0+cu130"}, "2.11.0+cu130")
+    except RuntimeError as error:
+        assert "fastapi" in str(error).lower()
+    else:
+        raise AssertionError("FastAPI before lifespan support must be rejected")
+
+
+def test_dependency_plan_accepts_minimum_fastapi_and_uvicorn_lifespan_versions():
+    namespace = helper_namespace()
+    plan = namespace["dependency_plan"](
+        {"fastapi": "0.93.0", "uvicorn": "0.21.0", "torch": "2.11.0+cu130"},
+        "2.11.0+cu130",
+    )
+    assert "fastapi==0.162.0" not in plan["install"]
+    assert "uvicorn==0.54.0" not in plan["install"]
+
+
+def test_dependency_plan_rejects_framework_versions_outside_supported_range():
+    namespace = helper_namespace()
+    for installed in (
+        {"fastapi": "1.0.0", "torch": "2.11.0+cu130"},
+        {"uvicorn": "0.20.0", "torch": "2.11.0+cu130"},
+        {"uvicorn": "1.0.0", "torch": "2.11.0+cu130"},
+    ):
+        try:
+            namespace["dependency_plan"](installed, installed["torch"])
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"unsupported installed framework versions must fail closed: {installed}")
 
 
 def test_runtime_status_reports_http_availability_separately_from_startup_ready(tmp_path):
@@ -646,6 +691,30 @@ def test_installed_dependencies_and_torch_are_verified_after_install(monkeypatch
     assert len(calls) == 2
     assert "--dry-run" in calls[0]
     assert "--dry-run" not in calls[1]
+
+
+def test_installer_preserves_compatible_colab_fastapi_and_uvicorn_versions():
+    initial = {"fastapi": "0.116.1", "uvicorn": "0.35.0", "torch": "2.11.0+cu130"}
+    after = {
+        **initial, "jsonschema": "4.26.0", "transformers": "5.21.0",
+        "accelerate": "1.15.0", "lm-format-enforcer": "0.11.3",
+    }
+    versions = iter([initial, after])
+    calls = []
+
+    class FakeSubprocess:
+        STDOUT = subprocess.STDOUT
+        CalledProcessError = subprocess.CalledProcessError
+
+        @staticmethod
+        def run(args, **_kwargs):
+            calls.append(args)
+
+    namespace = helper_namespace(subprocess=FakeSubprocess, _installed_package_versions=lambda: next(versions))
+    result = namespace["install_missing_runtime_dependencies"]()
+    assert result["fastapi"] == "0.116.1"
+    assert result["uvicorn"] == "0.35.0"
+    assert all("fastapi==0.162.0" not in call and "uvicorn==0.54.0" not in call for call in calls)
 
 
 def test_dependency_installer_fails_if_post_install_versions_changed(monkeypatch):

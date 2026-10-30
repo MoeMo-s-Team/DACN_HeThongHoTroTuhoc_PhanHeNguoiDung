@@ -2,7 +2,7 @@
 
 ## Serve the runtime from VS Code and Google Colab
 
-Open [`colab/serve-ai.ipynb`](colab/serve-ai.ipynb) in VS Code and select a Google Colab kernel with a Tesla T4. In the first cell, enter the repository URL and full commit SHA containing the AI Runtime source, then run all cells. Choose the existing Colab PyTorch environment; the notebook checks it and installs only missing pinned runtime packages. The model uses the normal Hugging Face cache.
+Open [`colab/serve-ai.ipynb`](colab/serve-ai.ipynb) in VS Code and select a Google Colab kernel with a Tesla T4. In the first cell, enter the repository URL and full commit SHA containing the AI Runtime source, then run all cells. Choose the existing Colab PyTorch environment; the notebook checks it, reuses installed FastAPI `>=0.93.0,<1.0` and Uvicorn `>=0.21.0,<1.0`, and installs only missing pinned runtime packages. It preserves existing package versions and uses the normal Hugging Face cache.
 
 Enter the AI Runtime token only at the hidden prompt. After the Start cell, Status reports HTTP availability separately from worker/model `READY_AT_STARTUP`; this runtime has no live worker health endpoint. Run All intentionally leaves the server running. When finished, run `stop_runtime()` in a new code cell. The notebook does not run inference fixtures or smoke tests.
 
