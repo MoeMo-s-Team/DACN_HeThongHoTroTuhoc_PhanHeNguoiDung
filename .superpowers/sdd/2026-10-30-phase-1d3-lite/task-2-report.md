@@ -91,3 +91,14 @@ Runner now retains each original error mapping and response digest separately wh
 - PASS — `git diff --check`.
 
 Evidence redaction now preserves trusted result/row structure and sanitizes row values before persistence, avoiding lookups through token-redacted keys. End-to-end tests read the written JSON for a hashless HTTP 502 with token `results` and for a token embedded in the digest; six rows and useful sanitized status/body remain, and the digest is `null` when it contains the token. No Colab/T4 result is claimed; Lite report remains Pending.
+
+Final review found that the `results` collision test did not actually simulate a hashless error. The test now injects a hashless error mapping and asserts the persisted `sha256` is `null`; focused regression: 1 passed.
+
+## Final branch review corrections
+
+Independent review found notebook run-safety and evidence gaps. The notebook now uses a unique run ID and non-destructive checkout path, requires and records the exact 40-character source commit, creates a pnpm shim with Corepack, creates the evidence directory before opening logs, records NestJS live-test status/output and smoke diagnostics, shuts down Uvicorn in `finally`, and keeps each smoke output in a distinct file. Final independent re-review at commit `7a5f77a` found no remaining actionable issues.
+
+- GREEN — `/tmp/dacn-phase1d3-lite-test/bin/python -m pytest ai/tests -q` → 196 passed, 1 skipped.
+- PASS — `pnpm verify:baseline`, `pnpm lint`, `pnpm typecheck`, `PATH=/tmp/dacn-phase1d3-lite-test/bin:$PATH pnpm test`, `pnpm build`, `git diff --check`.
+- PASS — focused API runtime wire spec: 17 passed, 1 opt-in live-runtime case skipped.
+- NOT RUN — Colab/T4 model load, six real model inferences, and real NestJS-to-FastAPI request. The deliverable report stays Pending; no Lite PASS is claimed.
