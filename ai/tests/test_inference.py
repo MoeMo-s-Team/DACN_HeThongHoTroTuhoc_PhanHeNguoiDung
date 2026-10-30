@@ -111,6 +111,161 @@ def test_generation_preserves_full_prompt_without_tokenizer_truncation(monkeypat
     assert fake_model.calls[0]["max_new_tokens"] == 8
 
 
+def test_stage1_generation_uses_contract_token_constraint_only_for_that_task(monkeypatch):
+    require_runtime()
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    groups = [{"title": "Đề xuất", "summary": "Nội dung", "feedbackIds": [f"f{i}" for i in range(21)]}]
+    groups.extend({"title": "Đề xuất", "summary": "Nội dung", "feedbackIds": []} for _ in range(20))
+    schema_output = json.dumps({"issueGroups": groups}, ensure_ascii=False, separators=(",", ":"))
+    raw_output = "```json\n{\"issueGroups\": []}\n```"
+
+    class Tokenizer(FakeTokenizer):
+        def __init__(self):
+            super().__init__(raw_output)
+            chars = set(schema_output + raw_output + "0")
+            self.char_to_id = {char: index + 1 for index, char in enumerate(sorted(chars))}
+            self.id_to_char = {value: key for key, value in self.char_to_id.items()}
+            self.eos_token_id = len(self.char_to_id) + 1
+            self.pad_token_id = 0
+            self.all_special_ids = [self.pad_token_id, self.eos_token_id]
+
+        def __len__(self):
+            return self.eos_token_id + 1
+
+        def encode(self, text):
+            return [self.char_to_id[text]]
+
+        def decode(self, tokens, **kwargs):
+            if self.eos_token_id in tokens:
+                return self.decoded
+            return "".join(self.id_to_char[token] for token in tokens)
+
+    class CallbackModel(FakeModel):
+        def __init__(self, eos):
+            super().__init__(output=[1, 2, 3, eos])
+            self.callbacks = []
+            self.initial_allowed = []
+
+        def generate(self, **kwargs):
+            self.calls.append(kwargs)
+            callback = kwargs.get("prefix_allowed_tokens_fn")
+            if callback is not None:
+                self.callbacks.append(callback)
+                self.initial_allowed.append(callback(0, kwargs["input_ids"][0]))
+            return [self.output]
+
+    tokenizer = Tokenizer()
+    fake_model = CallbackModel(tokenizer.eos_token_id)
+    install_model(monkeypatch, fake_model=fake_model, tokenizer=tokenizer)
+
+    first_result = generate(task, {"feedback": []})
+    tokenizer_data = model._model.stage1_tokenizer_data
+    second_result = generate(task, {"feedback": [{"feedbackId": "f1"}]})
+    generate("STUDENT_LEARNING_ANALYSIS", {"assessments": []})
+
+    assert first_result.raw_text == raw_output
+    assert second_result.raw_text == raw_output
+    assert model._model.stage1_tokenizer_data is tokenizer_data
+    assert len(fake_model.callbacks) == 2
+    assert fake_model.callbacks[0] is not fake_model.callbacks[1]
+    assert "prefix_allowed_tokens_fn" not in fake_model.calls[2]
+
+    callback = fake_model.callbacks[0]
+    sent = FakeIds([1, 2, 3])
+    allowed = fake_model.initial_allowed[0]
+    assert tokenizer.char_to_id["{"] in allowed
+    assert tokenizer.char_to_id["["] not in allowed
+    assert tokenizer.char_to_id["`"] not in allowed
+    for char in schema_output:
+        token_id = tokenizer.char_to_id[char]
+        assert token_id in allowed, f"Rejected {char!r} after {len(sent) - 3} generated tokens"
+        sent = FakeIds([*sent, token_id])
+        allowed = callback(0, sent)
+    assert tokenizer.eos_token_id in allowed
+
+
+def test_stage1_constraint_accepts_contract_object_and_rejects_wrappers():
+    from lmformatenforcer import JsonSchemaParser
+    from ai.runtime.schemas import task_schema
+
+    schema = task_schema("ADMIN_FEEDBACK_GROUPING_STAGE1", "output")
+    parser = JsonSchemaParser(schema)
+    allowed_at_start = parser.get_allowed_characters()
+    assert "{" in allowed_at_start
+    assert "[" not in allowed_at_start
+    assert "`" not in allowed_at_start
+
+    output = '{"issueGroups":[{"title":"Noi dung","summary":"Tom tat","feedbackIds":["fb-1"]}]}'
+    def accepted(text):
+        parser = JsonSchemaParser(schema)
+        for character in text:
+            if character not in parser.get_allowed_characters():
+                return False
+            parser = parser.add_character(character)
+        return parser.can_end()
+
+    assert accepted(output)
+    assert not accepted("[]")
+    assert not accepted("```json\\n{}\\n```")
+    assert not accepted('{"issueGroups":[{}]}')
+    assert not accepted('{"issueGroups":[],"extra":true}')
+
+
+def test_stage1_constraint_suppresses_lmfe_logs_containing_prompt_tokens(monkeypatch, caplog):
+    require_runtime()
+    from lmformatenforcer.tokenenforcer import TokenEnforcer
+
+    secret_prompt = "PRIVATE_STAGE1_PROMPT_SENTINEL"
+    raw_output = "{}"
+
+    class Tokenizer(FakeTokenizer):
+        def __init__(self):
+            super().__init__(raw_output)
+            chars = set('{}[]":,issueGroups0')
+            self.char_to_id = {char: index + 1 for index, char in enumerate(sorted(chars))}
+            self.id_to_char = {value: key for key, value in self.char_to_id.items()}
+            self.eos_token_id = len(self.char_to_id) + 1
+            self.pad_token_id = 0
+            self.all_special_ids = [0, self.eos_token_id]
+
+        def __len__(self):
+            return self.eos_token_id + 1
+
+        def encode(self, text):
+            return [self.char_to_id[text]]
+
+        def __call__(self, prompt, **kwargs):
+            self.calls.append((prompt, kwargs))
+            return {"input_ids": FakeIds([500, 501, 502])}
+
+        def decode(self, tokens, **kwargs):
+            if tokens == [500, 501, 502]:
+                return secret_prompt
+            if self.eos_token_id in tokens:
+                return self.decoded
+            return "".join(self.id_to_char[token] for token in tokens)
+
+    class CallbackModel(FakeModel):
+        def generate(self, **kwargs):
+            self.calls.append(kwargs)
+            kwargs["prefix_allowed_tokens_fn"](0, kwargs["input_ids"][0])
+            return [[500, 501, 502, self.eos_token_id]]
+
+    tokenizer = Tokenizer()
+    fake_model = CallbackModel()
+    fake_model.eos_token_id = tokenizer.eos_token_id
+    install_model(monkeypatch, fake_model=fake_model, tokenizer=tokenizer)
+    monkeypatch.setattr(
+        TokenEnforcer, "_collect_allowed_tokens",
+        lambda *args: (_ for _ in ()).throw(RuntimeError("parser failure")),
+    )
+
+    generate("ADMIN_FEEDBACK_GROUPING_STAGE1", {"feedback": []})
+
+    assert secret_prompt not in caplog.text
+
+
 def test_generation_refuses_input_that_cannot_fit_reserved_output(monkeypatch):
     require_runtime()
     fake_model, tokenizer = install_model(monkeypatch, context=14, max_new=8, margin=4)
@@ -141,6 +296,8 @@ def test_lite_stage1_generation_failure_keeps_only_exception_type_when_opted_in(
         if json.loads(line)["task"] == task
     )
     fake_model, _ = install_model(monkeypatch, fake_model=FakeModel(error=RuntimeError("private-detail")))
+    monkeypatch.setattr(model, "_build_stage1_tokenizer_data", lambda _tokenizer: object())
+    monkeypatch.setattr(model, "_build_stage1_prefix_allowed_tokens_fn", lambda *_args: lambda *_cb_args: [])
     monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
 
     with pytest.raises(GenerationFailure) as error:

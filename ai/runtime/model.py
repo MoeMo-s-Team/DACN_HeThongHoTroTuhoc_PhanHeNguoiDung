@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from ai.runtime.prompts import PROMPT_VERSIONS, build_messages
@@ -67,6 +68,7 @@ class LoadedModel:
     model_id: str
     prompt_versions: dict[str, str] = field(default_factory=lambda: dict(PROMPT_VERSIONS))
     load_duration_seconds: float | None = None
+    stage1_tokenizer_data: Any = None
 
 
 _model: LoadedModel | None = None
@@ -123,6 +125,52 @@ def _token_count(input_ids: Any) -> int:
     return int(shape[-1]) if shape is not None else len(input_ids[0])
 
 
+def _build_stage1_tokenizer_data(tokenizer: Any):
+    from lmformatenforcer.tokenenforcer import TokenEnforcerTokenizerData
+
+    token_zero = tokenizer.encode("0")[-1]
+    regular_tokens = []
+    for token_id in range(len(tokenizer)):
+        if token_id in tokenizer.all_special_ids:
+            continue
+        decoded_after_zero = tokenizer.decode([token_zero, token_id])[1:]
+        decoded_token = tokenizer.decode([token_id])
+        regular_tokens.append((token_id, decoded_after_zero, len(decoded_after_zero) > len(decoded_token)))
+
+    def decode(tokens):
+        return tokenizer.decode(tokens).rstrip("\ufffd")
+
+    return TokenEnforcerTokenizerData(
+        regular_tokens, decode, tokenizer.eos_token_id, False, len(tokenizer),
+    )
+
+
+def _build_stage1_prefix_allowed_tokens_fn(tokenizer_data: Any, schema: dict):
+    from lmformatenforcer import CharacterLevelParserConfig, JsonSchemaParser
+    from lmformatenforcer.tokenenforcer import TokenEnforcer
+
+    # The output schema leaves both arrays unbounded; zero disables LMFE's demo limit of 20.
+    parser = JsonSchemaParser(schema, config=CharacterLevelParserConfig(
+        alphabet=tokenizer_data.tokenizer_alphabet, max_json_array_length=0,
+    ))
+    token_enforcer = TokenEnforcer(tokenizer_data, parser)
+    # LMFE 0.11.3 rebuilds parser.config in TokenEnforcer.__init__.
+    parser.config = replace(parser.config, max_json_array_length=0)
+
+    def prefix_allowed_tokens_fn(_batch_id: int, input_ids: Any):
+        tokens = input_ids.tolist() if hasattr(input_ids, "tolist") else list(input_ids)
+        return token_enforcer.get_allowed_tokens(tokens).allowed_tokens
+
+    return prefix_allowed_tokens_fn
+
+
+class _SuppressLmfePrefixLog(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # LMFE's fallback log decodes the entire sequence, including the input prompt.
+        return not (record.name == "root"
+                    and record.getMessage().startswith("Unknown LMFormatEnforcer Problem. Prefix:"))
+
+
 def generate(task: str, input: dict) -> GenerationResult:
     if _model is None:
         raise GenerationFailure("model is unavailable")
@@ -142,17 +190,33 @@ def generate(task: str, input: dict) -> GenerationResult:
         if device is None:
             device = next(_model.model.parameters()).device
         encoded = {key: value.to(device) for key, value in encoded.items()}
-        generated = _model.model.generate(
-            **encoded,
-            max_new_tokens=_model.max_new_tokens,
-            do_sample=False,
-            eos_token_id=_model.tokenizer.eos_token_id,
-            pad_token_id=(
+        generation_options = {
+            "max_new_tokens": _model.max_new_tokens,
+            "do_sample": False,
+            "eos_token_id": _model.tokenizer.eos_token_id,
+            "pad_token_id": (
                 _model.tokenizer.pad_token_id
                 if _model.tokenizer.pad_token_id is not None
                 else _model.tokenizer.eos_token_id
             ),
-        )
+        }
+        is_stage1 = task == "ADMIN_FEEDBACK_GROUPING_STAGE1"
+        if is_stage1:
+            if _model.stage1_tokenizer_data is None:
+                _model.stage1_tokenizer_data = _build_stage1_tokenizer_data(_model.tokenizer)
+            from ai.runtime.schemas import task_schema
+            generation_options["prefix_allowed_tokens_fn"] = _build_stage1_prefix_allowed_tokens_fn(
+                _model.stage1_tokenizer_data, task_schema(task, "output"),
+            )
+        log_filter = _SuppressLmfePrefixLog() if is_stage1 else None
+        root_logger = logging.getLogger()
+        if log_filter is not None:
+            root_logger.addFilter(log_filter)
+        try:
+            generated = _model.model.generate(**encoded, **generation_options)
+        finally:
+            if log_filter is not None:
+                root_logger.removeFilter(log_filter)
         sequence = generated[0]
         output_ids = sequence[input_tokens:]
         output_tokens = output_ids.tolist() if hasattr(output_ids, "tolist") else list(output_ids)

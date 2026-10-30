@@ -348,6 +348,7 @@ def test_notebook_initializes_block_recorder_before_source_validation_and_record
     assert "'nestjsLive': live" in smoke and "'smokeDiagnostic': smoke.get('diagnostic')" in smoke and 'check=False' in smoke
     assert "'AI_RUNTIME_LITE_DIAGNOSTICS': '1'" in runtime_setup
     assert "'AI_RUNTIME_LITE_DIAGNOSTICS_DIR'" in runtime_setup
+    assert "'lm-format-enforcer'" in smoke
     assert "env.pop('AI_RUNTIME_LITE_DIAGNOSTICS', None)" in runtime_setup
     assert "env.pop('AI_RUNTIME_LITE_DIAGNOSTICS_DIR', None)" in runtime_setup
     assert "diagnostic_files = list((lite_evidence_dir/'diagnostics').glob('*.json'))" in smoke
