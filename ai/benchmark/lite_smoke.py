@@ -180,7 +180,14 @@ def run_smoke(endpoint, token, output_dir, *, model_id, evaluator=None, fixtures
               }}
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     path = Path(output_dir) / f"lite-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    raw_hashes = {}
+    for index, row in enumerate(record['results']):
+        error = row.get('error')
+        if isinstance(error, dict) and isinstance(error.get('sha256'), str) and len(error['sha256']) == 64:
+            raw_hashes[index] = error.pop('sha256')
     record = _redact(record, token)
+    for index, digest in raw_hashes.items():
+        record['results'][index]['error']['sha256'] = digest
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return record
 
@@ -195,8 +202,8 @@ def _redact(value, secret):
     if isinstance(value, list):
         return [_redact(item, secret) for item in value]
     if isinstance(value, dict):
-        return {key.replace(secret, '[REDACTED_KEY]') if secret and key != 'sha256' else key:
-                item if key == 'sha256' else _redact(item, secret) for key, item in value.items()}
+        return {str(key).replace(secret, '[REDACTED_KEY]') if secret else str(key):
+                _redact(item, secret) for key, item in value.items()}
     return value
 
 
@@ -207,6 +214,7 @@ def _returned_error(raw, token, input_value, status=None):
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
         value = raw_bytes.decode('utf-8', errors='replace')
     sensitive = set()
+    input_words = set()
     def collect(item):
         if isinstance(item, dict):
             for key, part in item.items():
@@ -217,6 +225,7 @@ def _returned_error(raw, token, input_value, status=None):
                 collect(part)
         elif isinstance(item, str) and len(item) > 1:
             sensitive.add(item)
+            input_words.update(word for word in re.findall(r'[\w.-]+', item, re.UNICODE) if len(word) > 1)
         elif isinstance(item, (int, float)) and not isinstance(item, bool) and len(str(item)) >= 3:
             sensitive.add(str(item))
     collect(input_value)
@@ -225,12 +234,18 @@ def _returned_error(raw, token, input_value, status=None):
     compact_input = json.dumps(input_value, ensure_ascii=False, separators=(',', ':'))
     pretty_input = json.dumps(input_value, ensure_ascii=False, indent=2)
     sensitive.update((compact_input, pretty_input))
+    sensitive.update(input_words)
     sensitive = sorted((value for value in sensitive if value), key=len, reverse=True)
     field_pattern = re.compile(r'prompt|input|auth|token|secret|credential|bearer|api.?key', re.I)
+    assignment_pattern = re.compile(
+        r'(?i)\b(?:secret|prompt|input|authorization|auth|token|api[_-]?key|credential|bearer)\b\s*[:=]\s*(?:"[^"]*"|\'[^\']*\'|[^,;\n]+)')
+    bearer_pattern = re.compile(r'(?i)\bbearer\s+[^\s,;]+')
     def clean_text(text):
         text = text.replace(token, '[REDACTED]') if token else text
+        text = assignment_pattern.sub('[REDACTED_ASSIGNMENT]', text)
+        text = bearer_pattern.sub('Bearer [REDACTED]', text)
         for value in sensitive:
-            text = text.replace(value, '[REDACTED_INPUT]')
+            text = re.sub(re.escape(value), '[REDACTED_INPUT]', text, flags=re.I)
         if field_pattern.search(text) and re.search(r'prompt|instruction', text, re.I):
             return '[PROMPT_OR_INSTRUCTION_CONTENT_REDACTED]'
         return text

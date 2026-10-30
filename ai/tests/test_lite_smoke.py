@@ -207,6 +207,38 @@ def test_response_sanitizer_removes_nested_prompt_inputs_and_tokens_everywhere()
     assert len(sanitized['sha256']) == 64
 
 
+def test_response_sanitizer_removes_partial_input_words_and_labeled_secrets_from_text():
+    import ai.benchmark.lite_smoke as smoke
+
+    input_value = {'displayName': 'Private Learner'}
+    raw = b'echo=private; secret=another-secret; authorization=Bearer runtime-secret'
+    result = smoke._returned_error(raw, 'runtime-secret', input_value)
+    body = result['body']
+    for secret in ('Private', 'private', 'Learner', 'another-secret', 'runtime-secret', 'Bearer'):
+        assert secret not in body
+    assert len(result['sha256']) == 64
+
+
+def test_runner_redacts_token_in_runtime_output_sha256_key_without_scrubbing_ordinary_pass_output(monkeypatch, tmp_path):
+    import ai.benchmark.lite_smoke as smoke
+
+    fixture = {'fixtureId': 'one', 'task': 'STUDENT_LEARNING_ANALYSIS', 'input': {}, 'authoritativeContext': {}}
+    monkeypatch.setattr(smoke, 'load_fixtures', lambda _path: [fixture])
+    def response(_url, _token, request, _timeout):
+        return 200, {
+            'contractVersion': '1.0', 'requestId': request['requestId'], 'task': fixture['task'],
+            'output': {'sha256': 'runtime-secret-123', 'ordinary': 'normal output'},
+            'runtime': {'modelId': 'model', 'promptVersion': smoke.PROMPT_VERSIONS[fixture['task']]},
+        }
+    monkeypatch.setattr(smoke, 'post_request', response)
+    result = run_smoke('http://127.0.0.1:8000/v1/infer', 'runtime-secret-123', tmp_path, model_id='model',
+                       evaluator=lambda *_: {'schemaPass': True, 'semanticPass': True, 'referenceStatus': 'PASS'})
+    output = result['results'][0]['output']
+    assert output['sha256'] == '[REDACTED]'
+    assert output['ordinary'] == 'normal output'
+    assert result['results'][0]['status'] == 'PASS'
+
+
 def test_notebook_initializes_block_recorder_before_source_validation_and_records_prerequisite_failures():
     notebook = json.loads(Path('ai/colab/phase-1d3-lite.ipynb').read_text())
     setup = ''.join(notebook['cells'][1]['source'])
