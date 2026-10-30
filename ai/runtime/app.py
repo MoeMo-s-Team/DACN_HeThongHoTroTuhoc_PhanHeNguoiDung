@@ -6,6 +6,7 @@ import inspect
 import json
 import os
 import hashlib
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -67,6 +68,9 @@ def create_app(worker_factory: Callable[[RuntimeConfig], Any], config: Any) -> F
             result = worker.start()
             if inspect.isawaitable(result):
                 await result
+            load_duration = getattr(worker, "load_duration_seconds", None)
+            if isinstance(load_duration, (int, float)):
+                logging.getLogger(__name__).info("AI model loaded in %.3f seconds", load_duration)
             yield
         except BaseException:
             result = worker.close()

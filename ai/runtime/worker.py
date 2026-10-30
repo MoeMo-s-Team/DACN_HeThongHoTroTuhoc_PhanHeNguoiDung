@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import fcntl
-import logging
 import multiprocessing as mp
 import os
 import re
@@ -221,7 +220,6 @@ def _default_factory(config: WorkerConfig):
     started = time.monotonic()
     engine = load_model(model_config)
     engine.load_duration_seconds = time.monotonic() - started
-    logging.getLogger(__name__).info("AI model loaded in %.3f seconds", engine.load_duration_seconds)
     return engine
 
 

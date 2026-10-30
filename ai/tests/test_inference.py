@@ -306,6 +306,32 @@ def test_worker_startup_timing_does_not_change_inference_envelope():
     assert set(response["runtime"]) == {"modelId", "promptVersion"}
 
 
+def test_app_logs_worker_load_duration_after_ready(caplog):
+    require_runtime()
+    import asyncio
+    import logging
+    from ai.runtime.app import create_app
+
+    class FakeWorker:
+        load_duration_seconds = 1.25
+
+        def start(self):
+            pass
+
+        def close(self):
+            pass
+
+    app = create_app(lambda _config: FakeWorker(), {"AI_RUNTIME_TOKEN": None})
+
+    async def start_and_stop():
+        async with app.router.lifespan_context(app):
+            pass
+
+    with caplog.at_level(logging.INFO, logger="ai.runtime.app"):
+        asyncio.run(start_and_stop())
+    assert "AI model loaded in 1.250 seconds" in caplog.text
+
+
 def test_generation_returns_malformed_text_unchanged_for_runtime_classification(monkeypatch):
     require_runtime()
     fake_model, _ = install_model(monkeypatch, tokenizer=FakeTokenizer(decoded="not-json"))
