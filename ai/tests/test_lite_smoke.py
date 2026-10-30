@@ -340,8 +340,9 @@ def test_notebook_initializes_block_recorder_before_source_validation_and_record
     assert "['corepack', 'enable', '--install-directory'" in node_setup
     assert 'run_id' in setup and 'run_id' in smoke
     assert 'def stop_runtime()' in runtime_setup
+    assert runtime_setup.index('lite_evidence_dir.mkdir') < runtime_setup.index('open(lite_evidence_dir')
     assert 'finally:' in smoke and 'stop_runtime()' in smoke
-    assert "'nestjsLive': live" in smoke and 'check=False' in smoke
+    assert "'nestjsLive': live" in smoke and "'smokeDiagnostic': smoke.get('diagnostic')" in smoke and 'check=False' in smoke
     for cell in notebook['cells']:
         if cell['cell_type'] == 'code':
             compile(''.join(cell['source']), 'notebook-cell', 'exec')
