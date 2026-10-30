@@ -58,7 +58,8 @@ def _worker_factory(_config: RuntimeConfig):
 
 
 def _write_lite_diagnostic(value: dict, worker: Any, generated: Any = None,
-                           error: Exception | None = None, auth_token: str | None = None) -> None:
+                           error: Exception | None = None, auth_token: str | None = None,
+                           *, is_json_parse_error: bool = False) -> None:
     if os.environ.get("AI_RUNTIME_LITE_DIAGNOSTICS") != "1" or not is_lite_stage1_fixture(value):
         return
     directory_value = os.environ.get("AI_RUNTIME_LITE_DIAGNOSTICS_DIR")
@@ -73,18 +74,18 @@ def _write_lite_diagnostic(value: dict, worker: Any, generated: Any = None,
             return
         parse_error = None
         runtime_error = None
-        if isinstance(error, json.JSONDecodeError):
+        if is_json_parse_error and isinstance(error, json.JSONDecodeError):
             parse_error = {"type": type(error).__name__, "message": error.msg,
                            "position": error.pos, "line": error.lineno, "column": error.colno}
-        elif isinstance(error, ValueError):
-            parse_error = {"type": type(error).__name__, "message": str(error)}
+        elif is_json_parse_error and error is not None:
+            parse_error = {"type": type(error).__name__}
         elif error is not None:
             runtime_error = getattr(error, "diagnostic_error_type", type(error).__name__)
         raw_output = getattr(generated, "raw_text", None)
         if isinstance(raw_output, str) and auth_token:
             raw_output = raw_output.replace(auth_token, "[REDACTED]")
         record = {
-            "task": value["task"], "requestId": value["requestId"],
+            "task": value["task"],
             "modelId": getattr(worker, "model_id", None),
             "rawGeneratedOutput": raw_output,
             "outputTokenCount": getattr(generated, "output_token_count", None),
@@ -93,11 +94,13 @@ def _write_lite_diagnostic(value: dict, worker: Any, generated: Any = None,
             "jsonParsingError": parse_error,
             "runtimeErrorType": runtime_error,
         }
+        serialized = json.dumps(record, ensure_ascii=False, indent=2)
+        if auth_token and auth_token in serialized:
+            return
         path = directory / f"stage1-{uuid.uuid4().hex}.json"
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as output:
-            json.dump(record, output, ensure_ascii=False, indent=2)
-            output.write("\n")
+            output.write(serialized + "\n")
     except OSError:
         return
 
@@ -181,12 +184,15 @@ def create_app(worker_factory: Callable[[RuntimeConfig], Any], config: Any) -> F
             try:
                 output = json.loads(raw_text, parse_constant=_reject_json_constant)
             except (json.JSONDecodeError, ValueError) as error:
-                _write_lite_diagnostic(value, worker, generated, error, current_config.token)
+                _write_lite_diagnostic(value, worker, generated, error, current_config.token,
+                                       is_json_parse_error=True)
                 return _error(request_id, "INFERENCE_FAILED", "Inference could not be completed", 500)
             if not isinstance(output, dict):
                 error = ValueError("generated JSON is not an object")
-                _write_lite_diagnostic(value, worker, generated, error, current_config.token)
+                _write_lite_diagnostic(value, worker, generated, error, current_config.token,
+                                       is_json_parse_error=True)
                 return _error(request_id, "INFERENCE_FAILED", "Inference could not be completed", 500)
+            _write_lite_diagnostic(value, worker, generated, auth_token=current_config.token)
         except InferenceTimeout:
             return _error(request_id, "RUNTIME_UNAVAILABLE", "Runtime is unavailable", 504)
         except RuntimeUnavailable:

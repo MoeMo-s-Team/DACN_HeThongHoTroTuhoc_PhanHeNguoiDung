@@ -334,7 +334,7 @@ def test_notebook_initializes_block_recorder_before_source_validation_and_record
     assert "re.fullmatch(r'[0-9a-f]{40}', REPO_REF)" in setup
     assert 'source_commit' in setup and 'sourceCommit' in smoke
     assert "LITE_TASK_FILTER = 'ADMIN_FEEDBACK_GROUPING_STAGE1'" in setup
-    assert 'ENABLE_LITE_DIAGNOSTICS = True' in setup
+    assert 'ENABLE_LITE_DIAGNOSTICS = False' in setup
     assert "Path('/content/dacn')" not in prerequisites and 'str(repo)' in prerequisites
     assert 'try:' in prerequisites[:prerequisites.index('nvidia-smi')]
     assert 'except Exception as exc:' in prerequisites
@@ -348,6 +348,12 @@ def test_notebook_initializes_block_recorder_before_source_validation_and_record
     assert "'nestjsLive': live" in smoke and "'smokeDiagnostic': smoke.get('diagnostic')" in smoke and 'check=False' in smoke
     assert "'AI_RUNTIME_LITE_DIAGNOSTICS': '1'" in runtime_setup
     assert "'AI_RUNTIME_LITE_DIAGNOSTICS_DIR'" in runtime_setup
+    assert "env.pop('AI_RUNTIME_LITE_DIAGNOSTICS', None)" in runtime_setup
+    assert "env.pop('AI_RUNTIME_LITE_DIAGNOSTICS_DIR', None)" in runtime_setup
+    assert "diagnostic_files = list((lite_evidence_dir/'diagnostics').glob('*.json'))" in smoke
+    assert "json.loads(diagnostic_files[0].read_text())" in smoke
+    assert "'jsonParsingError', 'runtimeErrorType'" in smoke
+    assert 'BLOCKED: Stage 1 diagnostic evidence missing, incomplete, or insecure' in smoke
     assert 'LITE_TASK_FILTER' in smoke and "command.extend(['--task'" in smoke
     assert 'RUN_LIVE_NESTJS_SMOKE' in smoke
     for cell in notebook['cells']:

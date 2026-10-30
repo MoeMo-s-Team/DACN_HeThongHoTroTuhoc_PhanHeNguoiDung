@@ -268,7 +268,7 @@ def test_lite_stage1_diagnostic_records_raw_generation_privately_without_changin
         json.loads(line) for line in (ROOT / "ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
         if json.loads(line)["task"] == task
     )
-    body = {"contractVersion": "1.0", "requestId": "lite-stage1-debug", "task": task,
+    body = {"contractVersion": "1.0", "requestId": "diagnostic-auth-secret", "task": task,
             "locale": "vi-VN", "input": lite_fixture["input"]}
     raw_output = '{"issueGroups": ["diagnostic-auth-secret"'
 
@@ -299,6 +299,7 @@ def test_lite_stage1_diagnostic_records_raw_generation_privately_without_changin
     assert diagnostic["maxNewTokens"] == 1024
     assert diagnostic["jsonParsingError"]["type"] == "JSONDecodeError"
     assert diagnostic["jsonParsingError"]["message"]
+    assert "requestId" not in diagnostic
     assert "diagnostic-auth-secret" not in content
     assert json.dumps(body["input"], ensure_ascii=False) not in content
     assert stat.S_IMODE(files[0].stat().st_mode) == 0o600
@@ -334,6 +335,92 @@ def test_lite_stage1_diagnostic_is_disabled_or_rejects_non_lite_input(
 
     assert response.status_code == 500
     assert not list(tmp_path.rglob("*.json"))
+
+
+def test_lite_stage1_diagnostic_does_not_persist_runtime_value_error_message(monkeypatch, tmp_path):
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    lite_fixture = next(
+        json.loads(line) for line in (ROOT / "ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    body = {"contractVersion": "1.0", "requestId": "diagnostic-auth-secret", "task": task,
+            "locale": "vi-VN", "input": lite_fixture["input"]}
+    class FailingWorker(FakeWorker):
+        def infer(self, value):
+            self.calls.append(value)
+            raise ValueError("diagnostic-auth-secret")
+
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS_DIR", str(tmp_path / "private"))
+    with TestClient(build_app(FailingWorker("{}"), token="diagnostic-auth-secret")) as client:
+        response = client.post("/v1/infer", json=body, headers=auth("diagnostic-auth-secret"))
+
+    assert response.status_code == 500
+    files = list((tmp_path / "private").glob("*.json"))
+    assert len(files) == 1
+    diagnostic = json.loads(files[0].read_text())
+    content = files[0].read_text()
+    assert diagnostic["runtimeErrorType"] == "ValueError"
+    assert diagnostic["jsonParsingError"] is None
+    assert "diagnostic-auth-secret" not in content
+
+
+def test_lite_stage1_diagnostic_records_valid_generation_before_success_response(monkeypatch, tmp_path):
+    from ai.runtime.model import GenerationResult
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    lite_fixture = next(
+        json.loads(line) for line in (ROOT / "ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    body = {"contractVersion": "1.0", "requestId": "stage1", "task": task,
+            "locale": "vi-VN", "input": lite_fixture["input"]}
+    raw_output = '{"issueGroups": []}'
+
+    class GeneratedWorker(FakeWorker):
+        def infer(self, value):
+            self.calls.append(value)
+            return GenerationResult(raw_output, 7, "eos")
+
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS_DIR", str(tmp_path / "private"))
+    with TestClient(build_app(GeneratedWorker(raw_output))) as client:
+        response = client.post("/v1/infer", json=body, headers=auth())
+
+    assert response.status_code == 200
+    diagnostic_files = list((tmp_path / "private").glob("*.json"))
+    assert len(diagnostic_files) == 1
+    diagnostic = json.loads(diagnostic_files[0].read_text())
+    assert diagnostic["rawGeneratedOutput"] == raw_output
+    assert diagnostic["outputTokenCount"] == 7
+    assert diagnostic["terminationReason"] == "eos"
+    assert diagnostic["jsonParsingError"] is None
+    assert diagnostic["runtimeErrorType"] is None
+
+
+def test_lite_stage1_diagnostic_fails_closed_when_token_occurs_in_metadata(monkeypatch, tmp_path):
+    from ai.runtime.model import GenerationResult
+
+    task = "ADMIN_FEEDBACK_GROUPING_STAGE1"
+    lite_fixture = next(
+        json.loads(line) for line in (ROOT / "ai/benchmark/fixtures/lite-smoke.jsonl").read_text().splitlines()
+        if json.loads(line)["task"] == task
+    )
+    body = {"contractVersion": "1.0", "requestId": "stage1", "task": task,
+            "locale": "vi-VN", "input": lite_fixture["input"]}
+
+    class GeneratedWorker(FakeWorker):
+        def infer(self, value):
+            self.calls.append(value)
+            return GenerationResult('{"issueGroups": []}', 7, "eos")
+
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS", "1")
+    monkeypatch.setenv("AI_RUNTIME_LITE_DIAGNOSTICS_DIR", str(tmp_path / "private"))
+    with TestClient(build_app(GeneratedWorker("{}"), token="1")) as client:
+        response = client.post("/v1/infer", json=body, headers=auth("1"))
+
+    assert response.status_code == 200
+    assert not list((tmp_path / "private").glob("*.json"))
 
 
 @pytest.mark.parametrize("task", TASKS)
