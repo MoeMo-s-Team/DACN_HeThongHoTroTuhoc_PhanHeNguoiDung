@@ -2,6 +2,7 @@ import { AuthUser } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { calculateProgress, classifyAssessmentScore, StudentDashboardService } from './student-dashboard.service';
+import { MVP_COURSE_ID } from '../common/mvp-course';
 
 const student: AuthUser = {
   id: '10000000-0000-4000-8000-000000000001',
@@ -34,13 +35,13 @@ describe('StudentDashboardService', () => {
     const result = await service.getDashboard(student);
 
     expect(assessmentResult.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { studentId: student.id },
+      where: { studentId: student.id, topic: { courseId: MVP_COURSE_ID } },
       orderBy: { evaluatedAt: 'desc' },
     }));
     expect(result.assessmentResults).toEqual([{
       topic,
       score: 59,
-      classification: 'NEEDS_PRIORITY',
+      classification: 'PRIORITY',
       evaluatedAt: new Date('2026-10-31T00:00:00.000Z'),
     }]);
   });
@@ -54,9 +55,11 @@ describe('StudentDashboardService', () => {
     const result = await service.getDashboard(student);
 
     expect(result.assessmentResults).toEqual([
-      { topic, score: 80, classification: 'NEEDS_REINFORCEMENT', evaluatedAt: new Date('2026-10-31T00:00:00.000Z') },
-      { topic: { id: '20000000-0000-4000-8000-000000000002', name: 'Databases' }, score: 60, classification: 'NEEDS_PRIORITY', evaluatedAt: new Date('2026-10-31T00:00:00.000Z') },
+      expect.objectContaining({ topic, classification: 'NEEDS_REINFORCEMENT', evaluatedAt: new Date('2026-10-31T00:00:00.000Z') }),
+      expect.objectContaining({ topic: { id: '20000000-0000-4000-8000-000000000002', name: 'Databases' }, classification: 'PRIORITY', evaluatedAt: new Date('2026-10-31T00:00:00.000Z') }),
     ]);
+    expect(result.assessmentResults[0].score).toBeLessThan(80);
+    expect(result.assessmentResults[1].score).toBeLessThan(60);
   });
 
   it('returns empty assessment and null plan metrics when no learning data exists', async () => {
@@ -66,6 +69,45 @@ describe('StudentDashboardService', () => {
     expect(studyPlan.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { studentId: student.id, status: { in: ['ACTIVE', 'COMPLETED'] } },
     }));
+  });
+
+  it('returns current results scoped to the authenticated Student and MVP Course', async () => {
+    const latest = new Date('2026-10-31T00:00:00.000Z');
+    assessmentResult.findMany.mockResolvedValue([
+      { topicId: topic.id, topic, score: new Prisma.Decimal('79.999999999999999999'), evaluatedAt: latest },
+      { topicId: topic.id, topic, score: new Prisma.Decimal('101'), evaluatedAt: new Date(latest.getTime() - 1) },
+    ]);
+
+    const result = await service.getAssessmentResults(student);
+    expect(result.items[0]).toMatchObject({ topic, classification: 'NEEDS_REINFORCEMENT', evaluatedAt: latest });
+    expect(result.items[0].score).toBeLessThan(80);
+    expect(assessmentResult.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { studentId: student.id, topic: { courseId: MVP_COURSE_ID } },
+      orderBy: { evaluatedAt: 'desc' },
+    }));
+  });
+
+  it('selects the current result before validating prior history', async () => {
+    const latest = new Date('2026-10-31T00:00:00.000Z');
+    assessmentResult.findMany.mockResolvedValue([
+      { topicId: topic.id, topic, score: new Prisma.Decimal('79.5'), evaluatedAt: latest },
+      { topicId: topic.id, topic, score: new Prisma.Decimal('101'), evaluatedAt: new Date(latest.getTime() - 1) },
+    ]);
+
+    await expect(service.getAssessmentResults(student)).resolves.toMatchObject({
+      items: [{ score: 79.5, classification: 'NEEDS_REINFORCEMENT' }],
+    });
+  });
+
+  it('returns an empty item list when no assessment result exists', async () => {
+    await expect(service.getAssessmentResults(student)).resolves.toEqual({ items: [] });
+  });
+
+  it('denies assessment-result access to non-Student users', async () => {
+    await expect(service.getAssessmentResults({ ...student, role: 'TEACHER' })).rejects.toMatchObject({
+      response: { code: 'FORBIDDEN_RESOURCE' },
+    });
+    expect(assessmentResult.findMany).not.toHaveBeenCalled();
   });
 
   it('denies dashboard access to non-Student users', async () => {
@@ -138,11 +180,17 @@ describe('student dashboard metric rules', () => {
   });
 
   it.each([
+    [0, 'PRIORITY'],
     [80, 'GOOD'],
     [79, 'NEEDS_REINFORCEMENT'],
     [60, 'NEEDS_REINFORCEMENT'],
-    [59, 'NEEDS_PRIORITY'],
+    [59, 'PRIORITY'],
+    [100, 'GOOD'],
   ] as const)('classifies score %s as %s', (score, classification) => {
     expect(classifyAssessmentScore(score)).toBe(classification);
+  });
+
+  it.each([-0.01, 100.01])('rejects score %s outside 0–100', (score) => {
+    expect(() => classifyAssessmentScore(score)).toThrow();
   });
 });

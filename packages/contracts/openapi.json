@@ -299,6 +299,77 @@
           "student"
         ]
       }
+    },
+    "/api/v1/student/assessment-results": {
+      "get": {
+        "operationId": "StudentDashboardController_getAssessmentResults",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentAssessmentResultsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
     }
   },
   "info": {
@@ -451,7 +522,7 @@
             "enum": [
               "GOOD",
               "NEEDS_REINFORCEMENT",
-              "NEEDS_PRIORITY"
+              "PRIORITY"
             ]
           },
           "evaluatedAt": {
@@ -639,6 +710,20 @@
           "progress",
           "nearDueTasks",
           "overdueTaskItems"
+        ]
+      },
+      "StudentAssessmentResultsResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentResultViewDto"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       }
     }

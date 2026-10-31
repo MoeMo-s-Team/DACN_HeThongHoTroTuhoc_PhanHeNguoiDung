@@ -133,6 +133,15 @@ describe('StudentDashboard', () => {
     expect(screen.getByRole('region', { name: 'Cảnh báo chậm tiến độ' })).toBeInTheDocument();
   });
 
+  it('shows the API PRIORITY classification with the Vietnamese label', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      ...response,
+      assessmentResults: [{ ...response.assessmentResults[0], score: 0, classification: 'PRIORITY' }],
+    });
+    renderDashboard();
+    expect(await screen.findByText('Cần ưu tiên')).toBeInTheDocument();
+  });
+
   it('retains logout when AuthenticatedHome renders Student children', async () => {
     vi.mocked(apiRequest).mockReturnValue(new Promise(() => {}));
     auth.logout.mockResolvedValue(undefined);

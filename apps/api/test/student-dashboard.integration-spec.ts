@@ -4,15 +4,19 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { MVP_COURSE_ID } from '../src/common/mvp-course';
 
 const ids = {
   student: '92000000-0000-4000-8000-000000000001',
   otherStudent: '92000000-0000-4000-8000-000000000002',
   administrator: '92000000-0000-4000-8000-000000000003',
   disabledStudent: '92000000-0000-4000-8000-000000000004',
-  course: '92000000-0000-4000-8000-000000000010',
+  emptyStudent: '92000000-0000-4000-8000-000000000005',
+  course: MVP_COURSE_ID,
+  otherCourse: '92000000-0000-4000-8000-000000000030',
   topicAlgorithms: '92000000-0000-4000-8000-000000000011',
   topicDatabases: '92000000-0000-4000-8000-000000000012',
+  topicOtherCourse: '92000000-0000-4000-8000-000000000031',
   plan: '92000000-0000-4000-8000-000000000020',
   taskOverdue: '92000000-0000-4000-8000-000000000021',
   taskNearDue: '92000000-0000-4000-8000-000000000022',
@@ -41,29 +45,36 @@ describe('Student dashboard API (PostgreSQL)', () => {
     await prisma.studyTask.deleteMany({ where: { studyPlanId: ids.plan } });
     await prisma.studyPlan.deleteMany({ where: { id: ids.plan } });
     await prisma.assessmentResult.deleteMany({ where: { studentId: { in: [ids.student, ids.otherStudent] } } });
-    await prisma.topic.deleteMany({ where: { id: { in: [ids.topicAlgorithms, ids.topicDatabases] } } });
-    await prisma.course.deleteMany({ where: { id: ids.course } });
-    await prisma.user.deleteMany({ where: { id: { in: [ids.student, ids.otherStudent, ids.administrator, ids.disabledStudent] } } });
+    await prisma.topic.deleteMany({ where: { id: { in: [ids.topicAlgorithms, ids.topicDatabases, ids.topicOtherCourse] } } });
+    await prisma.course.deleteMany({ where: { id: ids.otherCourse } });
+    await prisma.user.deleteMany({ where: { id: { in: [ids.student, ids.otherStudent, ids.administrator, ids.disabledStudent, ids.emptyStudent] } } });
 
     await prisma.user.createMany({ data: [
       { id: ids.student, fullName: 'Dashboard Student', email: 'dashboard.student@example.test', passwordHash: 'unused', role: 'STUDENT' },
       { id: ids.otherStudent, fullName: 'Other Student', email: 'dashboard.other@example.test', passwordHash: 'unused', role: 'STUDENT' },
       { id: ids.administrator, fullName: 'Dashboard Admin', email: 'dashboard.admin@example.test', passwordHash: 'unused', role: 'ADMINISTRATOR' },
       { id: ids.disabledStudent, fullName: 'Disabled Student', email: 'dashboard.disabled@example.test', passwordHash: 'unused', role: 'STUDENT', status: 'DISABLED' },
+      { id: ids.emptyStudent, fullName: 'Empty Student', email: 'dashboard.empty@example.test', passwordHash: 'unused', role: 'STUDENT' },
     ] });
-    await prisma.course.create({ data: {
+    await prisma.course.upsert({ where: { id: ids.course }, update: {}, create: {
       id: ids.course,
       name: 'Dashboard Test Course',
-      topics: { create: [
-        { id: ids.topicAlgorithms, name: 'Algorithms' },
-        { id: ids.topicDatabases, name: 'Databases' },
-      ] },
+    } });
+    await prisma.topic.createMany({ data: [
+      { id: ids.topicAlgorithms, courseId: ids.course, name: 'Algorithms' },
+      { id: ids.topicDatabases, courseId: ids.course, name: 'Databases' },
+    ] });
+    await prisma.course.create({ data: {
+      id: ids.otherCourse,
+      name: 'Out of Scope Course',
+      topics: { create: [{ id: ids.topicOtherCourse, name: 'Other course topic' }] },
     } });
     await prisma.assessmentResult.createMany({ data: [
       { studentId: ids.student, topicId: ids.topicAlgorithms, score: 59, evaluatedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000) },
       { studentId: ids.student, topicId: ids.topicAlgorithms, score: 80, evaluatedAt: new Date(now.getTime() - 30 * 60 * 1000) },
       { studentId: ids.student, topicId: ids.topicDatabases, score: 60, evaluatedAt: new Date(now.getTime() - 15 * 60 * 1000) },
       { studentId: ids.otherStudent, topicId: ids.topicAlgorithms, score: 100, evaluatedAt: new Date(now.getTime() - 5 * 60 * 1000) },
+      { studentId: ids.student, topicId: ids.topicOtherCourse, score: 100, evaluatedAt: new Date(now.getTime() - 1 * 60 * 1000) },
     ] });
     await prisma.studyPlan.create({ data: {
       id: ids.plan,
@@ -86,9 +97,9 @@ describe('Student dashboard API (PostgreSQL)', () => {
       await prisma.studyTask.deleteMany({ where: { studyPlanId: ids.plan } });
       await prisma.studyPlan.deleteMany({ where: { id: ids.plan } });
       await prisma.assessmentResult.deleteMany({ where: { studentId: { in: [ids.student, ids.otherStudent] } } });
-      await prisma.topic.deleteMany({ where: { id: { in: [ids.topicAlgorithms, ids.topicDatabases] } } });
-      await prisma.course.deleteMany({ where: { id: ids.course } });
-      await prisma.user.deleteMany({ where: { id: { in: [ids.student, ids.otherStudent, ids.administrator, ids.disabledStudent] } } });
+      await prisma.topic.deleteMany({ where: { id: { in: [ids.topicAlgorithms, ids.topicDatabases, ids.topicOtherCourse] } } });
+      await prisma.course.deleteMany({ where: { id: ids.otherCourse } });
+      await prisma.user.deleteMany({ where: { id: { in: [ids.student, ids.otherStudent, ids.administrator, ids.disabledStudent, ids.emptyStudent] } } });
     }
     await app?.close();
   });
@@ -106,6 +117,32 @@ describe('Student dashboard API (PostgreSQL)', () => {
     const disabled = await request(app.getHttpServer()).get('/api/v1/student/dashboard')
       .set('Authorization', `Bearer ${disabledToken}`).expect(403);
     expect(disabled.body.code).toBe('ACCOUNT_DISABLED');
+  });
+
+  it('returns only latest own results from the MVP Course and supports empty results', async () => {
+    const unauthenticated = await request(app.getHttpServer()).get('/api/v1/student/assessment-results').expect(401);
+    expect(unauthenticated.body.code).toBe('AUTH_REQUIRED');
+
+    const adminToken = await token(ids.administrator);
+    await request(app.getHttpServer()).get('/api/v1/student/assessment-results')
+      .set('Authorization', `Bearer ${adminToken}`).expect(403);
+    const disabledToken = await token(ids.disabledStudent);
+    await request(app.getHttpServer()).get('/api/v1/student/assessment-results')
+      .set('Authorization', `Bearer ${disabledToken}`).expect(403);
+
+    const studentToken = await token(ids.student);
+    const response = await request(app.getHttpServer()).get('/api/v1/student/assessment-results')
+      .set('Authorization', `Bearer ${studentToken}`).expect(200);
+    expect(response.body).toEqual({ items: expect.arrayContaining([
+      { topic: { id: ids.topicAlgorithms, name: 'Algorithms' }, score: 80, classification: 'GOOD', evaluatedAt: expect.any(String) },
+      { topic: { id: ids.topicDatabases, name: 'Databases' }, score: 60, classification: 'NEEDS_REINFORCEMENT', evaluatedAt: expect.any(String) },
+    ]) });
+    expect(response.body.items).toHaveLength(2);
+    expect(JSON.stringify(response.body)).not.toContain('Other course topic');
+
+    const emptyToken = await token(ids.emptyStudent);
+    await request(app.getHttpServer()).get('/api/v1/student/assessment-results')
+      .set('Authorization', `Bearer ${emptyToken}`).expect(200).expect(({ body }) => expect(body).toEqual({ items: [] }));
   });
 
   it('returns latest own-topic results, complete task views, and backend metrics', async () => {

@@ -8,9 +8,14 @@ export class TopicViewDto {
 export class AssessmentResultViewDto {
   @ApiProperty({ type: () => TopicViewDto }) topic!: TopicViewDto;
   @ApiProperty({ type: Number }) score!: number;
-  @ApiProperty({ enum: ['GOOD', 'NEEDS_REINFORCEMENT', 'NEEDS_PRIORITY'] })
-  classification!: 'GOOD' | 'NEEDS_REINFORCEMENT' | 'NEEDS_PRIORITY';
+  @ApiProperty({ enum: ['GOOD', 'NEEDS_REINFORCEMENT', 'PRIORITY'] })
+  classification!: 'GOOD' | 'NEEDS_REINFORCEMENT' | 'PRIORITY';
   @ApiProperty({ type: String, format: 'date-time' }) evaluatedAt!: Date;
+}
+
+export class StudentAssessmentResultsResponseDto {
+  @ApiProperty({ type: () => AssessmentResultViewDto, isArray: true })
+  items!: AssessmentResultViewDto[];
 }
 
 export class StudyTaskViewDto {

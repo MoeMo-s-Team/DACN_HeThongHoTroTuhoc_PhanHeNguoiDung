@@ -1,26 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import type { components } from '@dacn/contracts';
-import { useAuth } from '../../auth/auth-context';
 import { apiRequest } from '../../auth/api';
+import { StudentNavigation } from '../student-navigation';
 
 type Dashboard = components['schemas']['StudentDashboardResponseDto'];
 type Task = components['schemas']['StudyTaskViewDto'];
 
-const navigation = [
-  { label: 'Tổng quan', href: '/sinh-vien/tong-quan', current: true },
-  { label: 'Kết quả học tập', href: '/sinh-vien/ket-qua-hoc-tap' },
-  { label: 'Nhiệm vụ', href: '/sinh-vien/nhiem-vu' },
-  { label: 'Tiến độ', href: '/sinh-vien/tien-do' },
-];
-
 const classificationLabel = {
   GOOD: 'Tốt',
   NEEDS_REINFORCEMENT: 'Cần củng cố',
-  NEEDS_PRIORITY: 'Cần ưu tiên',
+  PRIORITY: 'Cần ưu tiên',
 };
 
 const priorityLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao' };
@@ -50,8 +42,6 @@ function metricValue(value: number | null | undefined) {
 }
 
 export function StudentDashboard() {
-  const router = useRouter();
-  const { logout } = useAuth();
   const query = useQuery({
     queryKey: ['student', 'dashboard'],
     queryFn: () => apiRequest<Dashboard>('/student/dashboard'),
@@ -67,27 +57,7 @@ export function StudentDashboard() {
   ];
 
   return <div className="grid w-full gap-8 px-5 py-8 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-6">
-    <aside className="border-b border-ink pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
-      <p className="text-sm font-bold uppercase tracking-widest">Học tập</p>
-      <nav aria-label="Điều hướng Student" className="mt-4 flex flex-wrap gap-2 lg:flex-col">
-        {navigation.map((item) => <Link key={item.href} href={item.href} aria-current={item.current ? 'page' : undefined}
-          className={`min-h-11 border border-ink px-3 py-2 text-sm font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 ${item.current ? 'bg-accent' : 'bg-canvas'}`}>
-          {item.label}
-        </Link>)}
-      </nav>
-      <div className="mt-6 border-t border-ink/30 pt-4 lg:mt-8">
-        <button
-          type="button"
-          className="min-h-11 w-full border border-ink bg-canvas px-3 py-2 text-left text-sm font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2"
-          onClick={async () => {
-            await logout();
-            router.replace('/dang-nhap');
-          }}
-        >
-          Đăng xuất
-        </button>
-      </div>
-    </aside>
+    <StudentNavigation currentPath="/sinh-vien/tong-quan" />
 
     <section aria-labelledby="dashboard-title" className="min-w-0">
       <header className="border-b border-ink pb-6">

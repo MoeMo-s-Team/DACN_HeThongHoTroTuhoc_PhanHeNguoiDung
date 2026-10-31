@@ -1,8 +1,9 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuthUser } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProgressViewDto, StudentDashboardResponseDto, StudyTaskViewDto } from './student-dashboard.dto';
+import { MVP_COURSE_ID } from '../common/mvp-course';
+import { AssessmentResultViewDto, ProgressViewDto, StudentAssessmentResultsResponseDto, StudentDashboardResponseDto, StudyTaskViewDto } from './student-dashboard.dto';
 
 type DashboardTask = StudyTaskViewDto;
 
@@ -11,11 +12,42 @@ function toTaskView(task: DashboardTask): StudyTaskViewDto {
   return { id, topic, title, goal, expectedMinutes, dueDate, priority, status, completedAt };
 }
 
-export function classifyAssessmentScore(score: Prisma.Decimal | number): 'GOOD' | 'NEEDS_REINFORCEMENT' | 'NEEDS_PRIORITY' {
+export function classifyAssessmentScore(score: Prisma.Decimal | number): 'GOOD' | 'NEEDS_REINFORCEMENT' | 'PRIORITY' {
   const exactScore = new Prisma.Decimal(score);
+  if (exactScore.lessThan(0) || exactScore.greaterThan(100)) {
+    throw new InternalServerErrorException('AssessmentResult score is outside 0–100.');
+  }
   if (exactScore.greaterThanOrEqualTo(80)) return 'GOOD';
   if (exactScore.greaterThanOrEqualTo(60)) return 'NEEDS_REINFORCEMENT';
-  return 'NEEDS_PRIORITY';
+  return 'PRIORITY';
+}
+
+type AssessmentResultRecord = {
+  topicId: string;
+  topic: AssessmentResultViewDto['topic'];
+  score: Prisma.Decimal | number;
+  evaluatedAt: Date;
+};
+
+function latestResults(results: readonly AssessmentResultRecord[]): AssessmentResultViewDto[] {
+  const seenTopics = new Set<string>();
+  return results.flatMap((result) => {
+    if (seenTopics.has(result.topicId)) return [];
+    seenTopics.add(result.topicId);
+    const classification = classifyAssessmentScore(result.score);
+    const score = Number(result.score);
+    const lowerThreshold = classification === 'PRIORITY' ? 60 : classification === 'NEEDS_REINFORCEMENT' ? 80 : null;
+    // JSON numbers cannot preserve Decimal precision when a value is just below a classification boundary.
+    const apiScore = lowerThreshold !== null && score >= lowerThreshold
+      ? lowerThreshold - Number.EPSILON * lowerThreshold / 2
+      : score;
+    return [{
+      topic: result.topic,
+      score: apiScore,
+      classification,
+      evaluatedAt: result.evaluatedAt,
+    }];
+  });
 }
 
 export function calculateProgress(tasks: readonly DashboardTask[], now: Date) {
@@ -57,7 +89,7 @@ export class StudentDashboardService {
 
     const [assessmentResults, plan] = await Promise.all([
       this.prisma.assessmentResult.findMany({
-        where: { studentId: user.id },
+        where: { studentId: user.id, topic: { courseId: MVP_COURSE_ID } },
         orderBy: { evaluatedAt: 'desc' },
         include: { topic: { select: { id: true, name: true } } },
       }),
@@ -72,21 +104,11 @@ export class StudentDashboardService {
       }),
     ]);
 
-    const seenTopics = new Set<string>();
-    const latestResults = assessmentResults.flatMap((result) => {
-      if (seenTopics.has(result.topicId)) return [];
-      seenTopics.add(result.topicId);
-      return [{
-        topic: result.topic,
-        score: Number(result.score),
-        classification: classifyAssessmentScore(result.score),
-        evaluatedAt: result.evaluatedAt,
-      }];
-    });
+    const latest = latestResults(assessmentResults);
 
     if (!plan) {
       return {
-        assessmentResults: latestResults,
+        assessmentResults: latest,
         currentPlan: null,
         progress: null,
         nearDueTasks: [],
@@ -109,7 +131,7 @@ export class StudentDashboardService {
     };
 
     return {
-      assessmentResults: latestResults,
+      assessmentResults: latest,
       currentPlan: {
         id: plan.id,
         title: plan.title,
@@ -122,5 +144,22 @@ export class StudentDashboardService {
       nearDueTasks: metrics.nearDueTasks.map(toTaskView),
       overdueTaskItems: metrics.overdueTaskItems.map(toTaskView),
     };
+  }
+
+  async getAssessmentResults(user: AuthUser): Promise<StudentAssessmentResultsResponseDto> {
+    if (user.role !== 'STUDENT') {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN_RESOURCE',
+        message: 'Không có quyền truy cập tài nguyên này.',
+        details: null,
+      });
+    }
+
+    const results = await this.prisma.assessmentResult.findMany({
+      where: { studentId: user.id, topic: { courseId: MVP_COURSE_ID } },
+      orderBy: { evaluatedAt: 'desc' },
+      include: { topic: { select: { id: true, name: true } } },
+    });
+    return { items: latestResults(results) };
   }
 }

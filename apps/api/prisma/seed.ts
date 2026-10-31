@@ -1,6 +1,7 @@
 import * as argon2 from 'argon2';
 import dotenv from 'dotenv';
 import { PrismaClient, Role, StudyPlanStatus, StudyTaskStatus, Priority, FeedbackTag } from '@prisma/client';
+import { MVP_COURSE_ID } from '../src/common/mvp-course';
 
 dotenv.config({ path: '../../.env' });
 dotenv.config({ path: '../../.env.example' });
@@ -12,10 +13,16 @@ const ids = {
   teacher: '10000000-0000-4000-8000-000000000003',
   admin: '10000000-0000-4000-8000-000000000004',
   disabled: '10000000-0000-4000-8000-000000000005',
-  course: '20000000-0000-4000-8000-000000000001',
+  course: MVP_COURSE_ID,
   algorithms: '20000000-0000-4000-8000-000000000002',
   databases: '20000000-0000-4000-8000-000000000003',
   networking: '20000000-0000-4000-8000-000000000004',
+  dataStructures: '20000000-0000-4000-8000-000000000005',
+  javascript: '20000000-0000-4000-8000-000000000006',
+  database: '20000000-0000-4000-8000-000000000007',
+  testing: '20000000-0000-4000-8000-000000000008',
+  api: '20000000-0000-4000-8000-000000000009',
+  git: '20000000-0000-4000-8000-000000000010',
   classOne: '30000000-0000-4000-8000-000000000001',
   classTwo: '30000000-0000-4000-8000-000000000002',
   activePlan: '40000000-0000-4000-8000-000000000001',
@@ -51,7 +58,11 @@ async function seed() {
     update: { name: 'Computer Science Foundations', description: 'Seed course for local development.' },
     create: { id: ids.course, name: 'Computer Science Foundations', description: 'Seed course for local development.' },
   });
-  for (const [id, name] of [[ids.algorithms, 'Algorithms'], [ids.databases, 'Databases'], [ids.networking, 'Networking']] as const) {
+  for (const [id, name] of [
+    [ids.algorithms, 'Algorithms'], [ids.databases, 'Databases'], [ids.networking, 'Networking'],
+    [ids.dataStructures, 'Cấu trúc dữ liệu'], [ids.javascript, 'JavaScript'], [ids.database, 'Database'],
+    [ids.testing, 'Testing'], [ids.api, 'API'], [ids.git, 'Git'],
+  ] as const) {
     await prisma.topic.upsert({ where: { id }, update: { courseId: ids.course, name }, create: { id, courseId: ids.course, name } });
   }
 
@@ -64,18 +75,22 @@ async function seed() {
 
   const dates = {
     now: new Date('2026-10-26T08:00:00.000Z'),
-    old: new Date('2026-09-01T08:00:00.000Z'),
+    oldAssessment: new Date('2026-10-20T00:00:00.000Z'),
+    latestAssessment: new Date('2026-10-25T00:00:00.000Z'),
     start: new Date('2026-10-01T00:00:00.000Z'),
     end: new Date('2026-12-31T23:59:59.000Z'),
   };
   const assessments = [
-    ['50000000-0000-4000-8000-000000000001', ids.studentOne, ids.algorithms, '58.5', dates.old],
-    ['50000000-0000-4000-8000-000000000002', ids.studentOne, ids.algorithms, '79.999', dates.now],
-    ['50000000-0000-4000-8000-000000000003', ids.studentOne, ids.databases, '85', dates.now],
+    ['50000000-0000-4000-8000-000000000001', ids.studentOne, ids.dataStructures, '55', dates.oldAssessment],
+    ['50000000-0000-4000-8000-000000000002', ids.studentOne, ids.dataStructures, '85', dates.latestAssessment],
+    ['50000000-0000-4000-8000-000000000003', ids.studentOne, ids.database, '79.99', dates.latestAssessment],
     ['50000000-0000-4000-8000-000000000004', ids.studentTwo, ids.algorithms, '62.25', dates.now],
+    ['50000000-0000-4000-8000-000000000005', ids.studentOne, ids.javascript, '60', dates.latestAssessment],
+    ['50000000-0000-4000-8000-000000000006', ids.studentOne, ids.testing, '59.99', dates.latestAssessment],
+    ['50000000-0000-4000-8000-000000000007', ids.studentOne, ids.api, '80', dates.latestAssessment],
   ] as const;
   for (const [id, studentId, topicId, score, evaluatedAt] of assessments) {
-    await prisma.assessmentResult.upsert({ where: { id }, update: { score, evaluatedAt }, create: { id, studentId, topicId, score, evaluatedAt } });
+    await prisma.assessmentResult.upsert({ where: { id }, update: { studentId, topicId, score, evaluatedAt }, create: { id, studentId, topicId, score, evaluatedAt } });
   }
 
   await prisma.studyPlan.upsert({
