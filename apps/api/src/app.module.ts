@@ -6,6 +6,7 @@ import { validateJwtAccessSecret } from './auth/auth.config';
 import { ApiExceptionFilter } from './common/api-exception.filter';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
+import { StudentModule } from './student/student.module';
 
 function validateEnvironment(config: Record<string, unknown>) {
   const port = Number(config.API_PORT ?? 3101);
@@ -27,6 +28,7 @@ function validateEnvironment(config: Record<string, unknown>) {
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env', '.env'], validate: validateEnvironment }),
     PrismaModule,
     AuthModule,
+    StudentModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
