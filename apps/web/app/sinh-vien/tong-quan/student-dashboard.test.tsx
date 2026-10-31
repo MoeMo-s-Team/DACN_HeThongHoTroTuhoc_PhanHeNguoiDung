@@ -141,4 +141,39 @@ describe('StudentDashboard', () => {
     await waitFor(() => expect(auth.logout).toHaveBeenCalledOnce());
     expect(auth.replace).toHaveBeenCalledWith('/dang-nhap');
   });
+
+  it('renders priority badges on their own row rather than sharing a row with the task title', async () => {
+    vi.mocked(apiRequest).mockResolvedValue(response);
+    renderDashboard();
+    expect(await screen.findByText('Weekly plan')).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { name: 'Review sorting' });
+    const priorityBadge = screen.getByText('Ưu tiên Trung bình');
+    expect(priorityBadge).toBeInTheDocument();
+    expect(heading.parentElement).not.toBe(priorityBadge.parentElement);
+  });
+
+  it('renders the logout button inside the sidebar', async () => {
+    vi.mocked(apiRequest).mockResolvedValue(response);
+    renderDashboard();
+    const aside = screen.getByRole('complementary');
+    const logoutBtn = screen.getByRole('button', { name: 'Đăng xuất' });
+    expect(aside).toContainElement(logoutBtn);
+  });
+
+  it('renders user name and email in separate lines in the header on the right', async () => {
+    vi.mocked(apiRequest).mockResolvedValue(response);
+    renderDashboard();
+    expect(screen.getByText('Student One')).toBeInTheDocument();
+    expect(screen.getByText('student@example.test')).toBeInTheDocument();
+    expect(screen.queryByText(/Student One · student@example\.test/)).not.toBeInTheDocument();
+  });
+
+  it('does not center the dashboard layout with large blank margins on large screens', async () => {
+    vi.mocked(apiRequest).mockResolvedValue(response);
+    const { container } = renderDashboard();
+    const dashboardGrid = container.querySelector('main > div');
+    expect(dashboardGrid).not.toHaveClass('mx-auto');
+    expect(dashboardGrid).not.toHaveClass('max-w-[1440px]');
+    expect(dashboardGrid).toHaveClass('lg:px-6');
+  });
 });

@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import type { components } from '@dacn/contracts';
+import { useAuth } from '../../auth/auth-context';
 import { apiRequest } from '../../auth/api';
 
 type Dashboard = components['schemas']['StudentDashboardResponseDto'];
@@ -32,9 +34,9 @@ function TaskList({ title, headingId, tasks, emptyMessage }: Readonly<{ title: s
     <h2 id={headingId} className="text-xl font-bold">{title}</h2>
     {tasks.length ? <ul className="mt-4 grid gap-3 sm:grid-cols-2">
       {tasks.map((task) => <li key={task.id} className="border border-ink bg-white p-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="font-bold">{task.title}</h3>
-          <span className="border border-ink px-2 py-1 text-sm">Ưu tiên {priorityLabel[task.priority]}</span>
+        <h3 className="font-bold">{task.title}</h3>
+        <div className="mt-2">
+          <span className="inline-block border border-ink px-2 py-1 text-sm">Ưu tiên {priorityLabel[task.priority]}</span>
         </div>
         <p className="mt-2 text-sm">{task.topic.name} · {task.expectedMinutes} phút</p>
         <p className="mt-1 text-sm">Hạn: {formatDate(task.dueDate)}</p>
@@ -48,6 +50,8 @@ function metricValue(value: number | null | undefined) {
 }
 
 export function StudentDashboard() {
+  const router = useRouter();
+  const { logout } = useAuth();
   const query = useQuery({
     queryKey: ['student', 'dashboard'],
     queryFn: () => apiRequest<Dashboard>('/student/dashboard'),
@@ -62,7 +66,7 @@ export function StudentDashboard() {
     { label: 'Kế hoạch', value: data?.currentPlan?.status ?? 'N/A' },
   ];
 
-  return <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-10">
+  return <div className="grid w-full gap-8 px-5 py-8 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-6">
     <aside className="border-b border-ink pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
       <p className="text-sm font-bold uppercase tracking-widest">Học tập</p>
       <nav aria-label="Điều hướng Student" className="mt-4 flex flex-wrap gap-2 lg:flex-col">
@@ -71,6 +75,18 @@ export function StudentDashboard() {
           {item.label}
         </Link>)}
       </nav>
+      <div className="mt-6 border-t border-ink/30 pt-4 lg:mt-8">
+        <button
+          type="button"
+          className="min-h-11 w-full border border-ink bg-canvas px-3 py-2 text-left text-sm font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2"
+          onClick={async () => {
+            await logout();
+            router.replace('/dang-nhap');
+          }}
+        >
+          Đăng xuất
+        </button>
+      </div>
     </aside>
 
     <section aria-labelledby="dashboard-title" className="min-w-0">

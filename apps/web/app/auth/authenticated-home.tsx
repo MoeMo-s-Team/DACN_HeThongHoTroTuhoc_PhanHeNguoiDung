@@ -20,9 +20,11 @@ export function AuthenticatedHome({ role, children }: Readonly<{ role: User['rol
   if (!user || user.role !== role) return null;
 
   if (children) return <main className="min-h-dvh">
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-ink px-6 py-4">
-      <p className="text-sm font-semibold">{user.fullName} · {user.email}</p>
-      <button className="min-h-11 border border-ink px-4 py-2 font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2" onClick={async () => { await logout(); router.replace('/dang-nhap'); }}>Đăng xuất</button>
+    <header className="flex items-center justify-end border-b border-ink px-6 py-4">
+      <div className="text-right">
+        <p className="text-sm font-semibold">{user.fullName}</p>
+        <p className="text-xs text-ink/70">{user.email}</p>
+      </div>
     </header>
     {children}
   </main>;
