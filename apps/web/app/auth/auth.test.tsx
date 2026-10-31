@@ -106,6 +106,19 @@ describe('browser auth state', () => {
     expect(screen.queryByText(user.email)).not.toBeInTheDocument();
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
   });
+
+  it('clears local auth and redirects without waiting for the logout request', async () => {
+    sessionStorage.setItem('accessToken', 'valid-token');
+    vi.mocked(fetch).mockResolvedValueOnce(json(user)).mockReturnValueOnce(new Promise(() => {}));
+    renderAuth();
+    await screen.findByText(user.email);
+
+    fireEvent.click(screen.getByRole('button', { name: 'sign out' }));
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('unauthenticated'));
+    expect(sessionStorage.getItem('accessToken')).toBeNull();
+    expect(replace).toHaveBeenCalledWith('/dang-nhap');
+  });
 });
 
 describe('role landing route', () => {

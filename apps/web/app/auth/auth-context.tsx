@@ -60,13 +60,8 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await apiRequest<void>('/auth/logout', { method: 'POST' });
-    } catch {
-      // Local logout must finish even when the server is unavailable.
-    } finally {
-      clearAuth();
-    }
+    void apiRequest<void>('/auth/logout', { method: 'POST' }).catch(() => {});
+    clearAuth();
   }, [clearAuth]);
 
   const value = useMemo(() => ({ user, status, login, logout, retry }), [user, status, login, logout, retry]);
