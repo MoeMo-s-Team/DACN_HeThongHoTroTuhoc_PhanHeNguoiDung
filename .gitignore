@@ -33,3 +33,6 @@ venv/
 # Local OS/editor files
 .DS_Store
 Thumbs.db
+
+# user
+note_bash.md
