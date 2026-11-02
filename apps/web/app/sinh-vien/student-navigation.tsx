@@ -7,6 +7,7 @@ import { useAuth } from '../auth/auth-context';
 const navigation = [
   { label: 'Tổng quan', href: '/sinh-vien/tong-quan' },
   { label: 'Kết quả học tập', href: '/sinh-vien/ket-qua-hoc-tap' },
+  { label: 'Mục tiêu học tập', href: '/sinh-vien/muc-tieu-hoc-tap' },
   { label: 'Nhiệm vụ', href: '/sinh-vien/nhiem-vu' },
   { label: 'Tiến độ', href: '/sinh-vien/tien-do' },
 ];

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ApiError, apiRequest, clearAccessToken, getAccessToken, setAccessToken, setAuthFailureHandler } from './api';
 import type { LoginInput, LoginResponse, User } from './api';
+import { clearStudyContextDraft } from '../sinh-vien/muc-tieu-hoc-tap/study-context-draft';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'error';
 type AuthContextValue = {
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
   const clearAuth = useCallback(() => {
     clearAccessToken();
+    clearStudyContextDraft();
     queryClient.clear();
     setUser(null);
     setStatus('unauthenticated');

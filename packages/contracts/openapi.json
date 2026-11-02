@@ -370,6 +370,79 @@
           "student"
         ]
       }
+    },
+    "/api/v1/student/study-context/validate": {
+      "post": {
+        "operationId": "StudyContextController_validate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateStudyContextResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "VALIDATION_ERROR",
+                  "message": "Dữ liệu đầu vào không hợp lệ.",
+                  "details": [
+                    "goal must not be empty"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
     }
   },
   "info": {
@@ -724,6 +797,29 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "ValidateStudyContextResponseDto": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string"
+          },
+          "availableMinutesPerWeek": {
+            "type": "number",
+            "example": 450,
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "targetDeadline": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "goal",
+          "availableMinutesPerWeek",
+          "targetDeadline"
         ]
       }
     }
