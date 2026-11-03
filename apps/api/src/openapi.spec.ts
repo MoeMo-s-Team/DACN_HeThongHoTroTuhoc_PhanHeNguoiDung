@@ -119,6 +119,30 @@ describe('OpenAPI auth contract', () => {
     expect(generatedDocument.components?.schemas?.StudentDashboardResponseDto).toBeDefined();
   });
 
+  it('documents the Student task status path parameter and required request body', () => {
+    const assertTaskStatusContract = (operation: OpenAPIObject['paths'][string]['patch']) => {
+      expect(operation?.parameters).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          name: 'taskId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        }),
+      ]));
+      expect(operation?.requestBody).toMatchObject({
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/UpdateStudyTaskStatusRequestDto' },
+          },
+        },
+      });
+    };
+
+    assertTaskStatusContract(document.paths['/api/v1/student/study-tasks/{taskId}/status']?.patch);
+    assertTaskStatusContract(generatedDocument.paths['/api/v1/student/study-tasks/{taskId}/status']?.patch);
+  });
+
   it('documents the validation error returned by the real login boundary', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/login')

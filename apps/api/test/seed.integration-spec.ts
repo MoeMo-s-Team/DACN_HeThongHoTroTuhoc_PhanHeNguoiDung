@@ -16,6 +16,7 @@ const ids = {
   classTwo: '30000000-0000-4000-8000-000000000002',
   classThree: '30000000-0000-4000-8000-000000000003',
   activePlan: '40000000-0000-4000-8000-000000000001',
+  emptyTasksPlan: '40000000-0000-4000-8000-000000000009',
   dataStructures: '20000000-0000-4000-8000-000000000005',
   algorithms: '20000000-0000-4000-8000-000000000002',
 } as const;
@@ -197,6 +198,9 @@ async function verifyScenarios(prisma: PrismaClient) {
   expect(await prisma.assessmentResult.count({ where: { studentId: { in: classThreeStudents } } })).toBe(0);
   expect(await prisma.studyPlan.count({ where: { studentId: { in: classThreeStudents }, status: { in: ['ACTIVE', 'COMPLETED'] }, tasks: { some: {} } } })).toBe(0);
 
+  const emptyTasksPlan = await prisma.studyPlan.findUnique({ where: { id: ids.emptyTasksPlan }, include: { tasks: true } });
+  expect(emptyTasksPlan).toMatchObject({ studentId: newStudentIds[6], status: 'ACTIVE', tasks: [] });
+
   const historyCounts = await prisma.assessmentResult.groupBy({ by: ['studentId', 'topicId'], where: { studentId: { in: newStudentIds.slice(0, 6) } }, _count: { _all: true } });
   expect(historyCounts.every(({ _count }) => _count._all >= 2 && _count._all <= 4)).toBe(true);
 }
@@ -223,6 +227,60 @@ describe('development seed (PostgreSQL)', () => {
       if (secondRun.status !== 0) throw new Error(`Second seed run failed: ${secondRun.output}`);
       expect(secondRun.status).toBe(0);
       expect(await snapshot(prisma)).toEqual(afterFirstRun);
+    });
+  });
+
+  it('adds the empty-plan fixture without changing existing task state or accepting a conflicting Student 09 plan', async () => {
+    await withIsolatedDatabase(async (prisma, databaseUrl) => {
+      const initialSeed = run('pnpm', ['exec', 'tsx', 'prisma/seed.ts'], databaseUrl);
+      expect(initialSeed.status).toBe(0);
+
+      const studentSevenPlanId = '40000000-0000-4000-8000-000000000007';
+      const overdueTasks = await prisma.studyTask.findMany({
+        where: { studyPlanId: studentSevenPlanId, status: 'TODO', dueDate: { lt: new Date() } },
+        orderBy: { dueDate: 'asc' },
+        take: 2,
+        select: { id: true },
+      });
+      expect(overdueTasks).toHaveLength(2);
+      const completedAt = new Date();
+      await prisma.studyTask.updateMany({
+        where: { id: { in: overdueTasks.map(({ id }) => id) } },
+        data: { status: 'COMPLETED', completedAt },
+      });
+      await prisma.studyPlan.delete({ where: { id: ids.emptyTasksPlan } });
+      const preservedTasks = await prisma.studyTask.findMany({ where: { studyPlanId: studentSevenPlanId }, orderBy: { id: 'asc' } });
+
+      const additiveSeed = run('pnpm', ['exec', 'tsx', 'prisma/seed.ts'], databaseUrl);
+      if (additiveSeed.status !== 0) throw new Error(`Additive seed failed: ${additiveSeed.output}`);
+      expect(await prisma.studyTask.findMany({ where: { studyPlanId: studentSevenPlanId }, orderBy: { id: 'asc' } })).toEqual(preservedTasks);
+      expect(await prisma.studyPlan.findUnique({ where: { id: ids.emptyTasksPlan }, include: { tasks: true } }))
+        .toMatchObject({ studentId: ids.students[6], status: 'ACTIVE', tasks: [] });
+
+      await prisma.studyPlan.delete({ where: { id: ids.emptyTasksPlan } });
+      const otherCurrentPlanId = '40000000-0000-4000-8000-000000000099';
+      await prisma.studyPlan.create({ data: {
+        id: otherCurrentPlanId,
+        studentId: ids.students[6],
+        title: 'Existing Student 09 plan',
+        goal: 'sentinel',
+        availableMinutesPerWeek: 120,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'ACTIVE',
+      } });
+      const conflictingPlanSeed = run('pnpm', ['exec', 'tsx', 'prisma/seed.ts'], databaseUrl);
+      expect(conflictingPlanSeed.status).not.toBe(0);
+      expect(conflictingPlanSeed.output).toContain('Student 09 already has a current StudyPlan');
+      expect(await prisma.studyPlan.findUnique({ where: { id: ids.emptyTasksPlan } })).toBeNull();
+      expect(await prisma.studyPlan.findUnique({ where: { id: otherCurrentPlanId } })).not.toBeNull();
+
+      await prisma.studyPlan.delete({ where: { id: otherCurrentPlanId } });
+      await prisma.user.update({ where: { id: ids.students[6] }, data: { status: 'DISABLED' } });
+      const disabledStudentSeed = run('pnpm', ['exec', 'tsx', 'prisma/seed.ts'], databaseUrl);
+      expect(disabledStudentSeed.status).not.toBe(0);
+      expect(disabledStudentSeed.output).toContain('the empty-plan fixture requires an ACTIVE Student');
+      expect(await prisma.studyPlan.findUnique({ where: { id: ids.emptyTasksPlan } })).toBeNull();
     });
   });
 

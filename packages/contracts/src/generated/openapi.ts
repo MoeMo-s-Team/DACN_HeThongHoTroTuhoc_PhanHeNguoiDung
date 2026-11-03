@@ -100,6 +100,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/study-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StudentTasksController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/study-tasks/{taskId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["StudentTasksController_updateStatus"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -204,6 +236,29 @@ export interface components {
             availableMinutesPerWeek: number;
             /** Format: date-time */
             targetDeadline: string;
+        };
+        StudentStudyTasksResponseDto: {
+            planId: string | null;
+            /** @enum {string|null} */
+            planStatus: "ACTIVE" | "COMPLETED" | null;
+            items: components["schemas"]["StudyTaskViewDto"][];
+        };
+        UpdateStudyTaskStatusRequestDto: {
+            /** @enum {string} */
+            status: "TODO" | "COMPLETED";
+        };
+        UpdatedStudyTaskDto: {
+            id: string;
+            /** @enum {string} */
+            status: "TODO" | "COMPLETED";
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        UpdateStudyTaskStatusResponseDto: {
+            task: components["schemas"]["UpdatedStudyTaskDto"];
+            /** @enum {string} */
+            planStatus: "ACTIVE" | "COMPLETED";
+            progress: components["schemas"]["ProgressViewDto"];
         };
     };
     responses: never;
@@ -611,6 +666,157 @@ export interface operations {
                      * @example {
                      *       "code": "FORBIDDEN_RESOURCE",
                      *       "message": "Không có quyền truy cập tài nguyên này.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StudentTasksController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentStudyTasksResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "AUTH_REQUIRED",
+                     *       "message": "Yêu cầu đăng nhập hợp lệ.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "FORBIDDEN_RESOURCE",
+                     *       "message": "Không có quyền truy cập tài nguyên này.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StudentTasksController_updateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStudyTaskStatusRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStudyTaskStatusResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "VALIDATION_ERROR",
+                     *       "message": "Dữ liệu đầu vào không hợp lệ.",
+                     *       "details": [
+                     *         "status must be one of the following values: TODO, COMPLETED"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "AUTH_REQUIRED",
+                     *       "message": "Yêu cầu đăng nhập hợp lệ.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "FORBIDDEN_RESOURCE",
+                     *       "message": "Không có quyền truy cập tài nguyên này.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "RESOURCE_NOT_FOUND",
+                     *       "message": "Không tìm thấy tài nguyên.",
+                     *       "details": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "TASK_NOT_IN_CURRENT_PLAN",
+                     *       "message": "Nhiệm vụ không thuộc kế hoạch hiện tại.",
                      *       "details": null
                      *     }
                      */
