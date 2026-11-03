@@ -300,6 +300,77 @@
         ]
       }
     },
+    "/api/v1/student/progress": {
+      "get": {
+        "operationId": "StudentDashboardController_getProgress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProgressResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
     "/api/v1/student/assessment-results": {
       "get": {
         "operationId": "StudentDashboardController_getAssessmentResults",
@@ -961,6 +1032,32 @@
           "progress",
           "nearDueTasks",
           "overdueTaskItems"
+        ]
+      },
+      "StudentProgressResponseDto": {
+        "type": "object",
+        "properties": {
+          "hasCurrentPlan": {
+            "type": "boolean"
+          },
+          "planId": {
+            "type": "string",
+            "nullable": true
+          },
+          "metrics": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgressViewDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "hasCurrentPlan",
+          "planId",
+          "metrics"
         ]
       },
       "StudentAssessmentResultsResponseDto": {

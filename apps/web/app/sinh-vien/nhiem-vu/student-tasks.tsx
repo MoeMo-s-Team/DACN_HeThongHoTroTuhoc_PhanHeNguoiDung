@@ -71,6 +71,7 @@ export function StudentTasks() {
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: taskQueryKey }),
         queryClient.invalidateQueries({ queryKey: ['student', 'dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['student', 'progress'] }),
       ]);
     },
   });

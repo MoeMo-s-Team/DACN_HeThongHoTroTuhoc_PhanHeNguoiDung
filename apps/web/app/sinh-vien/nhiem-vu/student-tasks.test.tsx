@@ -53,10 +53,16 @@ function DashboardProbe() {
   return null;
 }
 
-function renderTasks(withDashboard = false) {
+function ProgressProbe() {
+  useQuery({ queryKey: ['student', 'progress'], queryFn: () => apiRequest('/student/progress') });
+  return null;
+}
+
+function renderTasks(withDashboard = false, withProgress = false) {
   const queryClient = new QueryClient();
   const view = render(<QueryClientProvider client={queryClient}>
     {withDashboard && <DashboardProbe />}
+    {withProgress && <ProgressProbe />}
     <StudentTasks />
   </QueryClientProvider>);
   return { ...view, queryClient };
@@ -255,10 +261,11 @@ describe('StudentTasks', () => {
     }
   });
 
-  it('updates and confirms a task only after success, then refreshes task and dashboard data', async () => {
+  it('updates a task and refreshes task, dashboard, and progress data after success', async () => {
     let tasks = list;
     let taskLoads = 0;
     let dashboardLoads = 0;
+    let progressLoads = 0;
     vi.mocked(apiRequest).mockImplementation((path) => {
       if (path === '/student/study-tasks') {
         taskLoads += 1;
@@ -268,10 +275,14 @@ describe('StudentTasks', () => {
         dashboardLoads += 1;
         return Promise.resolve({}) as never;
       }
+      if (path === '/student/progress') {
+        progressLoads += 1;
+        return Promise.resolve({ hasCurrentPlan: true, planId: 'plan-1', metrics: updated.progress }) as never;
+      }
       tasks = { ...list, planStatus: 'COMPLETED', items: [{ ...task, status: 'COMPLETED', completedAt: updated.task.completedAt }] };
       return Promise.resolve(updated) as never;
     });
-    renderTasks(true);
+    renderTasks(true, true);
     const checkbox = await screen.findByRole('checkbox', { name: 'Đánh dấu hoàn thành: Review sorting' });
     fireEvent.click(checkbox);
 
@@ -281,6 +292,7 @@ describe('StudentTasks', () => {
     await waitFor(() => {
       expect(taskLoads).toBeGreaterThan(1);
       expect(dashboardLoads).toBeGreaterThan(1);
+      expect(progressLoads).toBeGreaterThan(1);
     });
     expect(apiRequest).toHaveBeenCalledWith('/student/study-tasks/task-1/status', expect.objectContaining({
       method: 'PATCH', body: JSON.stringify({ status: 'COMPLETED' }),

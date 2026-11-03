@@ -25,12 +25,18 @@ test('Student completes and reopens a current-plan task', async ({ page }) => {
   await expect(taskRow.getByRole('checkbox', { name: `Hoàn tác hoàn thành: ${todo!.title}` })).toBeChecked();
   await expect(taskRow.getByText('Đã hoàn thành', { exact: true })).toBeVisible();
 
+  await page.goto('/sinh-vien/tien-do');
+  await expect(page.getByText('2 / 3 nhiệm vụ hoàn thành')).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Tiến độ thực tế' })).toBeVisible();
+
+  await page.goto('/sinh-vien/nhiem-vu');
+  const refreshedRow = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: todo!.title }) });
   const undoResponsePromise = page.waitForResponse((response) =>
     response.request().method() === 'PATCH' && response.url().endsWith(`/student/study-tasks/${todo!.id}/status`));
-  await taskRow.getByRole('checkbox', { name: `Hoàn tác hoàn thành: ${todo!.title}` }).click();
+  await refreshedRow.getByRole('checkbox', { name: `Hoàn tác hoàn thành: ${todo!.title}` }).click();
   expect((await undoResponsePromise).status()).toBe(200);
-  await expect(taskRow.getByRole('checkbox', { name: `Đánh dấu hoàn thành: ${todo!.title}` })).not.toBeChecked();
-  await expect(taskRow.getByText('Cần hoàn thành', { exact: true })).toBeVisible();
+  await expect(refreshedRow.getByRole('checkbox', { name: `Đánh dấu hoàn thành: ${todo!.title}` })).not.toBeChecked();
+  await expect(refreshedRow.getByText('Cần hoàn thành', { exact: true })).toBeVisible();
 });
 
 test('Student with an ACTIVE empty plan sees the current-plan empty state', async ({ page }) => {
