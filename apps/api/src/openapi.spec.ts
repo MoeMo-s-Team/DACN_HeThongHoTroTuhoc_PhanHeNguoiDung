@@ -101,6 +101,24 @@ describe('OpenAPI auth contract', () => {
     expect(generatedDocument.paths).not.toHaveProperty('/api/v1/health');
   });
 
+  it('documents the Student dashboard contract and bearer authorization', () => {
+    const dashboard = document.paths['/api/v1/student/dashboard']?.get;
+    const dashboardSchema = document.components?.schemas?.StudentDashboardResponseDto;
+
+    expect(dashboard?.security).toEqual([{ bearerAuth: [] }]);
+    expect(responseSchema(dashboard?.responses['200'])).toEqual({ $ref: '#/components/schemas/StudentDashboardResponseDto' });
+    expect(dashboard?.responses).toHaveProperty('401');
+    expect(dashboard?.responses).toHaveProperty('403');
+    expect(dashboard?.responses).toHaveProperty('500');
+    expect(dashboardSchema).toBeDefined();
+
+    const generatedDashboard = generatedDocument.paths['/api/v1/student/dashboard']?.get;
+    expect(generatedDashboard?.security).toEqual([{ bearerAuth: [] }]);
+    expect(responseSchema(generatedDashboard?.responses['200']))
+      .toEqual({ $ref: '#/components/schemas/StudentDashboardResponseDto' });
+    expect(generatedDocument.components?.schemas?.StudentDashboardResponseDto).toBeDefined();
+  });
+
   it('documents the validation error returned by the real login boundary', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/login')

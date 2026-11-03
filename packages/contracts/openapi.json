@@ -228,6 +228,148 @@
           "auth"
         ]
       }
+    },
+    "/api/v1/student/dashboard": {
+      "get": {
+        "operationId": "StudentDashboardController_getDashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDashboardResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/assessment-results": {
+      "get": {
+        "operationId": "StudentDashboardController_getAssessmentResults",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentAssessmentResultsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
     }
   },
   "info": {
@@ -349,6 +491,239 @@
           "code",
           "message",
           "details"
+        ]
+      },
+      "TopicViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AssessmentResultViewDto": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "$ref": "#/components/schemas/TopicViewDto"
+          },
+          "score": {
+            "type": "number"
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "GOOD",
+              "NEEDS_REINFORCEMENT",
+              "PRIORITY"
+            ]
+          },
+          "evaluatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "topic",
+          "score",
+          "classification",
+          "evaluatedAt"
+        ]
+      },
+      "StudentDashboardPlanDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "goal",
+          "status",
+          "startDate",
+          "endDate"
+        ]
+      },
+      "ProgressViewDto": {
+        "type": "object",
+        "properties": {
+          "completedTasks": {
+            "type": "number"
+          },
+          "totalTasks": {
+            "type": "number"
+          },
+          "completionPercentage": {
+            "type": "number"
+          },
+          "actualProgress": {
+            "type": "number"
+          },
+          "expectedProgress": {
+            "type": "number"
+          },
+          "overdueTasks": {
+            "type": "number"
+          },
+          "slowProgress": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "completedTasks",
+          "totalTasks",
+          "completionPercentage",
+          "actualProgress",
+          "expectedProgress",
+          "overdueTasks",
+          "slowProgress"
+        ]
+      },
+      "StudyTaskViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/TopicViewDto"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "expectedMinutes": {
+            "type": "number"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "COMPLETED"
+            ]
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "title",
+          "goal",
+          "expectedMinutes",
+          "dueDate",
+          "priority",
+          "status",
+          "completedAt"
+        ]
+      },
+      "StudentDashboardResponseDto": {
+        "type": "object",
+        "properties": {
+          "assessmentResults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentResultViewDto"
+            }
+          },
+          "currentPlan": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StudentDashboardPlanDto"
+              }
+            ]
+          },
+          "progress": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgressViewDto"
+              }
+            ]
+          },
+          "nearDueTasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyTaskViewDto"
+            }
+          },
+          "overdueTaskItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyTaskViewDto"
+            }
+          }
+        },
+        "required": [
+          "assessmentResults",
+          "currentPlan",
+          "progress",
+          "nearDueTasks",
+          "overdueTaskItems"
+        ]
+      },
+      "StudentAssessmentResultsResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentResultViewDto"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       }
     }
