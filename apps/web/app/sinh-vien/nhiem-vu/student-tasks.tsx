@@ -12,9 +12,37 @@ type UpdateResponse = components['schemas']['UpdateStudyTaskStatusResponseDto'];
 type TaskStatus = Task['status'];
 
 const taskQueryKey = ['student', 'study-tasks'];
-const taskUpdateTimeoutMs = 15_000;
+const taskRequestTimeoutMs = 15_000;
 const priorityLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao' };
 const planStatusLabel = { ACTIVE: 'Kế hoạch đang thực hiện', COMPLETED: 'Kế hoạch đã hoàn thành' };
+
+export async function requestTask<T>(path: string, options: RequestInit = {}) {
+  const controller = new AbortController();
+  let rejectCanceled!: (reason?: unknown) => void;
+  const canceled = new Promise<never>((_resolve, reject) => { rejectCanceled = reject; });
+  const abortRequest = () => {
+    controller.abort();
+    rejectCanceled(options.signal?.reason ?? new Error('StudyTask request canceled.'));
+  };
+  if (options.signal?.aborted) abortRequest();
+  else options.signal?.addEventListener('abort', abortRequest, { once: true });
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      apiRequest<T>(path, { ...options, signal: controller.signal }),
+      canceled,
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error('StudyTask request timed out.'));
+        }, taskRequestTimeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abortRequest);
+  }
+}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString('vi-VN');
@@ -24,29 +52,14 @@ export function StudentTasks() {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: taskQueryKey,
-    queryFn: () => apiRequest<TasksResponse>('/student/study-tasks'),
+    queryFn: ({ signal }) => requestTask<TasksResponse>('/student/study-tasks', { signal }),
+    retry: false,
   });
   const mutation = useMutation({
-    mutationFn: async ({ taskId, status }: { taskId: string; status: TaskStatus }) => {
-      const controller = new AbortController();
-      let timeout: ReturnType<typeof setTimeout> | undefined;
-      try {
-        return await Promise.race([
-          apiRequest<UpdateResponse>(
-            `/student/study-tasks/${taskId}/status`,
-            { method: 'PATCH', body: JSON.stringify({ status }), signal: controller.signal },
-          ),
-          new Promise<never>((_resolve, reject) => {
-            timeout = setTimeout(() => {
-              controller.abort();
-              reject(new Error('StudyTask update request timed out.'));
-            }, taskUpdateTimeoutMs);
-          }),
-        ]);
-      } finally {
-        if (timeout) clearTimeout(timeout);
-      }
-    },
+    mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) => requestTask<UpdateResponse>(
+      `/student/study-tasks/${taskId}/status`,
+      { method: 'PATCH', body: JSON.stringify({ status }) },
+    ),
     onSuccess: (result, variables) => {
       queryClient.setQueryData<TasksResponse>(taskQueryKey, (current) => current && ({
         ...current,

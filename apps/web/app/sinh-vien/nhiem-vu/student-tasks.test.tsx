@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import type { components } from '@dacn/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiRequest } from '../../auth/api';
-import { StudentTasks } from './student-tasks';
+import { requestTask, StudentTasks } from './student-tasks';
 
 const auth = vi.hoisted(() => ({ logout: vi.fn(), replace: vi.fn() }));
 vi.mock('../../auth/auth-context', () => ({
@@ -54,11 +54,12 @@ function DashboardProbe() {
 }
 
 function renderTasks(withDashboard = false) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={queryClient}>
+  const queryClient = new QueryClient();
+  const view = render(<QueryClientProvider client={queryClient}>
     {withDashboard && <DashboardProbe />}
     <StudentTasks />
   </QueryClientProvider>);
+  return { ...view, queryClient };
 }
 
 describe('StudentTasks', () => {
@@ -76,6 +77,72 @@ describe('StudentTasks', () => {
     vi.mocked(apiRequest).mockReturnValue(new Promise(() => {}));
     renderTasks();
     expect(screen.getByRole('status')).toHaveTextContent('Đang tải nhiệm vụ');
+  });
+
+  it('shows a failed list request and lets the Student retry', async () => {
+    vi.mocked(apiRequest)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(list);
+    renderTasks();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không thể tải nhiệm vụ học tập.');
+    expect(screen.queryByText('Đang tải nhiệm vụ…')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByText('Review sorting')).toBeInTheDocument();
+    expect(apiRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('ends loading and allows retry when the task-list request times out', async () => {
+    vi.useFakeTimers();
+    vi.mocked(apiRequest)
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce(list);
+    renderTasks();
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+      await vi.runOnlyPendingTimersAsync();
+      await Promise.resolve();
+    });
+    expect(vi.mocked(apiRequest).mock.calls[0][1]?.signal?.aborted).toBe(true);
+    expect(screen.getByRole('alert')).toHaveTextContent('Không thể tải nhiệm vụ học tập.');
+    expect(screen.queryByText('Đang tải nhiệm vụ…')).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByText('Review sorting')).toBeInTheDocument();
+    expect(apiRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('settles and clears its timeout when canceled while the transport ignores abort', async () => {
+    vi.useFakeTimers();
+    vi.mocked(apiRequest).mockReturnValue(new Promise(() => {}));
+    const controller = new AbortController();
+    const request = requestTask('/student/study-tasks', { signal: controller.signal });
+    const requestResult = expect(request).rejects.toBeDefined();
+    expect(vi.getTimerCount()).toBe(1);
+
+    controller.abort();
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    await requestResult;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('aborts the list transport when its TanStack query is canceled', async () => {
+    let requestSignal: AbortSignal | undefined;
+    vi.mocked(apiRequest).mockImplementation((_path, options) => {
+      requestSignal = options?.signal as AbortSignal;
+      return new Promise(() => {}) as never;
+    });
+    const { queryClient } = renderTasks();
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(1));
+
+    await act(async () => { await queryClient.cancelQueries({ queryKey: ['student', 'study-tasks'] }); });
+
+    expect(requestSignal?.aborted).toBe(true);
   });
 
   it('shows an empty message when the Student has no current plan', async () => {
