@@ -10,6 +10,7 @@ const navigation = [
   { label: 'Mục tiêu học tập', href: '/sinh-vien/muc-tieu-hoc-tap' },
   { label: 'Nhiệm vụ', href: '/sinh-vien/nhiem-vu' },
   { label: 'Tiến độ', href: '/sinh-vien/tien-do' },
+  { label: 'Gửi phản hồi', href: '/phan-hoi/gui' },
 ];
 
 export function StudentNavigation({ currentPath }: Readonly<{ currentPath: string }>) {
