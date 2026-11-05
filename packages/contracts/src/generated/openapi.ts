@@ -84,6 +84,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminController_getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminController_listUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["AdminController_updateUserStatus"];
+        trace?: never;
+    };
+    "/api/v1/admin/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminController_listFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback/analyses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminController_listAnalyses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback/analyses/{analysisId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminController_getAnalysis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -181,6 +277,123 @@ export interface components {
         };
         StudentAssessmentResultsResponseDto: {
             items: components["schemas"]["AssessmentResultViewDto"][];
+        };
+        UsersByRoleDto: {
+            STUDENT: number;
+            TEACHER: number;
+            ADMINISTRATOR: number;
+        };
+        AdminDashboardResponseDto: {
+            totalUsers: number;
+            usersByRole: components["schemas"]["UsersByRoleDto"];
+            totalFeedback: number;
+            totalAIRequests: number;
+            failedAIRequests: number;
+        };
+        AdminUserDto: {
+            id: string;
+            fullName: string;
+            email: string;
+            /** @enum {string} */
+            role: "STUDENT" | "TEACHER" | "ADMINISTRATOR";
+            /** @enum {string} */
+            status: "ACTIVE" | "DISABLED";
+        };
+        PaginationMetaDto: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
+        AdminUsersResponseDto: {
+            items: components["schemas"]["AdminUserDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        UpdateUserStatusDto: {
+            /** @enum {string} */
+            status: "ACTIVE" | "DISABLED";
+        };
+        AdminUserStatusResponseDto: {
+            id: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "DISABLED";
+        };
+        FeedbackSenderDto: {
+            id: string;
+            fullName: string;
+            /** @enum {string} */
+            role: "STUDENT" | "TEACHER" | "ADMINISTRATOR";
+        };
+        AdminFeedbackItemDto: {
+            id: string;
+            sender: components["schemas"]["FeedbackSenderDto"];
+            /** @enum {string} */
+            tag: "AI_PERFORMANCE" | "STUDY_PLAN" | "UI_UX" | "LEARNING_ANALYTICS" | "OTHER";
+            rating: number;
+            content: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        FeedbackTagStatisticsDto: {
+            AI_PERFORMANCE: number;
+            STUDY_PLAN: number;
+            UI_UX: number;
+            LEARNING_ANALYTICS: number;
+            OTHER: number;
+        };
+        AdminFeedbackResponseDto: {
+            items: components["schemas"]["AdminFeedbackItemDto"][];
+            tagStatistics: components["schemas"]["FeedbackTagStatisticsDto"];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        FeedbackAnalysisFilterDto: {
+            /** Format: date-time */
+            fromDate?: string | null;
+            /** Format: date-time */
+            toDate?: string | null;
+            rating?: number | null;
+            /** @enum {string|null} */
+            tag?: "AI_PERFORMANCE" | "STUDY_PLAN" | "UI_UX" | "LEARNING_ANALYTICS" | "OTHER" | null;
+        };
+        AdminHistoryItemDto: {
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            totalFeedback: number;
+            filter: components["schemas"]["FeedbackAnalysisFilterDto"];
+        };
+        AdminHistoryResponseDto: {
+            items: components["schemas"]["AdminHistoryItemDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        FeedbackAnalysisInputSnapshotDto: {
+            filter: components["schemas"]["FeedbackAnalysisFilterDto"];
+            feedbackIds: string[];
+            totalFeedback: number;
+            tagStatistics: components["schemas"]["FeedbackTagStatisticsDto"];
+        };
+        FeedbackIssueGroupDto: {
+            title: string;
+            summary: string;
+            feedbackIds: string[];
+            count: number;
+        };
+        FeedbackRecommendationDto: {
+            title: string;
+            description: string;
+        };
+        FeedbackAnalysisResultDto: {
+            issueGroups: components["schemas"]["FeedbackIssueGroupDto"][];
+            summary: string;
+            priorityAreas: string[];
+            recommendations: components["schemas"]["FeedbackRecommendationDto"][];
+        };
+        AdminHistoryDetailDto: {
+            id: string;
+            inputSnapshot: components["schemas"]["FeedbackAnalysisInputSnapshotDto"];
+            analysisResult: components["schemas"]["FeedbackAnalysisResultDto"];
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;
@@ -525,6 +738,343 @@ export interface operations {
                      *       "details": null
                      *     }
                      */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_getDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboardResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_listUsers: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUsersResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_updateUserStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserStatusResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description SELF_DISABLE_NOT_ALLOWED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_listFeedback: {
+        parameters: {
+            query?: {
+                tag?: "AI_PERFORMANCE" | "STUDY_PLAN" | "UI_UX" | "LEARNING_ANALYTICS" | "OTHER";
+                rating?: number;
+                toDate?: string;
+                fromDate?: string;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFeedbackResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_listAnalyses: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHistoryResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_getAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                analysisId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHistoryDetailDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["ApiErrorResponseDto"];
                 };
             };
