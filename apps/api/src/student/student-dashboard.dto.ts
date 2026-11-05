@@ -49,6 +49,12 @@ export class ProgressViewDto {
   @ApiProperty({ type: Boolean }) slowProgress!: boolean;
 }
 
+export class StudentProgressResponseDto {
+  @ApiProperty({ type: Boolean }) hasCurrentPlan!: boolean;
+  @ApiProperty({ type: String, nullable: true }) planId!: string | null;
+  @ApiProperty({ type: () => ProgressViewDto, nullable: true }) metrics!: ProgressViewDto | null;
+}
+
 export class StudentDashboardResponseDto {
   @ApiProperty({ type: () => AssessmentResultViewDto, isArray: true })
   assessmentResults!: AssessmentResultViewDto[];

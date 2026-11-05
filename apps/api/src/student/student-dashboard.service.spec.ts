@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { AuthUser } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -69,6 +70,66 @@ describe('StudentDashboardService', () => {
     expect(studyPlan.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { studentId: student.id, status: { in: ['ACTIVE', 'COMPLETED'] } },
     }));
+  });
+
+  it('returns null metrics when the Student has no current plan', async () => {
+    await expect(service.getProgress(student)).resolves.toEqual({
+      hasCurrentPlan: false,
+      planId: null,
+      metrics: null,
+    });
+    expect(studyPlan.findFirst).toHaveBeenCalledWith({
+      where: { studentId: student.id, status: { in: ['ACTIVE', 'COMPLETED'] } },
+      select: { id: true, tasks: { select: { status: true, dueDate: true } } },
+    });
+  });
+
+  it('returns backend metrics for only the authenticated Student current plan', async () => {
+    studyPlan.findFirst.mockResolvedValue({
+      id: 'plan-current',
+      tasks: [
+        { status: 'TODO', dueDate: new Date('2000-01-01T00:00:00.000Z') },
+        { status: 'COMPLETED', dueDate: new Date('2000-01-01T00:00:00.000Z') },
+        { status: 'TODO', dueDate: new Date('2999-01-01T00:00:00.000Z') },
+      ],
+    });
+
+    await expect(service.getProgress(student)).resolves.toEqual({
+      hasCurrentPlan: true,
+      planId: 'plan-current',
+      metrics: {
+        completedTasks: 1,
+        totalTasks: 3,
+        completionPercentage: 1 / 3 * 100,
+        actualProgress: 1 / 3 * 100,
+        expectedProgress: 2 / 3 * 100,
+        overdueTasks: 1,
+        slowProgress: true,
+      },
+    });
+  });
+
+  it('returns zero metrics for a current plan without tasks', async () => {
+    studyPlan.findFirst.mockResolvedValue({ id: 'empty-plan', tasks: [] });
+
+    await expect(service.getProgress(student)).resolves.toEqual({
+      hasCurrentPlan: true,
+      planId: 'empty-plan',
+      metrics: {
+        completedTasks: 0,
+        totalTasks: 0,
+        completionPercentage: 0,
+        actualProgress: 0,
+        expectedProgress: 0,
+        overdueTasks: 0,
+        slowProgress: false,
+      },
+    });
+  });
+
+  it('forbids non-Student progress access before querying a plan', async () => {
+    await expect(service.getProgress({ ...student, role: 'ADMINISTRATOR' })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(studyPlan.findFirst).not.toHaveBeenCalled();
   });
 
   it('returns current results scoped to the authenticated Student and MVP Course', async () => {

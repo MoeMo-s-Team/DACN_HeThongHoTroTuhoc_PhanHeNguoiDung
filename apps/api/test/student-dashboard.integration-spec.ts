@@ -21,6 +21,7 @@ const ids = {
   taskOverdue: '92000000-0000-4000-8000-000000000021',
   taskNearDue: '92000000-0000-4000-8000-000000000022',
   taskCompleted: '92000000-0000-4000-8000-000000000023',
+  emptyPlan: '92000000-0000-4000-8000-000000000024',
 };
 
 describe('Student dashboard API (PostgreSQL)', () => {
@@ -117,6 +118,12 @@ describe('Student dashboard API (PostgreSQL)', () => {
     const disabled = await request(app.getHttpServer()).get('/api/v1/student/dashboard')
       .set('Authorization', `Bearer ${disabledToken}`).expect(403);
     expect(disabled.body.code).toBe('ACCOUNT_DISABLED');
+
+    await request(app.getHttpServer()).get('/api/v1/student/progress').expect(401);
+    await request(app.getHttpServer()).get('/api/v1/student/progress')
+      .set('Authorization', `Bearer ${adminToken}`).expect(403);
+    await request(app.getHttpServer()).get('/api/v1/student/progress')
+      .set('Authorization', `Bearer ${disabledToken}`).expect(403);
   });
 
   it('returns only latest own results from the MVP Course and supports empty results', async () => {
@@ -143,6 +150,12 @@ describe('Student dashboard API (PostgreSQL)', () => {
     const emptyToken = await token(ids.emptyStudent);
     await request(app.getHttpServer()).get('/api/v1/student/assessment-results')
       .set('Authorization', `Bearer ${emptyToken}`).expect(200).expect(({ body }) => expect(body).toEqual({ items: [] }));
+    await request(app.getHttpServer()).get('/api/v1/student/progress')
+      .set('Authorization', `Bearer ${emptyToken}`).expect(200).expect(({ body }) => expect(body).toEqual({
+        hasCurrentPlan: false,
+        planId: null,
+        metrics: null,
+      }));
   });
 
   it('returns latest own-topic results, complete task views, and backend metrics', async () => {
@@ -172,6 +185,20 @@ describe('Student dashboard API (PostgreSQL)', () => {
     expect(response.body.progress.actualProgress).toBeCloseTo(100 / 3);
     expect(response.body.progress.expectedProgress).toBeCloseTo(200 / 3);
     expect(response.body.progress.completionPercentage).toBe(response.body.progress.actualProgress);
+    const progressResponse = await request(app.getHttpServer()).get(`/api/v1/student/progress?studentId=${ids.otherStudent}`)
+      .set('Authorization', `Bearer ${studentToken}`).expect(200);
+    expect(progressResponse.body).toMatchObject({
+      hasCurrentPlan: true,
+      planId: ids.plan,
+      metrics: {
+        completedTasks: 1,
+        totalTasks: 3,
+        overdueTasks: 1,
+        slowProgress: true,
+      },
+    });
+    expect(progressResponse.body.metrics.actualProgress).toBeCloseTo(100 / 3);
+    expect(progressResponse.body.metrics.expectedProgress).toBeCloseTo(200 / 3);
     expect(response.body.nearDueTasks).toEqual([{
       id: ids.taskNearDue,
       topic: { id: ids.topicDatabases, name: 'Databases' },
@@ -199,6 +226,13 @@ describe('Student dashboard API (PostgreSQL)', () => {
 
   it('treats ACTIVE and COMPLETED plans as current but excludes ARCHIVED plans', async () => {
     const studentToken = await token(ids.student);
+    await prisma.studyPlan.update({ where: { id: ids.plan }, data: { endDate: new Date(now.getTime() - 1) } });
+    const expiredProgress = await request(app.getHttpServer()).get('/api/v1/student/progress')
+      .set('Authorization', `Bearer ${studentToken}`).expect(200);
+    expect(expiredProgress.body.hasCurrentPlan).toBe(true);
+    expect(expiredProgress.body.metrics.overdueTasks).toBe(1);
+    expect(await prisma.studyPlan.findUnique({ where: { id: ids.plan }, select: { status: true } })).toEqual({ status: 'ACTIVE' });
+    await prisma.studyPlan.update({ where: { id: ids.plan }, data: { endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) } });
     await request(app.getHttpServer()).get('/api/v1/student/dashboard')
       .set('Authorization', `Bearer ${studentToken}`).expect(200).expect(({ body }) => expect(body.currentPlan.status).toBe('ACTIVE'));
 
@@ -214,5 +248,43 @@ describe('Student dashboard API (PostgreSQL)', () => {
         expect(body.progress).toBeNull();
         expect(body.assessmentResults).toHaveLength(2);
       });
+    await request(app.getHttpServer()).get('/api/v1/student/progress')
+      .set('Authorization', `Bearer ${studentToken}`).expect(200).expect(({ body }) => expect(body).toEqual({
+        hasCurrentPlan: false,
+        planId: null,
+        metrics: null,
+      }));
+  });
+
+  it('returns zero metrics when the current plan has no tasks', async () => {
+    await prisma.studyPlan.create({ data: {
+      id: ids.emptyPlan,
+      studentId: ids.emptyStudent,
+      title: 'Empty current plan',
+      goal: 'No tasks',
+      availableMinutesPerWeek: 60,
+      startDate: now,
+      endDate: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      status: 'ACTIVE',
+    } });
+    try {
+      const studentToken = await token(ids.emptyStudent);
+      await request(app.getHttpServer()).get('/api/v1/student/progress')
+        .set('Authorization', `Bearer ${studentToken}`).expect(200).expect(({ body }) => expect(body).toEqual({
+          hasCurrentPlan: true,
+          planId: ids.emptyPlan,
+          metrics: {
+            completedTasks: 0,
+            totalTasks: 0,
+            completionPercentage: 0,
+            actualProgress: 0,
+            expectedProgress: 0,
+            overdueTasks: 0,
+            slowProgress: false,
+          },
+        }));
+    } finally {
+      await prisma.studyPlan.delete({ where: { id: ids.emptyPlan } });
+    }
   });
 });

@@ -300,6 +300,77 @@
         ]
       }
     },
+    "/api/v1/student/progress": {
+      "get": {
+        "operationId": "StudentDashboardController_getProgress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProgressResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
     "/api/v1/student/assessment-results": {
       "get": {
         "operationId": "StudentDashboardController_getAssessmentResults",
@@ -355,6 +426,257 @@
                 "example": {
                   "code": "DATABASE_FAILURE",
                   "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-context/validate": {
+      "post": {
+        "operationId": "StudyContextController_validate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateStudyContextResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "VALIDATION_ERROR",
+                  "message": "Dữ liệu đầu vào không hợp lệ.",
+                  "details": [
+                    "goal must not be empty"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-tasks": {
+      "get": {
+        "operationId": "StudentTasksController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentStudyTasksResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-tasks/{taskId}/status": {
+      "patch": {
+        "operationId": "StudentTasksController_updateStatus",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudyTaskStatusRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStudyTaskStatusResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "VALIDATION_ERROR",
+                  "message": "Dữ liệu đầu vào không hợp lệ.",
+                  "details": [
+                    "status must be one of the following values: TODO, COMPLETED"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền truy cập tài nguyên này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "RESOURCE_NOT_FOUND",
+                  "message": "Không tìm thấy tài nguyên.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "TASK_NOT_IN_CURRENT_PLAN",
+                  "message": "Nhiệm vụ không thuộc kế hoạch hiện tại.",
                   "details": null
                 }
               }
@@ -921,6 +1243,104 @@
           "admin"
         ]
       }
+    },
+    "/api/v1/feedback": {
+      "post": {
+        "operationId": "FeedbackController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeedbackRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateFeedbackResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "VALIDATION_ERROR",
+                  "message": "Dữ liệu đầu vào không hợp lệ.",
+                  "details": [
+                    "rating must not be greater than 5"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "AUTH_REQUIRED",
+                  "message": "Yêu cầu đăng nhập hợp lệ.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "FORBIDDEN_RESOURCE",
+                  "message": "Không có quyền thực hiện thao tác này.",
+                  "details": null
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                },
+                "example": {
+                  "code": "DATABASE_FAILURE",
+                  "message": "Không thể xử lý yêu cầu.",
+                  "details": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "feedback"
+        ]
+      }
     }
   },
   "info": {
@@ -1263,6 +1683,32 @@
           "overdueTaskItems"
         ]
       },
+      "StudentProgressResponseDto": {
+        "type": "object",
+        "properties": {
+          "hasCurrentPlan": {
+            "type": "boolean"
+          },
+          "planId": {
+            "type": "string",
+            "nullable": true
+          },
+          "metrics": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgressViewDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "hasCurrentPlan",
+          "planId",
+          "metrics"
+        ]
+      },
       "StudentAssessmentResultsResponseDto": {
         "type": "object",
         "properties": {
@@ -1275,6 +1721,120 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "ValidateStudyContextResponseDto": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string"
+          },
+          "availableMinutesPerWeek": {
+            "type": "number",
+            "example": 450,
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "targetDeadline": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "goal",
+          "availableMinutesPerWeek",
+          "targetDeadline"
+        ]
+      },
+      "StudentStudyTasksResponseDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "nullable": true
+          },
+          "planStatus": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED"
+            ],
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyTaskViewDto"
+            }
+          }
+        },
+        "required": [
+          "planId",
+          "planStatus",
+          "items"
+        ]
+      },
+      "UpdateStudyTaskStatusRequestDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "COMPLETED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "UpdatedStudyTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "COMPLETED"
+            ]
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "completedAt"
+        ]
+      },
+      "UpdateStudyTaskStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/UpdatedStudyTaskDto"
+          },
+          "planStatus": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED"
+            ]
+          },
+          "progress": {
+            "$ref": "#/components/schemas/ProgressViewDto"
+          }
+        },
+        "required": [
+          "task",
+          "planStatus",
+          "progress"
         ]
       },
       "UsersByRoleDto": {
@@ -1742,6 +2302,69 @@
           "id",
           "inputSnapshot",
           "analysisResult",
+          "createdAt"
+        ]
+      },
+      "CreateFeedbackRequestDto": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "enum": [
+              "AI_PERFORMANCE",
+              "STUDY_PLAN",
+              "UI_UX",
+              "LEARNING_ANALYTICS",
+              "OTHER"
+            ]
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag",
+          "rating",
+          "content"
+        ]
+      },
+      "CreateFeedbackResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string",
+            "enum": [
+              "AI_PERFORMANCE",
+              "STUDY_PLAN",
+              "UI_UX",
+              "LEARNING_ANALYTICS",
+              "OTHER"
+            ]
+          },
+          "rating": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "tag",
+          "rating",
+          "content",
           "createdAt"
         ]
       }
