@@ -15,16 +15,18 @@ describe('baseline database invariants', () => {
   afterAll(async () => prisma.$disconnect());
 
   it('persists unbounded scores and enforces the current-plan partial unique index', async () => {
+    // Inspect the same schema as the Prisma fixtures, including isolated test runs.
     const columns = await prisma.$queryRaw<Array<{ numeric_precision: number | null; numeric_scale: number | null }>>`
       SELECT numeric_precision, numeric_scale
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'assessment_results' AND column_name = 'score'
+      WHERE table_schema = current_schema() AND table_name = 'assessment_results' AND column_name = 'score'
     `;
     const indexes = await prisma.$queryRaw<Array<{ indexdef: string }>>`
-      SELECT indexdef FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'uq_study_plans_one_current_per_student'
+      SELECT indexdef FROM pg_indexes WHERE schemaname = current_schema() AND indexname = 'uq_study_plans_one_current_per_student'
     `;
     const constraints = await prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT count(*) FROM pg_constraint WHERE conname IN (
+      SELECT count(*) FROM pg_constraint
+      WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname = current_schema()) AND conname IN (
         'ck_users_email_normalized', 'ck_assessment_results_score_range',
         'ck_temporary_contexts_status_replay', 'ck_temporary_contexts_retention'
       )
