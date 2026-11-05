@@ -31,6 +31,7 @@ const ids = {
   classOne: fixedId('30000000', 1),
   classTwo: fixedId('30000000', 2),
   classThree: fixedId('30000000', 3),
+  emptyTasksPlan: fixedId('40000000', 9),
 } as const;
 
 type SeedData = {
@@ -139,6 +140,7 @@ function buildSeedData(seedNow: Date, passwordHash: string): SeedData {
     { id: fixedId('40000000', 6), studentId: ids.students[3], title: 'Earlier review plan', goal: 'Review introductory material', availableMinutesPerWeek: 120, startDate: offsetDays(seedNow, -70), endDate: offsetDays(seedNow, -35), status: StudyPlanStatus.ARCHIVED },
     { id: fixedId('40000000', 7), studentId: ids.students[4], title: 'Recovery plan', goal: 'Rebuild weak topics and catch up on overdue practice', availableMinutesPerWeek: 240, startDate: offsetDays(seedNow, -30), endDate: offsetDays(seedNow, 30), status: StudyPlanStatus.ACTIVE },
     { id: fixedId('40000000', 8), studentId: ids.students[5], title: 'Focused review completed', goal: 'Complete focused practice in priority topics', availableMinutesPerWeek: 180, startDate: offsetDays(seedNow, -45), endDate: offsetDays(seedNow, -2), status: StudyPlanStatus.COMPLETED },
+    { id: ids.emptyTasksPlan, studentId: ids.students[6], title: 'Plan without tasks', goal: 'Review a plan with no tasks yet', availableMinutesPerWeek: 120, startDate: offsetDays(seedNow, -1), endDate: offsetDays(seedNow, 30), status: StudyPlanStatus.ACTIVE },
   ];
 
   const tasks: Prisma.StudyTaskCreateManyInput[] = [
@@ -211,7 +213,8 @@ function failPreflight(reason: string): never {
   throw new Error(`Seed preflight failed: ${reason}`);
 }
 
-async function allFixtureRowsExist(data: SeedData): Promise<boolean> {
+async function allFixtureRowsExist(data: SeedData, excludedPlanIds: string[] = []): Promise<boolean> {
+  const planIds = data.plans.map(({ id }) => id!).filter((id) => !excludedPlanIds.includes(id));
   const [users, courses, topics, classes, members, assessments, plans, tasks, feedback] = await Promise.all([
     prisma.user.count({ where: { id: { in: data.users.map(({ id }) => id!) } } }),
     prisma.course.count({ where: { id: { in: data.courses.map(({ id }) => id!) } } }),
@@ -219,7 +222,7 @@ async function allFixtureRowsExist(data: SeedData): Promise<boolean> {
     prisma.class.count({ where: { id: { in: data.classes.map(({ id }) => id!) } } }),
     prisma.classMember.count({ where: { OR: data.members.map(({ classId, studentId }) => ({ classId, studentId })) } }),
     prisma.assessmentResult.count({ where: { id: { in: data.assessments.map(({ id }) => id!) } } }),
-    prisma.studyPlan.count({ where: { id: { in: data.plans.map(({ id }) => id!) } } }),
+    prisma.studyPlan.count({ where: { id: { in: planIds } } }),
     prisma.studyTask.count({ where: { id: { in: data.tasks.map(({ id }) => id!) } } }),
     prisma.feedback.count({ where: { id: { in: data.feedback.map(({ id }) => id!) } } }),
   ]);
@@ -229,7 +232,7 @@ async function allFixtureRowsExist(data: SeedData): Promise<boolean> {
     && classes === data.classes.length
     && members === data.members.length
     && assessments === data.assessments.length
-    && plans === data.plans.length
+    && plans === planIds.length
     && tasks === data.tasks.length
     && feedback === data.feedback.length;
 }
@@ -279,6 +282,17 @@ async function preflight(data: SeedData, seedNow: Date): Promise<boolean> {
 
   const isComplete = await allFixtureRowsExist(data);
   if (isComplete) return true;
+
+  if (await allFixtureRowsExist(data, [ids.emptyTasksPlan])) {
+    const student = await prisma.user.findUnique({ where: { id: ids.students[6] }, select: { role: true, status: true } });
+    if (student?.role !== Role.STUDENT || student.status !== 'ACTIVE') failPreflight('the empty-plan fixture requires an ACTIVE Student');
+    const currentPlan = await prisma.studyPlan.findFirst({
+      where: { studentId: ids.students[6], status: { in: [StudyPlanStatus.ACTIVE, StudyPlanStatus.COMPLETED] } },
+      select: { id: true },
+    });
+    if (currentPlan) failPreflight('Student 09 already has a current StudyPlan');
+    return false;
+  }
 
   const currentPlanSeeds = data.plans.filter(({ status }) => status === StudyPlanStatus.ACTIVE || status === StudyPlanStatus.COMPLETED);
   const currentByStudent = new Map<string, Set<string>>();

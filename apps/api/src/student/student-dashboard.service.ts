@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { AuthUser } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MVP_COURSE_ID } from '../common/mvp-course';
-import { AssessmentResultViewDto, ProgressViewDto, StudentAssessmentResultsResponseDto, StudentDashboardResponseDto, StudyTaskViewDto } from './student-dashboard.dto';
+import { AssessmentResultViewDto, ProgressViewDto, StudentAssessmentResultsResponseDto, StudentDashboardResponseDto, StudentProgressResponseDto, StudyTaskViewDto } from './student-dashboard.dto';
 
 type DashboardTask = StudyTaskViewDto;
 
@@ -50,7 +50,7 @@ function latestResults(results: readonly AssessmentResultRecord[]): AssessmentRe
   });
 }
 
-export function calculateProgress(tasks: readonly DashboardTask[], now: Date) {
+export function calculateProgress<T extends Pick<DashboardTask, 'status' | 'dueDate'>>(tasks: readonly T[], now: Date) {
   const completedTasks = tasks.filter((task) => task.status === 'COMPLETED').length;
   const totalTasks = tasks.length;
   const tasksDueByNow = tasks.filter((task) => task.dueDate <= now).length;
@@ -77,6 +77,37 @@ export function calculateProgress(tasks: readonly DashboardTask[], now: Date) {
 @Injectable()
 export class StudentDashboardService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getProgress(user: AuthUser): Promise<StudentProgressResponseDto> {
+    if (user.role !== 'STUDENT') {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN_RESOURCE',
+        message: 'Không có quyền truy cập tài nguyên này.',
+        details: null,
+      });
+    }
+
+    const plan = await this.prisma.studyPlan.findFirst({
+      where: { studentId: user.id, status: { in: ['ACTIVE', 'COMPLETED'] } },
+      select: { id: true, tasks: { select: { status: true, dueDate: true } } },
+    });
+    if (!plan) return { hasCurrentPlan: false, planId: null, metrics: null };
+
+    const progress = calculateProgress(plan.tasks, new Date());
+    return {
+      hasCurrentPlan: true,
+      planId: plan.id,
+      metrics: {
+        completedTasks: progress.completedTasks,
+        totalTasks: progress.totalTasks,
+        completionPercentage: progress.completionPercentage,
+        actualProgress: progress.actualProgress,
+        expectedProgress: progress.expectedProgress,
+        overdueTasks: progress.overdueTasks,
+        slowProgress: progress.slowProgress,
+      },
+    };
+  }
 
   async getDashboard(user: AuthUser): Promise<StudentDashboardResponseDto> {
     if (user.role !== 'STUDENT') {

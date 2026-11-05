@@ -83,12 +83,14 @@ describe('browser auth state', () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(['private'], { value: 'private' });
     sessionStorage.setItem('accessToken', 'valid-token');
+    sessionStorage.setItem('studyContextDraft', JSON.stringify({ goal: 'Private draft' }));
     vi.mocked(fetch).mockResolvedValueOnce(json(user)).mockResolvedValueOnce(json({ code }, status));
     renderAuth(queryClient);
     await screen.findByText(user.email);
     fireEvent.click(screen.getByRole('button', { name: 'protected request' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('unauthenticated'));
     expect(sessionStorage.getItem('accessToken')).toBeNull();
+    expect(sessionStorage.getItem('studyContextDraft')).toBeNull();
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(replace).toHaveBeenCalledWith('/dang-nhap');
   });

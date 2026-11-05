@@ -7,6 +7,7 @@ import { ApiExceptionFilter } from './common/api-exception.filter';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { StudentModule } from './student/student.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 function validateEnvironment(config: Record<string, unknown>) {
   const port = Number(config.API_PORT ?? 3101);
@@ -29,6 +30,7 @@ function validateEnvironment(config: Record<string, unknown>) {
     PrismaModule,
     AuthModule,
     StudentModule,
+    FeedbackModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],

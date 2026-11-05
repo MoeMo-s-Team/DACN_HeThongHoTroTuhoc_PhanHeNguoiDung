@@ -119,6 +119,58 @@ describe('OpenAPI auth contract', () => {
     expect(generatedDocument.components?.schemas?.StudentDashboardResponseDto).toBeDefined();
   });
 
+  it('documents the Student task status path parameter and required request body', () => {
+    const assertTaskStatusContract = (operation: OpenAPIObject['paths'][string]['patch']) => {
+      expect(operation?.parameters).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          name: 'taskId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        }),
+      ]));
+      expect(operation?.requestBody).toMatchObject({
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/UpdateStudyTaskStatusRequestDto' },
+          },
+        },
+      });
+    };
+
+    assertTaskStatusContract(document.paths['/api/v1/student/study-tasks/{taskId}/status']?.patch);
+    assertTaskStatusContract(generatedDocument.paths['/api/v1/student/study-tasks/{taskId}/status']?.patch);
+  });
+
+  it('documents the authenticated feedback create contract and validation fields', () => {
+    const feedback = document.paths['/api/v1/feedback']?.post;
+    const schemas = document.components?.schemas ?? {};
+    const requestSchema = schemas.CreateFeedbackRequestDto as {
+      required?: string[];
+      properties?: Record<string, { enum?: string[]; type?: string; minimum?: number; maximum?: number }>;
+    };
+    const assertContract = (operation: typeof feedback) => {
+      expect(operation?.security).toEqual([{ bearerAuth: [] }]);
+      expect(operation?.responses).toHaveProperty('201');
+      expect(operation?.responses).toHaveProperty('400');
+      expect(operation?.responses).toHaveProperty('401');
+      expect(operation?.responses).toHaveProperty('403');
+      expect(operation?.responses).toHaveProperty('500');
+      expect(responseSchema(operation?.responses['201'])).toEqual({ $ref: '#/components/schemas/CreateFeedbackResponseDto' });
+      expect(responseSchema(operation?.responses['400'])).toEqual({ $ref: '#/components/schemas/ApiErrorResponseDto' });
+    };
+
+    expect(feedback).toBeDefined();
+    assertContract(feedback);
+    assertContract(generatedDocument.paths['/api/v1/feedback']?.post);
+    expect(requestSchema.required).toEqual(expect.arrayContaining(['tag', 'rating', 'content']));
+    expect(requestSchema.properties?.tag.enum).toEqual(['AI_PERFORMANCE', 'STUDY_PLAN', 'UI_UX', 'LEARNING_ANALYTICS', 'OTHER']);
+    expect(requestSchema.properties?.rating).toMatchObject({ type: 'integer', minimum: 1, maximum: 5 });
+    expect(generatedDocument.components?.schemas?.CreateFeedbackRequestDto).toBeDefined();
+    expect(generatedDocument.components?.schemas?.CreateFeedbackResponseDto).toBeDefined();
+  });
+
   it('documents the validation error returned by the real login boundary', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
