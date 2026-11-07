@@ -1,8 +1,8 @@
 # SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
 ## Hệ thống hỗ trợ tự học ứng dụng AI
 
-**Phiên bản:** 1.5 Baseline  
-**Ngày:** 21/10/2026  
+**Phiên bản:** 1.6 Baseline Final  
+**Ngày:** 26/10/2026  
 **Phạm vi:** MVP phục vụ đồ án chuyên ngành  
 **Tech stack bắt buộc:** Next.js, NestJS, PostgreSQL, AI model tự triển khai (self-managed) trên Google Colab
 
@@ -1638,6 +1638,18 @@ Mỗi external attempt thực tế phải có `AIRequestLog` theo AI-REQ-018. N�
 
 ---
 
+## 5.8. CR-002 — Capacity preflight và authoritative dataset
+
+Các AI task phải dùng toàn bộ authoritative input theo contract. Model/context limit không được biến thành business rule bằng cách tự cắt dữ liệu.
+
+Mỗi deployment AI phải có `capacityProfileVersion` được benchmark và bind tối thiểu với `contractVersion`, `modelId`, `tokenizerId`, `contextWindowTokens`, safety margin và `promptVersion`/reserved output/prompt+schema overhead theo task.
+
+Backend phải thực hiện capacity preflight trước network dispatch. Profile missing/malformed/binding mismatch là `AI_RUNTIME_FAILURE`; profile hợp lệ nhưng input vượt validated budget là `AI_INPUT_TOO_LARGE`. Cả hai path trước dispatch đều không tạo `AIRequestLog`.
+
+Việc đổi model/tokenizer/prompt version yêu cầu capacity profile mới được benchmark và deploy đồng bộ; không được tái sử dụng profile cũ chỉ vì JSON schema vẫn tương thích.
+
+---
+
 # 6. Data Requirements
 
 ## 6.1. User
@@ -2389,6 +2401,49 @@ Hành vi:
 
 **Phân biệt:** trường hợp business ineligible trước AI call (ví dụ StudyPlan Adjustment không có current plan, plan quá hạn hoặc không còn task `TODO`) cũng không gọi AI và không tạo `AIRequestLog`, nhưng **không được tự động trả `INSUFFICIENT_DATA`**.
 
+## 10.5.1. CR-002 — AI input capacity và runtime technical failure
+
+Phần này là **normative clarification** cho các AI error/recovery rule hiện hành, không tạo thêm Use Case hay business capability mới.
+
+### XAI-001 — AI input vượt capacity đã benchmark
+
+Khi authoritative input đã qua validation/minimum-data/business eligibility và `capacityProfile` đang active đã resolve/bind hợp lệ, nhưng toàn bộ input của external attempt bắt buộc không thể nằm trong `validatedInputBudget(task)`:
+
+- Backend phải dừng **trước network dispatch**;
+- không gọi AI Runtime;
+- không tạo `AIRequestLog` cho attempt chưa bắt đầu;
+- không silently truncate, sampling, page-limit, pre-summarize hoặc chunk thành thêm external attempts;
+- public API trả `HTTP 422` với code `AI_INPUT_TOO_LARGE`;
+- message chuẩn: `Dữ liệu hiện vượt khả năng xử lý của AI cho yêu cầu này. Hãy thu hẹp phạm vi dữ liệu khi có thể và thử lại.`;
+- response không cần expose context-window/token-count nội bộ.
+
+Nếu Admin Stage 1 đã thành công nhưng Stage 2 bị capacity preflight reject thì giữ đúng một `AIRequestLog` SUCCESS của Stage 1, không có Stage 2 attempt/log và không tạo `analysisRef`.
+
+### XAI-002 — AI runtime/provider/integration technical failure
+
+Public code `HTTP 502 / AI_RUNTIME_FAILURE` được dùng cho các failure kỹ thuật không thuộc connection/timeout/empty/invalid-output semantics hiện hành, gồm:
+
+- capacity profile missing/malformed/binding mismatch phát hiện trước dispatch;
+- runtime trả `400/422` cho request contract mà Backend đã build/validate;
+- runtime trả `401/403` do AI Runtime auth/config;
+- runtime báo `INFERENCE_FAILED`;
+- technical `5xx` không phân loại là `RUNTIME_UNAVAILABLE`.
+
+Quy tắc logging:
+
+- failure phát hiện **trước dispatch** do capacity-profile mismatch: không tạo `AIRequestLog`; server diagnostic dùng `AI_CAPACITY_PROFILE_MISMATCH`;
+- failure sau khi external attempt đã bắt đầu: tạo `AIRequestLog.status = FAILED` và giữ internal diagnostic phù hợp (`AI_RUNTIME_PROTOCOL_FAILURE`, `AI_RUNTIME_AUTH_FAILURE`, `AI_RUNTIME_INFERENCE_FAILURE`, `AI_RUNTIME_TECHNICAL_FAILURE`).
+
+Các code cũ giữ nguyên semantics:
+
+- network/DNS/TLS hoặc Runtime `RUNTIME_UNAVAILABLE` → `AI_CONNECTION_FAILURE`;
+- timeout → `AI_TIMEOUT`;
+- empty body → `AI_EMPTY_RESPONSE`;
+- output parse/schema/correlation invalid → `AI_INVALID_STRUCTURE`;
+- output thiếu required content → `AI_INCOMPLETE_DATA`.
+
+Public message cho `AI_RUNTIME_FAILURE`: `AI tạm thời chưa thể xử lý yêu cầu. Vui lòng thử lại sau.` Internal subcategory không được leak cho client.
+
 ## 10.6. Recovery Principles
 
 1. Không mất dữ liệu đã tồn tại.
@@ -3069,6 +3124,7 @@ Một chức năng AI chỉ được xem là hoàn thành khi:
 | 1.4 Draft | 20/10/2026 | Đồng bộ Business Rules v1.1 Draft Rev4; chính thức hóa OD-33 đến OD-40; làm rõ Teacher minimum data, feedback dedup, metric precision, class overdue metric, Admin dashboard semantics, email normalization, completion rate, AI adjustment eligibility, apply-time revalidation và AIRequestLog theo external call attempt |
 | 1.4 Baseline | 21/10/2026 | Chốt OD-41 đến OD-44 và BR-041 đến BR-044: goal optional cho STU-004; Admin feedback AI two-stage; semantics issueGroups rỗng; backend-controlled analysis context cho deferred Save; bổ sung AI-REQ-024 và DATA-REQ-015 |
 | 1.5 Baseline | 21/10/2026 | Thực hiện CR-001: bổ sung FR-TEA-008/FR-ADM-007 cho lịch sử phân tích AI; chốt OD-45/OD-46, BR-045/BR-046, UI-REQ-009/UI-REQ-010; giữ history read-only, snapshot-based và không phát sinh AI call |
+| 1.6 Baseline Final | 26/10/2026 | Thực hiện CR-002: khóa public semantics `422 AI_INPUT_TOO_LARGE` và `502 AI_RUNTIME_FAILURE`; capacity-profile preflight; no-truncation/no-hidden-chunking; logging semantics trước/sau dispatch; đồng bộ baseline R3 cho AI Contract v1.0 |
 
 ---
 

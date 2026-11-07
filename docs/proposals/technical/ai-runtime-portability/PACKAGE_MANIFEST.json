@@ -1,0 +1,92 @@
+{
+  "package": "DACN AI Runtime Portability Owner-endorsed Documentation Candidate",
+  "created": "2026-11-07",
+  "status": "OWNER-DIRECTION-ENDORSED; CANDIDATE DOCUMENTS NOT RELEASED",
+  "files": [
+    {
+      "name": "ADR_AI_001_Local_First_Runtime_Portability_v0.1_PROPOSED.md",
+      "sha256": "bbe0d86f3769631d09c0f38989d2d309029526e1e52bf4adfff5e2d875f80a55",
+      "size": 6191
+    },
+    {
+      "name": "AI_Contract_Runtime_Portability_Supplement_v0.1_DRAFT.md",
+      "sha256": "d3fcbf1f145bda12e417d1e06696999b34accb94a8a6c5900f04759891f34786",
+      "size": 7556
+    },
+    {
+      "name": "CANDIDATE_QA_REPORT.json",
+      "sha256": "8b5bdd10f8cfeb9585b67bb7f274ae79751e89f9ad7ad046188e5f74ecf04ea2",
+      "size": 1206
+    },
+    {
+      "name": "CPU_StudyPlan_Exploratory_Evidence_2026-11-07.md",
+      "sha256": "763f93f9c268cc1171ed3f681d331ad206e1164faa10e1de65a585b107196c10",
+      "size": 5852
+    },
+    {
+      "name": "Change_Request_CR-005_AI_Runtime_Portability_v0.1_DRAFT.md",
+      "sha256": "aac416de61b3af82d0e429dfcfd356951e926e0a92973d43314ac92119b66ef3",
+      "size": 8731
+    },
+    {
+      "name": "Deployment_Reproduction_Guide_v0.1_DRAFT.md",
+      "sha256": "76a34f40ddb120438efe99a2bf935b3896bdaddbccc155667842b4093b53adc4",
+      "size": 7490
+    },
+    {
+      "name": "Owner_Decision_Record_AI_Runtime_2026-11-07.md",
+      "sha256": "a7a64b151c4c7fffff95cd311f434f10e61698df8a866a1b18920562fe4a526c",
+      "size": 2534
+    },
+    {
+      "name": "README_Document_Update_Package.md",
+      "sha256": "b6d11deddde6769a9a74fb345b475e72d01c0078729cdbdcf296d1aa9a7e8469",
+      "size": 6236
+    },
+    {
+      "name": "SRS_v1.6_to_v1.7_Change_Set_DRAFT.md",
+      "sha256": "08b28d0dc539deddbe89a9858969f599263d4779727fcfa0f1526c12e54105e8",
+      "size": 9152
+    },
+    {
+      "name": "SRS_v1.6_to_v1.7_candidate.diff",
+      "sha256": "ce74cf10c402c9c6b19567f5e0db0dc594f6bf294fa9ee4ec7b7659a6cf9444a",
+      "size": 9763
+    },
+    {
+      "name": "SRS_v1.7_Runtime_Portability_DRAFT_CANDIDATE.md",
+      "sha256": "fb356e4e3ca7458ff79909544ca8c7e4b316149ff234bd3b4a3d270dc1ef912e",
+      "size": 129696
+    },
+    {
+      "name": "System_Architecture_and_Technology_Stack_v1.2_Runtime_Portability_DRAFT_CANDIDATE.md",
+      "sha256": "c9b2921731cbc101f981450bf0ab15462957ce06e806673c004c21ba10482599",
+      "size": 75069
+    },
+    {
+      "name": "System_Architecture_v1.1_to_v1.2_Change_Set_DRAFT.md",
+      "sha256": "dc9347b550219288d35eb3017365644364566759db491b9cd3d97536c91e1397",
+      "size": 6518
+    },
+    {
+      "name": "System_Architecture_v1.1_to_v1.2_candidate.diff",
+      "sha256": "b0168882ba3dec981143675b5edc3b1d0a38492eda09b44ec068c24b42db22be",
+      "size": 8379
+    },
+    {
+      "name": "Traceability_Release_Checklist_CR-005_DRAFT.md",
+      "sha256": "b4d17ef3b4abf8c20ab9784846136a4301ff1ded2f9601be37ab93fb80a84731",
+      "size": 5208
+    },
+    {
+      "name": "docs/superpowers/plans/2026-11-07-ai-runtime-docs-update.md",
+      "sha256": "9f07f440f4d37b4e53d30c45041fb5451292783af5318a7a3b6be7fcb7dae2c2",
+      "size": 5971
+    },
+    {
+      "name": "docs/superpowers/specs/2026-11-07-ai-runtime-portability-design.md",
+      "sha256": "9982e53fbf53970b6c6eac4c2ab2203e48ff45fe3b704c01f684896ec4a41bdb",
+      "size": 3348
+    }
+  ]
+}
