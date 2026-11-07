@@ -1,0 +1,15 @@
+{
+  "strengths": [],
+  "areasToImprove": [
+    "Review data structures"
+  ],
+  "priorityTopics": [
+    {
+      "topicId": "topic_1",
+      "reason": "The latest score indicates this topic is a priority."
+    }
+  ],
+  "reasons": [
+    "Based on the latest backend-provided assessment."
+  ]
+}

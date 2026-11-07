@@ -1,0 +1,67 @@
+[
+  {
+    "name": "missing-required",
+    "data": {},
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "changes"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "changes": "wrong-type"
+    },
+    "keyword": "type",
+    "instancePath": "/changes"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "changes": [
+        {
+          "taskId": "task_1",
+          "expectedMinutes": 60,
+          "dueDate": "2026-10-30T16:59:59.000Z",
+          "priority": "HIGH",
+          "reason": "Reduce the task load."
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "changes": [
+        {
+          "taskId": "task_1",
+          "expectedMinutes": 60,
+          "dueDate": "2026-10-30T16:59:59.000Z",
+          "priority": "__invalid_enum__",
+          "reason": "Reduce the task load."
+        }
+      ]
+    },
+    "keyword": "enum",
+    "instancePath": "/changes/0/priority"
+  },
+  {
+    "name": "invalid-date-time",
+    "data": {
+      "changes": [
+        {
+          "taskId": "task_1",
+          "expectedMinutes": 60,
+          "dueDate": "not-a-date-time",
+          "priority": "HIGH",
+          "reason": "Reduce the task load."
+        }
+      ]
+    },
+    "keyword": "format",
+    "instancePath": "/changes/0/dueDate"
+  }
+]

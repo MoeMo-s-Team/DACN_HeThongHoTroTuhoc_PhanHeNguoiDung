@@ -1,0 +1,32 @@
+{
+  "classId": "class_1",
+  "studentCount": 20,
+  "classAverageScore": 75.5,
+  "topicAverageScores": [
+    {
+      "topic": {
+        "id": "topic_1",
+        "name": "Data structures"
+      },
+      "averageScore": 58.7,
+      "weakTopic": true
+    }
+  ],
+  "classCompletionRate": 65.0,
+  "overdueTaskCount": 3,
+  "needsAttentionStudents": [
+    {
+      "studentId": "student_1",
+      "reasons": [
+        "LOW_PROGRESS"
+      ]
+    }
+  ],
+  "progressWarnings": [
+    {
+      "studentId": "student_1",
+      "actualProgress": 40.0,
+      "expectedProgress": 70.0
+    }
+  ]
+}

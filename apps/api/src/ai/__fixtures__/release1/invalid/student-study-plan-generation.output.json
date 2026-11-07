@@ -1,0 +1,99 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "tasks": [
+        {
+          "title": "Review traversal",
+          "topicId": "topic_1",
+          "goal": "Understand BFS and DFS",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "HIGH",
+          "reason": "This topic needs focused review."
+        }
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "planTitle"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "planTitle": [],
+      "tasks": [
+        {
+          "title": "Review traversal",
+          "topicId": "topic_1",
+          "goal": "Understand BFS and DFS",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "HIGH",
+          "reason": "This topic needs focused review."
+        }
+      ]
+    },
+    "keyword": "type",
+    "instancePath": "/planTitle"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "planTitle": "Four-week review plan",
+      "tasks": [
+        {
+          "title": "Review traversal",
+          "topicId": "topic_1",
+          "goal": "Understand BFS and DFS",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "HIGH",
+          "reason": "This topic needs focused review."
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  },
+  {
+    "name": "invalid-enum",
+    "data": {
+      "planTitle": "Four-week review plan",
+      "tasks": [
+        {
+          "title": "Review traversal",
+          "topicId": "topic_1",
+          "goal": "Understand BFS and DFS",
+          "expectedMinutes": 90,
+          "dueDate": "2026-11-02T16:59:59.000Z",
+          "priority": "__invalid_enum__",
+          "reason": "This topic needs focused review."
+        }
+      ]
+    },
+    "keyword": "enum",
+    "instancePath": "/tasks/0/priority"
+  },
+  {
+    "name": "invalid-date-time",
+    "data": {
+      "planTitle": "Four-week review plan",
+      "tasks": [
+        {
+          "title": "Review traversal",
+          "topicId": "topic_1",
+          "goal": "Understand BFS and DFS",
+          "expectedMinutes": 90,
+          "dueDate": "not-a-date-time",
+          "priority": "HIGH",
+          "reason": "This topic needs focused review."
+        }
+      ]
+    },
+    "keyword": "format",
+    "instancePath": "/tasks/0/dueDate"
+  }
+]
