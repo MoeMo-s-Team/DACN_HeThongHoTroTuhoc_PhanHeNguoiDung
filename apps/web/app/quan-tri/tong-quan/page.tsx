@@ -1,5 +1,6 @@
-import { AuthenticatedHome } from '../../auth/authenticated-home';
+import { AdminShell } from '../admin-shell';
+import { AdminDashboard } from './admin-dashboard';
 
 export default function AdministratorHome() {
-  return <AuthenticatedHome role="ADMINISTRATOR" />;
+  return <AdminShell currentPath="/quan-tri/tong-quan"><AdminDashboard /></AdminShell>;
 }

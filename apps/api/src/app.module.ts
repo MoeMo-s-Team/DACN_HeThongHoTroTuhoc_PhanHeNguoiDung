@@ -7,6 +7,7 @@ import { ApiExceptionFilter } from './common/api-exception.filter';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { StudentModule } from './student/student.module';
+import { AdminModule } from './admin/admin.module';
 import { FeedbackModule } from './feedback/feedback.module';
 
 function validateEnvironment(config: Record<string, unknown>) {
@@ -30,6 +31,7 @@ function validateEnvironment(config: Record<string, unknown>) {
     PrismaModule,
     AuthModule,
     StudentModule,
+    AdminModule,
     FeedbackModule,
   ],
   controllers: [HealthController],

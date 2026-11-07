@@ -119,6 +119,53 @@ describe('OpenAPI auth contract', () => {
     expect(generatedDocument.components?.schemas?.StudentDashboardResponseDto).toBeDefined();
   });
 
+  it('generates all six Administrator Phase 1 contracts with bearer security and frozen response types', () => {
+    const routes = [
+      ['/api/v1/admin/dashboard', 'get', 'AdminDashboardResponseDto'],
+      ['/api/v1/admin/users', 'get', 'AdminUsersResponseDto'],
+      ['/api/v1/admin/users/{userId}/status', 'patch', 'AdminUserStatusResponseDto'],
+      ['/api/v1/admin/feedback', 'get', 'AdminFeedbackResponseDto'],
+      ['/api/v1/admin/feedback/analyses', 'get', 'AdminHistoryResponseDto'],
+      ['/api/v1/admin/feedback/analyses/{analysisId}', 'get', 'AdminHistoryDetailDto'],
+    ] as const;
+    for (const source of [document, generatedDocument]) {
+      for (const [path, method, responseType] of routes) {
+        const operation = source.paths[path]?.[method];
+        expect(operation?.security).toEqual([{ bearerAuth: [] }]);
+        expect(responseSchema(operation?.responses['200'])).toEqual({ $ref: `#/components/schemas/${responseType}` });
+        for (const status of ['401', '403', '500']) expect(responseSchema(operation?.responses[status])).toEqual({ $ref: '#/components/schemas/ApiErrorResponseDto' });
+      }
+      const changeStatus = source.paths['/api/v1/admin/users/{userId}/status']?.patch;
+      for (const status of ['400', '404', '409']) expect(changeStatus?.responses).toHaveProperty(status);
+      expect((changeStatus?.requestBody as { content: Record<string, { schema: unknown }> }).content['application/json'].schema)
+        .toEqual({ $ref: '#/components/schemas/UpdateUserStatusDto' });
+      expect(source.paths['/api/v1/admin/feedback/analyses']?.post).toBeUndefined();
+      expect(source.paths).not.toHaveProperty('/api/v1/admin/feedback/analysis');
+    }
+  });
+
+  it('documents Administrator pagination, filters and reusable stored snapshot schemas', () => {
+    for (const source of [document, generatedDocument]) {
+      const parameters = source.paths['/api/v1/admin/feedback']?.get?.parameters?.filter((parameter) => 'name' in parameter) ?? [];
+      expect(parameters.find(({ name }) => name === 'page')).toMatchObject({ required: false, schema: { default: 1, minimum: 1 } });
+      expect(parameters.find(({ name }) => name === 'limit')).toMatchObject({ required: false, schema: { default: 20, minimum: 1, maximum: 100 } });
+      expect(parameters.find(({ name }) => name === 'rating')).toMatchObject({ schema: { minimum: 1, maximum: 5 } });
+      expect(parameters.find(({ name }) => name === 'tag')?.schema).toMatchObject({ enum: ['AI_PERFORMANCE', 'STUDY_PLAN', 'UI_UX', 'LEARNING_ANALYTICS', 'OTHER'] });
+      for (const name of ['fromDate', 'toDate']) expect(parameters.find((item) => item.name === name)).toMatchObject({ required: false, schema: { type: 'string', format: 'date-time' } });
+      const schemas = source.components?.schemas ?? {};
+      const filter = schemas.FeedbackAnalysisFilterDto as { required?: string[]; properties: Record<string, { nullable?: boolean }> };
+      expect(filter.required ?? []).toEqual([]);
+      for (const name of ['fromDate', 'toDate', 'rating', 'tag']) expect(filter.properties[name].nullable).toBe(true);
+      const snapshot = schemas.FeedbackAnalysisInputSnapshotDto as { required: string[]; properties: Record<string, unknown> };
+      expect(snapshot.required).toEqual(expect.arrayContaining(['filter', 'feedbackIds', 'totalFeedback', 'tagStatistics']));
+      const result = schemas.FeedbackAnalysisResultDto as { properties: Record<string, unknown> };
+      expect(result.properties.priorityAreas).toEqual({ type: 'array', items: { type: 'string' } });
+      expect(result.properties.recommendations).toEqual({ type: 'array', items: { $ref: '#/components/schemas/FeedbackRecommendationDto' } });
+      const user = schemas.AdminUserDto as { properties: Record<string, unknown> };
+      expect(user.properties).not.toHaveProperty('passwordHash');
+    }
+  });
+
   it('documents the Student task status path parameter and required request body', () => {
     const assertTaskStatusContract = (operation: OpenAPIObject['paths'][string]['patch']) => {
       expect(operation?.parameters).toEqual(expect.arrayContaining([
