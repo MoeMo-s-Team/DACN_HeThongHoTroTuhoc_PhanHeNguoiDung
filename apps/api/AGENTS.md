@@ -37,7 +37,7 @@ Keep services cohesive around business capabilities.
 Use module boundaries compatible with Auth, Users, Student, Teacher, Admin, Feedback, AI, Context, and Database responsibilities.
 
 ## 4. API Contract
-Treat `API_Specification_v1.4_baseline_final.md` as the frontend/backend contract authority.
+Treat `API_Specification_v1.5_baseline_final.md` as the frontend/backend contract authority.
 Preserve:
 - `/api/v1`;
 - routes and HTTP methods;

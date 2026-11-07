@@ -6,21 +6,27 @@ Act as an implementation agent, not a product designer.
 Prefer correctness, traceability, and complete end-to-end flows over unnecessary abstraction.
 
 ## 2. Authority
+Current approved freeze: `DACN-REQ-UC-BL-2026-10-26-R3` (CR-001 + CR-002 incorporated).
+Use `docs/baseline/Document_Governance_and_Traceability_Index_v1.2.md` and `docs/baseline/Requirements_UseCase_Baseline_Freeze_Record_v1.2.md` for active versions/freeze scope.
 Use this order when decisions conflict:
-1. `docs/baseline/SRS_v1.5_baseline_final.md`
+1. `docs/baseline/SRS_v1.6_baseline_final.md`
 2. `docs/baseline/Use_Case_Diagram_he_thong_ho_tro_tu_hoc_AI_v1.4_baseline_rev1.md`
-3. `docs/baseline/Business_Rules_v1.3_baseline_rev1.md`
-4. `docs/baseline/Use_Case_Specification_v1.1_baseline_rev1.md`
-5. `docs/baseline/API_Specification_v1.4_baseline_final.md`
-6. `docs/baseline/UI_Sitemap_v1.1_baseline.md` + `docs/baseline/Wireframe_Screen_Specification_v1.0_baseline_final.md`
-7. `docs/architecture/Global UI Design System — Editorial Tech.md`
-8. `docs/baseline/System_Architecture_and_Technology_Stack_v1.0_baseline.md`
-9. Approved ADRs in `docs/decisions/`
+3. `docs/baseline/Business_Rules_v1.4_baseline_rev1.md`
+4. `docs/baseline/Use_Case_Specification_v1.2_baseline_rev1.md`
+5. `docs/baseline/API_Specification_v1.5_baseline_final.md` (public REST contract)
+6. `docs/baseline/Activity_Diagram_3_AI_Main_Flows_v1.3_baseline_final.md` (AI orchestration)
+7. `docs/baseline/UI_Sitemap_v1.1_baseline.md` + `docs/baseline/Wireframe_Screen_Specification_v1.1_baseline_final.md`
+8. `docs/baseline/AI_Contract_v1.0_baseline_final.md` (internal NestJS ↔ AI Runtime contract)
+9. `docs/architecture/Global UI Design System — Editorial Tech.md` (presentation only)
+10. `docs/baseline/System_Architecture_and_Technology_Stack_v1.1_baseline.md`
+11. Approved ADRs in `docs/decisions/`
 
-Higher-authority business/API sources win. Architecture/ADRs define implementation details only and may not override frozen behavior. Existing code/tests are implementation evidence, not baseline authority.
+Follow approved `CR-001`/`CR-002` and R3 audit records in `docs/baseline/`. Higher-authority requirements/business/API sources win; AI Contract governs internal inference only. Architecture/ADRs cannot override frozen behavior. Code/tests are implementation evidence, not authority. If active sources conflict, stop the affected task and report exact references; do not choose an archived version.
 
 ## 3. Frozen Baseline and Proposal Mode
 Treat `docs/baseline/` as read-only. Never edit, rename, delete, regenerate, auto-format, or auto-update `BASELINE_MANIFEST.sha256`.
+
+Archived R1/R2 documents are historical evidence only; never use them to override R3. If a referenced R3 file is missing, report the missing path rather than silently falling back to R2.
 
 If a task requires changing frozen behavior, stop the affected implementation and use:
 - `docs/proposals/technical/` for technical changes preserving observable behavior/API;
