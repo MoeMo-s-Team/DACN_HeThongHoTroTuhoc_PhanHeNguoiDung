@@ -221,7 +221,7 @@ export interface paths {
         };
         get: operations["AdminController_listAnalyses"];
         put?: never;
-        post?: never;
+        post: operations["AdminController_saveAnalysis"];
         delete?: never;
         options?: never;
         head?: never;
@@ -460,6 +460,15 @@ export interface components {
             items: components["schemas"]["AdminFeedbackItemDto"][];
             tagStatistics: components["schemas"]["FeedbackTagStatisticsDto"];
             meta: components["schemas"]["PaginationMetaDto"];
+        };
+        SaveAnalysisRequestDto: {
+            analysisRef: string;
+        };
+        SaveAnalysisResponseDto: {
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            replayed: boolean;
         };
         FeedbackAnalysisFilterDto: {
             /** Format: date-time */
@@ -1421,6 +1430,80 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_saveAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAnalysisRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Replay of a saved analysis */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveAnalysisResponseDto"];
+                };
+            };
+            201: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveAnalysisResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description CONTEXT_INVALID_OR_EXPIRED */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

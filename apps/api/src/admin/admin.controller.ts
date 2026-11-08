@@ -1,6 +1,6 @@
-import { applyDecorators, Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { applyDecorators, Body, Controller, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { FeedbackTag } from '@prisma/client';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConflictResponse, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthUser } from '../auth/auth.service';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -11,6 +11,13 @@ import { AdminFeedbackQueryDto, AdminFeedbackResponseDto } from './admin-feedbac
 import { AdminFeedbackService } from './admin-feedback.service';
 import { AdminHistoryService } from './admin-history.service';
 import { AdminHistoryDetailDto, AdminHistoryResponseDto } from './admin-history.dto';
+import { AdminAnalysisSaveService } from './admin-analysis-save.service';
+import { SaveAnalysisRequestDto, SaveAnalysisResponseDto } from './admin-analysis.dto';
+
+type SaveHttpResponse = {
+  status(code: number): unknown;
+  setHeader(name: string, value: string): unknown;
+};
 
 // Explicit transport metadata also works when the generator uses tsx without design:paramtypes.
 function ApiPaginationQuery() {
@@ -28,7 +35,12 @@ function ApiPaginationQuery() {
 @ApiInternalServerErrorResponse({ type: ApiErrorResponseDto })
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService, private readonly feedback: AdminFeedbackService, private readonly history: AdminHistoryService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly feedback: AdminFeedbackService,
+    private readonly history: AdminHistoryService,
+    private readonly analysisSave: AdminAnalysisSaveService,
+  ) {}
 
   @Get('dashboard')
   @ApiOkResponse({ type: AdminDashboardResponseDto })
@@ -66,6 +78,19 @@ export class AdminController {
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   listFeedback(@CurrentUser() user: AuthUser, @Query() query: AdminFeedbackQueryDto) {
     return this.feedback.listFeedback(user, query);
+  }
+
+  @Post('feedback/analyses')
+  @ApiBody({ type: SaveAnalysisRequestDto })
+  @ApiCreatedResponse({ type: SaveAnalysisResponseDto, headers: { Location: { schema: { type: 'string' } } } })
+  @ApiOkResponse({ type: SaveAnalysisResponseDto, description: 'Replay of a saved analysis' })
+  @ApiBadRequestResponse({ type: ApiErrorResponseDto })
+  @ApiConflictResponse({ type: ApiErrorResponseDto, description: 'CONTEXT_INVALID_OR_EXPIRED' })
+  async saveAnalysis(@CurrentUser() user: AuthUser, @Body() input: SaveAnalysisRequestDto, @Res({ passthrough: true }) response: SaveHttpResponse) {
+    const result = await this.analysisSave.save(user, input.analysisRef);
+    response.status(result.replayed ? 200 : 201);
+    if (!result.replayed) response.setHeader('Location', `/api/v1/admin/feedback/analyses/${encodeURIComponent(result.id)}`);
+    return result;
   }
 
   @Get('feedback/analyses')

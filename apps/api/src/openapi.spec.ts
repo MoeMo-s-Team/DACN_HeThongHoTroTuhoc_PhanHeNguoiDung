@@ -139,8 +139,23 @@ describe('OpenAPI auth contract', () => {
       for (const status of ['400', '404', '409']) expect(changeStatus?.responses).toHaveProperty(status);
       expect((changeStatus?.requestBody as { content: Record<string, { schema: unknown }> }).content['application/json'].schema)
         .toEqual({ $ref: '#/components/schemas/UpdateUserStatusDto' });
-      expect(source.paths['/api/v1/admin/feedback/analyses']?.post).toBeUndefined();
       expect(source.paths).not.toHaveProperty('/api/v1/admin/feedback/analysis');
+    }
+  });
+
+  it('documents first save, Location and replay without changing the history GET', () => {
+    for (const source of [document, generatedDocument]) {
+      const operation = source.paths['/api/v1/admin/feedback/analyses']?.post;
+      expect(operation?.security).toEqual([{ bearerAuth: [] }]);
+      expect(operation?.requestBody).toMatchObject({ required: true, content: {
+        'application/json': { schema: { $ref: '#/components/schemas/SaveAnalysisRequestDto' } },
+      } });
+      expect(operation?.responses['201']).toMatchObject({ headers: { Location: { schema: { type: 'string' } } } });
+      for (const status of ['200', '201']) expect(responseSchema(operation?.responses[status])).toEqual({ $ref: '#/components/schemas/SaveAnalysisResponseDto' });
+      for (const status of ['400', '401', '403', '409', '500']) expect(responseSchema(operation?.responses[status])).toEqual({ $ref: '#/components/schemas/ApiErrorResponseDto' });
+      const requestDto = source.components?.schemas?.SaveAnalysisRequestDto as { required: string[]; properties: Record<string, unknown> };
+      expect(requestDto.required).toEqual(['analysisRef']);
+      expect(Object.keys(requestDto.properties)).toEqual(['analysisRef']);
     }
   });
 
