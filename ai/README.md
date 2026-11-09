@@ -1,6 +1,6 @@
 # Local AI Runtime
 
-**Status:** Task 7 implementation candidate. Installation on this workspace is not a clean-machine acceptance result. This package is not a capacity profile and does not enable NestJS inference dispatch.
+**Status:** Task 7 implementation PASS. Installation on this workspace is not a clean-machine acceptance result. This package is not a capacity profile and does not enable NestJS inference dispatch.
 
 The runtime path is `Next.js → NestJS → FastAPI /v1/infer → Ollama`. CPU-local Ollama is the default. The optional Compose overlay uses NVIDIA GPU reservations. Ollama has no host-published port; FastAPI is bound to `127.0.0.1` only. The runtime has no PostgreSQL dependency or credentials.
 
@@ -17,6 +17,8 @@ The runtime path is `Next.js → NestJS → FastAPI /v1/infer → Ollama`. CPU-l
 Readiness stays false unless Ollama reports the configured model name and full digest. Setup also rejects a pulled model whose reported digest prefix differs from the manifest. Do not edit the manifest to make an alternate model pass; another model/hardware combination needs separate evidence and approval.
 
 ## Install and run
+
+For Windows 11, use [the WSL2 + Docker Desktop setup guide](../docs/implementation/ai-runtime/AI_LOCAL_WINDOWS_SETUP.md) and its [installability checklist](../docs/implementation/ai-runtime/AI_LOCAL_WINDOWS_INSTALLABILITY_CHECKLIST.md). Run the Bash scripts below in Ubuntu/WSL2, not PowerShell.
 
 Requirements: Linux x86_64, Docker Engine with Compose v2, Python 3.12, `uv`, and `curl`. CPU is the default. The first install downloads the pinned Ollama image and about 1 GB of model weights.
 
