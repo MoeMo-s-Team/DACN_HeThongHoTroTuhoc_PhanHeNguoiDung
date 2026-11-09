@@ -1,6 +1,6 @@
 # Phase 2B — AI Foundation Design
 
-**Status:** Proposed design for review; no implementation authorized by this document.
+**Status:** Approved design basis for Phase 2B, supplemented by CR-006 v1.0 for terminal-log failure semantics; no implementation authorized by this document.
 **Date:** 2026-11-07
 **Scope:** Shared NestJS AI boundary and local FastAPI/Ollama runtime, followed by one Student StudyPlan generation/apply vertical slice.
 
@@ -12,7 +12,9 @@ This design is **not an approval** of runtime portability. The approved R3 sourc
 
 Task 1 result after R3 alignment (2026-11-07): **PASS for contract and authority reconciliation.** Root/backend guidance, active baseline, official 12-entry R3 manifest and AI Contract v1.0 now agree on API v1.5/R3. Fresh read-only Plan Review Gate approved the revised implementation plan on 2026-11-07; that approval does not authorize implementation. CR-005 remains Draft/formal release pending; ADR-AI-001 remains pending CR-005. FastAPI/Ollama application deployment and Student inference also require the portability release and a matching benchmarked capacity profile.
 
-## 2. Evidence from current repository
+## 2. Repository snapshot when this design was drafted (2026-11-07)
+
+The following bullets are a historical snapshot and are not a statement of the current checkout. Current implementation status is recorded in the Phase 2B Implementation Plan.
 
 - The app has no `AiModule` or gateway. `AppModule` imports Auth, Student, Admin, Feedback and Prisma only (`apps/api/src/app.module.ts:1-40`); `StudentModule` exposes dashboard, study-context validation and tasks only (`apps/api/src/student/student.module.ts:1-15`).
 - Study context validation is reusable, but only returns a validated draft; the StudyPlan page explicitly says generation is not implemented (`apps/api/src/student/study-context.controller.ts:17-32`, `apps/web/app/sinh-vien/ke-hoach-hoc-tap/study-plan-handoff.tsx:18-23`). Frozen API already defines `POST /student/study-plans/generate` and `/apply` (`docs/baseline/API_Specification_v1.5_baseline_final.md:514-518,824-960`).
@@ -59,7 +61,7 @@ Trace references from SRS v1.6: `:1555-1565,1631-1637`; Admin two-stage/backend 
 - `ai-capacity-profile.ts` / `ai-capacity-preflight.ts`: load one immutable deployment profile, bind its version to the exact contract/model/tokenizer/context window/safety margin/prompt/schema/output reservation, estimate the exact fully rendered request, and reject before dispatch when profile is absent/malformed/mismatched or the complete request exceeds budget. No trimming, sampling, chunking or fallback profile.
 - `ai.gateway.ts`: serialize the official v1.0 envelope and call only configured FastAPI `/v1/infer`; hard deadline 60 seconds per external attempt; no retry; correlate request ID; parse runtime response; translate technical errors to the frozen public error catalog. It must not implement business/task logic.
 - `ai.service.ts`: orchestrate registry → eligibility already performed by feature domain service → preflight → dispatch/logging → Nest validation. Feature services remain owners of their own authorization, input snapshot and durable workflow.
-- `ai-request-log.service.ts`: use the six task keys as exact `feature` values; capture `attemptStartedAt` before dispatch; persist only terminal `SUCCESS`/`FAILED` with `createdAt=attemptStartedAt` and elapsed monotonic `durationMs` where available. No row for validation/ineligibility/preflight. Use a short DB write after final classification; no `PENDING`, pre-dispatch placeholder, or transaction across inference. Do not create success context before log success. The baseline does not define recovery if the terminal insert fails after dispatch; resolve this before Task 5 can close.
+- `ai-request-log.service.ts`: use the six task keys as exact `feature` values; capture `attemptStartedAt` before dispatch; persist only terminal `SUCCESS`/`FAILED` with `createdAt=attemptStartedAt` and elapsed monotonic `durationMs` where available. Classify the attempt only after NestJS envelope/correlation/schema/semantic/required-content validation. No row for validation/ineligibility/preflight. Use one short terminal insert after classification; no `PENDING`, pre-dispatch placeholder, inference retry, blind insert retry, or transaction across inference. Under CR-006, unconfirmed persistence after validated success returns existing `502 AI_RUNTIME_FAILURE` and no context/business success; if inference already failed, preserve its original public error. The attempt can remain unlogged after a failed/ambiguous insert or process termination before persistence.
 
 ### FastAPI runtime (`ai/`)
 
@@ -76,7 +78,7 @@ Trace references from SRS v1.6: `:1555-1565,1631-1637`; Admin two-stage/backend 
 3. Rejections map before dispatch: malformed/missing/mismatched profile → `502 AI_RUNTIME_FAILURE`; valid profile but over budget → `422 AI_INPUT_TOO_LARGE`; neither creates `AIRequestLog`.
 4. A dispatch gets one attempt and one 60-second deadline, no retry. No transaction spans this call.
 5. FastAPI invokes the configured runtime once. Apply official E5/E6 behavior. Nest separately checks HTTP body/envelope/correlation and then official task schema, bounds/enums/references and semantic invariants; only Nest-validated output can become business success.
-6. Persist one terminal `SUCCESS`/`FAILED` record in a short DB operation after the attempt outcome is known, including runtime-generated output failure and Nest validation failure. Never write raw prompt/response or secrets. No preflight log, no `PENDING`, no transaction across inference. If final log persistence fails, stop the business success/context path and do not retry inference; exact external failure response/recovery is an open governance item because the baseline promises one log per started attempt.
+6. Classify the AI attempt after NestJS output validation, then make one short terminal insert attempt. Never write raw prompt/response or secrets. No preflight log, no `PENDING`, no transaction across inference, no inference retry, and no blind insert retry. Under CR-006, unconfirmed persistence after validated success returns existing 502 `AI_RUNTIME_FAILURE` and stops the context/business success path. If inference already failed, preserve its original public error and emit safe persistence diagnostics. A failed/ambiguous write or process termination before persistence can leave no row; a committed `SUCCESS` can exist while the caller receives 502 after ACK loss.
 7. For StudyPlan, require at least one valid task in AI output. Missing/empty/all-invalid tasks map to frozen `502 AI_INCOMPLETE_DATA`; create no preview and make no business mutation. Otherwise create backend-owned preview `TemporaryContext`; show it to Student; only explicit confirmation calls `/apply`. In one transaction, archive/create plan/tasks and consume the context; its final update writes `requestFingerprint`, `replayResult`, `status`, `consumedAt` and `retentionUntil` in one SQL/ORM update statement (`Database_Design_v1.0_baseline_final.md:1190-1217`). Never keep DB transaction open across steps 2–5.
 
 After apply, use frozen `GET /api/v1/student/study-plans/current` to show the saved result after reload (`API_Specification_v1.5_baseline_final.md:1030-1077`). Frontend/proxy request deadlines must exceed the full backend orchestration time: 60 seconds applies to each external attempt, not end-to-end HTTP (`API_Specification_v1.5_baseline_final.md:208-224`).
@@ -97,20 +99,20 @@ Preserve `DATABASE_URL` for development (`dacn`) and require `TEST_DATABASE_URL`
 
 ## 8. Open decisions and release blockers
 
-### BLOCKER before implementation
+### Gates before implementation
 
 1. Resolve CR-005/ADR-AI-001 before introducing FastAPI/Ollama as the application runtime. R3 SRS v1.6 requires Colab; CPU-local/GPU-optional remains owner-endorsed direction only.
 2. Approve a matching benchmarked capacity profile before enabling any deployment's invocation. CPU StudyPlan evidence includes repeated failure; do not create profile values from it.
-3. Resolve terminal AIRequestLog persistence failure under DB outage before closing Task 5. The schema permits terminal records only and no transaction across inference; no PENDING/write-ahead mechanism is authorized.
+3. CR-006 v1.0 resolves terminal AIRequestLog persistence failure using one best-effort terminal insert. Task 5 remains gated on a fresh read-only Plan Review PASS and separate explicit implementation authorization. The schema permits terminal records only; no PENDING/write-ahead mechanism is authorized.
 
 ### Open design details to settle from released artifacts (not guessed here)
 
-- Operational handling if terminal AIRequestLog insert fails after an external attempt.
+- The released CR-006 policy is intentionally best-effort: failed/ambiguous writes and crashes before persistence can leave attempts unlogged. Operational diagnostics do not recover missing rows.
 - Ollama model digest/quantization/context settings and GPU hardware profile; current DB model contains no profile identity field, so don't add a migration without authority.
 
 ### What can proceed while CPU is uncertified
 
-- **After fresh plan review and explicit implementation authorization:** Task 2's inert NestJS module/config shell, Task 3's checksum-verified Release 1 schema import/validator, and Task 4A's absent-profile rejection may begin. They must not make an application inference call. Task 4B's estimator/boundary tests require a released profile; no profile fixture/value may be fabricated. Task 5 remains blocked on terminal-log persistence failure semantics.
+- **After fresh plan review and explicit task-specific implementation authorization:** Task 2's inert NestJS module/config shell, Task 3's checksum-verified Release 1 schema import/validator, and Task 4A's absent-profile rejection may begin. They must not make an application inference call. Task 4B's estimator/boundary tests require a released profile; no profile fixture/value may be fabricated. Task 5's persistence semantics are released by CR-006, but Task 5 implementation still requires a fresh read-only Plan Review PASS and separate authorization.
 - **FastAPI/Ollama as application runtime and Student AI end-to-end:** blocked until CR-005/ADR release resolves frozen AI-REQ-020's Colab requirement. CPU invocation additionally requires its own benchmarked profile; GPU or Colab evidence cannot be reused as CPU evidence. Phase 1D.3 T4 remains a demo-candidate smoke only and does not certify the application module or capacity.
 
 ## 9. Acceptance of this design

@@ -1,12 +1,12 @@
 # Phase 2B — AI Foundation Implementation Plan
 
-**Status:** Task 1 PASS for contract and authority reconciliation after the approved R3 alignment. The R3 freeze, official 12-entry manifest, unchanged authorities and AI Contract v1.0 are present and source-hash verified. Fresh read-only Plan Review Gate approved this revision on 2026-11-07. Runtime portability, Task 5 log-write failure behavior, and dispatch-enabled capacity profiles remain separately blocked; plan approval does not authorize implementation.
+**Status:** Task 1 PASS for contract and authority reconciliation. CR-006 v1.0 and its downstream addendum were approved/released on 2026-11-09; terminal-log failure policy is resolved. This revised plan requires a fresh read-only Plan Review before Task 5 and separate explicit Task 5 implementation authorization. No implementation is authorized by this document. Runtime portability and dispatch-enabled capacity profiles remain separately gated.
 **Design:** [AI Foundation Design](../specs/2026-11-07-ai-foundation-design.md)
 **Scope:** Shared AI foundation, then Student StudyPlan generation preview and confirmed apply. No other role workflow in this plan.
 
 ## Gate before code
 
-Do not start code until the user authorizes implementation. The approved R3 freeze governs this checkout; root/backend instructions, active R3 baselines, the official 12-entry manifest and AI Contract v1.0 are aligned. Public errors follow API v1.5, including `AI_RUNTIME_FAILURE` and `AI_INPUT_TOO_LARGE`. CR-005 and ADR-AI-001 remain unreleased; Task 5 also awaits terminal-log persistence failure policy. Never use Drafts as authority or fabricate a capacity profile.
+Do not start code until the user authorizes the specific task. R3 remains frozen and is supplemented only by released downstream authority in `docs/implementation/releases/CR-006/`. Public errors follow API v1.5 plus CR-006's narrow persistence exception. CR-005 and ADR-AI-001 remain unreleased; Task 4B still needs an approved capacity profile. Never use Drafts as authority or fabricate a capacity profile. The CR-006 policy release does not authorize Task 5 implementation.
 
 ## Work order and dependencies
 
@@ -83,25 +83,27 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 **Acceptance:** per-task estimator and preflight pass using only the approved profile and full authoritative inputs. Until then Task 4B remains blocked and no application dispatch is enabled.
 
-### Task 5 — Implement terminal AIRequestLog lifecycle and public error mapping (**implementation blocked on persistence-failure disposition**)
+### Task 5 — Implement terminal AIRequestLog lifecycle and public error mapping (**fresh Plan Review and separate implementation authorization required**)
 
-**Depends on:** Tasks 1–3. **Files:** `apps/api/src/ai/ai-request-log.service.ts`, `apps/api/src/ai/ai-errors.ts`, matching unit specs, and `apps/api/src/ai/ai.module.ts`.
+**Depends on:** Tasks 1–3, CR-006 v1.0 and its downstream addendum, a fresh read-only Plan Review PASS on this revision, and separate explicit Task 5 implementation authorization. **Files:** `apps/api/src/ai/ai-request-log.service.ts`, `apps/api/src/ai/ai-errors.ts`, matching unit specs, and `apps/api/src/ai/ai.module.ts`.
 
 - Reuse the current Prisma model; no migration unless Task 1 authority proves it necessary.
 - Map timeout, connection/unavailable, empty, invalid JSON/schema, incomplete StudyPlan task content (`502 AI_INCOMPLETE_DATA`) and other technical errors to the exact released public status/code/message catalog. `AI_INCOMPLETE_DATA` is distinct from empty transport output and invalid schema. Preserve internal categories only for safe operational diagnostics.
 - Use only the six exact task keys as `AIRequestLog.feature`. Capture `attemptStartedAt` immediately before dispatch; dispatch begins the attempt. Store `createdAt=attemptStartedAt` and elapsed monotonic `durationMs` when available.
-- Persist only terminal `SUCCESS` or `FAILED` rows after the attempt outcome is classified; the Prisma enum has no `PENDING`. Create zero rows for validation, eligibility or preflight rejection. Keep DB writes in short operations; never hold a transaction across inference. Do not create a provisional row or invent a write-ahead state.
-- The baseline requires a log for each actual external attempt but does not specify recovery if the terminal insert fails after dispatch. Do not claim a preflight DB check guarantees later persistence. Resolve the failure response/operational disposition under approved governance before implementing Task 5.
+- Classify attempt outcome only after NestJS validates envelope/correlation, task schema, semantic/reference constraints, and required content. A model response/HTTP 200 alone is not success. Persist terminal `SUCCESS`/`FAILED` after this classification; the Prisma enum has no `PENDING`.
+- Create zero rows for validation, eligibility or preflight rejection. Keep DB writes short; never hold a transaction across inference. Do not create a provisional row or invent a write-ahead state.
+- Apply CR-006 Option A: one terminal insert attempt when the handler reaches persistence; no inference retry or retry of a failed/uncertain insert. If validated inference succeeded and persistence is unconfirmed (including commit-then-ACK-timeout), return existing `502 AI_RUNTIME_FAILURE`, discard output, and create no context/business success. If inference already failed, preserve its original public error and emit safe persistence diagnostics. A row may be absent or a committed `SUCCESS` may coexist with caller HTTP 502.
+- Treat `totalAIRequests`/`failedAIRequests` as persisted-row counts that can undercount attempts. No schema, public error catalog, response shape, or automatic retry behavior changes.
 
-**TDD steps:** (a) test no row for validation, eligibility and capacity rejection; (b) test every persisted row has terminal status and no path writes `PENDING`; (c) test the six exact `feature` keys and reject unknown task keys; (d) test `createdAt` uses `attemptStartedAt` and `durationMs` uses elapsed monotonic time; (e) test success writes one terminal `SUCCESS` after validation; (f) test connection, timeout, E5, E6/schema and other post-dispatch failures write one terminal `FAILED` with the approved internal code; (g) simulate terminal insert failure and assert no success context/business success and no inference retry, then apply only the separately approved response behavior; (h) assert prompt/output/secret redaction. No network call occurs in this unit task; Task 6 owns the no-transaction-across-inference integration assertion. Step (g) and Task 5 acceptance remain blocked until the failure disposition is approved.
+**TDD steps:** (a) test no row for validation, eligibility and capacity rejection; (b) test every attempted/persisted status is terminal and no path writes `PENDING`; (c) test the six exact `feature` keys and reject unknown task keys; (d) test `createdAt=attemptStartedAt` and monotonic `durationMs`; (e) test only NestJS-validated output produces attempt `SUCCESS`; (f) test runtime/protocol/schema/semantic failures produce attempt `FAILED` with approved internal code; (g) for successful inference simulate definite insert failure and commit-then-ACK-timeout, asserting one insert, 502 `AI_RUNTIME_FAILURE`, dropped output, no context/business success, and no retry; (h) for failed inference simulate persistence failure/ambiguous ACK and assert original public error is preserved; (i) assert safe diagnostic redaction; (j) run guarded PostgreSQL integration tests for confirmed terminal insert and persisted-row dashboard aggregates, without an inference/network call. Task 6 owns CR6-T12's separate assertion that no transaction spans a live/fake network call. Task 5 owns CR6-T01–T11 and the logging/non-AI portions of T12.
 
-**Tests:** `pnpm --filter @dacn/api test -- ai-request-log.service.spec.ts ai-errors.spec.ts`.
+**Tests:** `pnpm --filter @dacn/api test -- ai-request-log.service.spec.ts ai-errors.spec.ts`; guarded integration coverage in `apps/api/test/ai-request-log.integration-spec.ts` and `apps/api/test/admin.integration-spec.ts` using an isolated `TEST_DATABASE_URL`; run `pnpm test:integration` after verifying the target DB identity.
 
-**Acceptance:** every successfully persisted attempt has exactly one terminal row; no pre-dispatch row, no `PENDING`, and no transaction spans inference. Task 5 cannot close until approved behavior for terminal-write failure satisfies AI-REQ-018 without adding an unauthorized status or long transaction.
+**Acceptance:** when the handler reaches terminal persistence it makes one terminal insert attempt; no pre-dispatch row, `PENDING`, inference retry, blind insert retry, or transaction spans inference. The response/error and side effects follow CR-006; a row is not guaranteed when persistence fails/is ambiguous or the process stops before persistence. Task 5 cannot close until CR6-T01–T11, the logging/non-AI portion of T12, and its unit/guarded integration tests pass. Task 6 separately verifies the network transaction assertion in T12.
 
 ### Task 6 — Implement the NestJS AiGateway transport
 
-**Depends on:** Tasks 2–5, Task 4B, and approved terminal-log persistence-failure disposition. **Files:** `apps/api/src/ai/ai.gateway.ts`, `apps/api/src/ai/ai.service.ts`, their specs and module wiring.
+**Depends on:** Tasks 2–5, Task 4B, CR-006 v1.0, and the independent runtime governance gates. **Files:** `apps/api/src/ai/ai.gateway.ts`, `apps/api/src/ai/ai.service.ts`, their specs and module wiring.
 
 - Send only the released v1.0 envelope to configured FastAPI `/v1/infer`; propagate correlation per contract; no business logic in gateway.
 - Enforce a hard 60-second deadline per actual external attempt, no automatic retry, and exact error translation. Capture attempt timestamp immediately before dispatch. Validate the runtime envelope before task-schema/semantic validation.
@@ -129,7 +131,7 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 ### Task 8 — Implement Student StudyPlan generation preview API
 
-**Depends on:** Tasks 3–6, Task 7 and its CR-005/ADR-AI-001 gate, plus Task 5 persistence-failure disposition. **Files:** `apps/api/src/student/study-plan-generation.controller.ts`, `study-plan-generation.service.ts`, DTO files, `apps/api/src/student/student.module.ts`, unit/controller specs, OpenAPI source/contract outputs.
+**Depends on:** Tasks 3–6, Task 7 and its CR-005/ADR-AI-001 gate, Task 5 PASS under CR-006, and Task 4B's approved capacity profile. **Files:** `apps/api/src/student/study-plan-generation.controller.ts`, `study-plan-generation.service.ts`, DTO files, `apps/api/src/student/student.module.ts`, unit/controller specs, OpenAPI source/contract outputs.
 
 - Implement frozen `POST /api/v1/student/study-plans/generate` and `GET /api/v1/student/study-plans/current` semantics from API Spec and approved schemas. Reuse existing `StudyContextService` validation and dashboard/assessment data access where applicable; current-plan read supports saved result after apply/reload.
 - Check active Student identity, owned data, generation eligibility and required source data before calling AI. Prepare minimized canonical input and exact capacity estimate. Validate returned candidate in NestJS; if tasks are missing/empty or all rejected, return frozen `502 AI_INCOMPLETE_DATA` and create no preview. Create owner-bound, expiring `TemporaryContext` preview only after validation.
@@ -181,7 +183,7 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 1. Have a fresh read-only reviewer compare this plan against the Design Spec, frozen baseline, approved authority and current repo; revise until the plan is approved.
 2. Human reviews/approves the final plan. No code starts before both review gates.
-3. Only after Task 1 passes, the plan review is approved and the user authorizes implementation, Tasks 2–3 and Task 4A may proceed because they consume released contract/schema artifacts and have no dispatch path. Task 4B is blocked until a real benchmarked profile is released. Task 5/6/8–11 wait on terminal-log write-failure disposition; Task 7 and live Student AI wait on CR-005/ADR release. Do not guess, bypass preflight or claim readiness.
+3. Tasks 2–4A are PASS in this checkout. Task 4B remains blocked until a real benchmarked profile is released. CR-006 resolves terminal-log write-failure disposition; Task 5 still requires this fresh plan review to PASS and separate explicit Task 5 authorization. Task 6 remains gated by Task 4B and independent runtime governance; Tasks 8–11 depend on Task 5 PASS, capacity/runtime gates and their listed task-specific authorizations. Task 7 and live Student AI wait on CR-005/ADR release. Do not guess, bypass preflight or claim readiness.
 4. CPU exploratory runs remain non-conformance. CPU application inference requires released portability authority plus a matching benchmarked profile. GPU/Colab evidence is not CPU evidence.
 
 ## Verification for this planning phase

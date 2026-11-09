@@ -71,6 +71,7 @@ describe('Administrator Phase 1 API (PostgreSQL)', () => {
     if (prisma) {
       await prisma.feedbackAnalysis.deleteMany({ where: { id: { in: analysisIds } } });
       await prisma.feedback.deleteMany({ where: { id: { in: feedbackIds } } });
+      await prisma.aIRequestLog.deleteMany({ where: { userId: { in: Object.values(ids) } } });
       await prisma.user.deleteMany({ where: { id: { in: Object.values(ids) } } });
     }
     await app?.close();
@@ -93,6 +94,11 @@ describe('Administrator Phase 1 API (PostgreSQL)', () => {
   });
 
   it('returns all five all-time dashboard metrics with disabled users included', async () => {
+    await prisma.aIRequestLog.deleteMany({ where: { userId: ids.target } });
+    await prisma.aIRequestLog.createMany({ data: [
+      { userId: ids.target, feature: 'STUDENT_LEARNING_ANALYSIS', status: 'SUCCESS' },
+      { userId: ids.target, feature: 'STUDENT_STUDY_PLAN_GENERATION', status: 'FAILED', errorCode: 'AI_TIMEOUT' },
+    ] });
     const { body } = await request(app.getHttpServer()).get('/api/v1/admin/dashboard').set('Authorization', `Bearer ${adminToken}`).expect(200);
     expect(Object.keys(body).sort()).toEqual(['failedAIRequests', 'totalAIRequests', 'totalFeedback', 'totalUsers', 'usersByRole'].sort());
     expect(body.totalUsers).toBe(await prisma.user.count());
@@ -101,6 +107,8 @@ describe('Administrator Phase 1 API (PostgreSQL)', () => {
     expect(body.totalAIRequests).toBe(await prisma.aIRequestLog.count());
     expect(body.failedAIRequests).toBe(await prisma.aIRequestLog.count({ where: { status: 'FAILED' } }));
     expect(body.failedAIRequests).toBeLessThanOrEqual(body.totalAIRequests);
+    expect(body.totalAIRequests).toBeGreaterThanOrEqual(2);
+    expect(body.failedAIRequests).toBeGreaterThanOrEqual(1);
   });
 
   it('searches name/email with pagination and never returns passwordHash', async () => {
