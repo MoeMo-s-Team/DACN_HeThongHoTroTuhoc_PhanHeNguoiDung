@@ -1,0 +1,5 @@
+Official source commit: e9a44818c077faf7b7809ac9e4efa3280ba88ed4
+Official archive: AI_Contract_v1.0_schema_pack_release1.zip
+Official archive SHA-256: a28743c94b871b8b9346dea552f092ce184c288db8ff613c6ea07cc864144620
+Official per-file hashes: SHA256SUMS (15 schema files)
+Copied byte-for-byte from apps/api/src/ai/schemas/release1 and verified against the official archive.

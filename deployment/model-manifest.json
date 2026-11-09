@@ -1,0 +1,30 @@
+{
+  "manifestVersion": "1.0",
+  "contractVersion": "1.0",
+  "schemaPackVersion": "release1",
+  "modelName": "qwen2.5:1.5b",
+  "modelDigest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+  "quantization": "Q4_K_M",
+  "license": "Apache-2.0",
+  "capacityCertification": "NONE",
+  "ollama": {
+    "version": "0.40.15",
+    "sourceModel": "qwen2.5:1.5b",
+    "runtimeModel": "qwen2.5:1.5b",
+    "options": {
+      "temperature": 0,
+      "top_p": 1,
+      "num_ctx": 32768,
+      "num_predict": -1
+    }
+  },
+  "promptVersions": {
+    "STUDENT_LEARNING_ANALYSIS": "stu-learning-analysis-v1",
+    "STUDENT_STUDY_PLAN_GENERATION": "stu-study-plan-v1",
+    "STUDENT_STUDY_PLAN_ADJUSTMENT": "stu-study-adjust-v1",
+    "TEACHER_CLASS_ANALYSIS": "tea-class-analysis-v1",
+    "ADMIN_FEEDBACK_GROUPING_STAGE1": "adm-feedback-group-v1",
+    "ADMIN_FEEDBACK_SUMMARY_STAGE2": "adm-feedback-summary-v1"
+  },
+  "profileNote": "CPU-local installation candidate only. This manifest is not an approved capacity profile and does not enable application dispatch."
+}

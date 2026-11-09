@@ -1,93 +1,75 @@
 # DACN — Deployment & Reproduction Guide (DRAFT)
 
 **Ngày:** 07/11/2026  
-**Trạng thái:** DRAFT / TARGET RUNBOOK — phải đối chiếu repo và chạy thử clean installation trước khi phát hành.  
+**Trạng thái:** DRAFT / Task 7 runbook candidate — package paths updated; clean CPU installation has not been witnessed.
 **Mục đích:** Người chấm có thể dựng lại toàn bộ mã nguồn + dữ liệu + AI runtime, không phụ thuộc tài khoản riêng nhóm.
 
 ## 1. Phạm vi cam kết
 
 - **Installation reproducibility:** tài liệu hướng tới cài được Next.js, NestJS, PostgreSQL, FastAPI và Ollama CPU cùng dữ liệu seed trên laptop Linux x86_64.
 - **Functional conformance:** chưa chứng minh mọi AI flow đáp ứng 60 giây trên CPU. Không dùng dấu `PASS` cho full app inference nếu chưa chạy live và validation; trong benchmark hiện có SP-02 10 Topic fail.
-- **Remote-GPU:** có thể dùng GPU VM của người chạy để tăng tốc, nhưng cần cấu hình bảo mật, model profile và evidence riêng. Không yêu cầu token/tài khoản cloud cá nhân của nhóm.
+- **Optional GPU:** `ai/compose.gpu.yaml` adds NVIDIA GPU reservation for a local operator; this installation mode requires its own hardware evidence and does not certify capacity.
 
-## 2. Hệ thống đã thử và hệ thống mục tiêu
+## 2. Model/runtime candidate (not a capacity profile)
 
 - Máy thử CPU: Dell Latitude 5330, Intel Core i7-1265U, RAM 16 GiB, Linux Mint 22.3/Ubuntu 24.04 base, integrated Iris Xe, NVMe.
 - Không khẳng định đây là cấu hình tối thiểu đủ chạy mọi AI fixture; chưa có benchmark xác nhận ngưỡng CPU/RAM tối thiểu.
-- CPU Ollama model tag dùng để thử: `qwen2.5:1.5b`; **cần ghi model digest thật** khi release. Không chuyển model fp16 Colab benchmark sang bản Ollama này.
+- CPU-local model: `qwen2.5:1.5b`, digest `65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b`, Q4_K_M, Apache-2.0. Manifest pins runtime options and Ollama image version. This is install metadata only; no capacity profile is created.
 
-## 3. Đầu ra mà repository phải có trước khi công bố đã cài đặt lại thành công
+## 3. Runtime package in this checkout
 
 ```text
 repo/
   apps/web/                  # Next.js (đề xuất; đối chiếu repo thật)
   apps/api/                  # NestJS (đề xuất)
-  ai/                        # FastAPI adapter, prompts, runtime task registry
-  prisma/                    # hoặc vị trí schema/migrations thực tế
+  ai/app/                    # FastAPI adapter, task/prompt registry, Ollama engine
+  ai/tests/                  # fixture/mock contract tests, not live capacity evidence
+  ai/compose.yaml            # CPU default
+  ai/compose.gpu.yaml        # optional NVIDIA overlay
+  ai/scripts/                # setup/start/stop/smoke/test-contract
+  ai/pyproject.toml          # Python dependencies and uv.lock
+  ai/requirements.lock       # container dependency lock
   deployment/
-    compose.cpu.yml          # CẦN TRIỂN KHAI
-    compose.gpu.yml          # optional, CẦN TRIỂN KHAI
-    .env.example             # CẦN TRIỂN KHAI
-    model-manifest.json      # CẦN TRIỂN KHAI, tag + digest/quantization
-  scripts/
-    setup-local.sh           # CẦN TRIỂN KHAI
-    smoke-local.sh           # CẦN TRIỂN KHAI
+    model-manifest.json      # model identity + digest/quantization/settings; not a capacity profile
   docs/
     baseline/                # frozen docs retained
     releases/                # approved supplements
 ```
 
-**Lưu ý:** Đây là cấu trúc mục tiêu, không phải tuyên bố các file đó đã tồn tại trong repository. Không phát hành README với lệnh giả nếu chưa viết/kiểm thử script.
+**Lưu ý:** Runtime source and scripts are present. This DRAFT does not claim a clean installation has passed.
 
-## 4. Các bước cài đặt cần đưa vào runbook sau khi có implementation
+## 4. Cài đặt runtime
 
-1. Clone đúng commit/release SHA, kiểm tra version Node.js/pnpm/Python/Docker/Ollama từ lockfile và manifest.
-2. Copy `.env.example` thành `.env` trên máy người chấm, tự sinh credentials thử nghiệm; không có mật khẩu hay secret cloud thật trong gói nộp.
-3. Khởi động PostgreSQL local và chạy **migrations**; nạp **seed data** có thể tái chạy và biết rõ dataset demo.
-4. Khởi động Next.js và NestJS; kiểm tra API health, auth ba vai trò và endpoints non-AI.
-5. Tải/chạy đúng Ollama model digest đã ghi trong manifest; không chỉ dựa vào mutable tag. Máy CPU-only phải chọn đúng mode/profiles tương ứng.
-6. Chạy FastAPI Adapter, cấu hình `OLLAMA_BASE_URL` nội bộ và token/backend endpoint. Không expose Ollama trên Internet.
-7. Kiểm tra adapter `POST /v1/infer` bằng một hợp đồng thử nghiệm, rồi kiểm tra NestJS→Adapter với cùng env và correlation.
-8. Kiểm tra capacity profile binding/estimator trước khi bật chức năng AI trong ứng dụng. Nếu chưa có profile hợp lệ, fail closed theo AI Contract — không sửa code để bỏ bước kiểm tra.
-9. Chạy chức năng Student/Teacher/Admin bằng dữ liệu seed qua UI thật, chụp kết quả PASS/FAIL kèm latency; không dùng canned JSON giả làm live inference.
-10. Kiểm tra stop/restart/reseed và khả năng khôi phục dịch vụ; dọn sạch các thông tin cá nhân và secret trước khi bàn giao.
+1. Install Docker Engine/Compose v2, Python 3.12, `uv`, and `curl`; use the application root runbook separately for Node.js/pnpm/PostgreSQL.
+2. Run `./ai/scripts/setup.sh`. It creates `.env` if absent and fills a blank runtime token with a random local value.
+3. Setup downloads the pinned Ollama image/model, checks model digest prefix, builds FastAPI, and waits for readiness that verifies the full digest.
+4. Run `./ai/scripts/smoke.sh`, then `./ai/scripts/test-contract.sh`. Contract tests use fixtures/mock engine and are not live inference evidence.
+5. Optional NVIDIA GPU: `AI_RUNTIME_GPU=1 ./ai/scripts/setup.sh`; requires NVIDIA Container Toolkit and separate hardware evidence.
+6. Start NestJS and verify non-AI routes remain available. Application AI invocation remains fail-closed until a matching approved capacity profile exists.
 
-## 5. Các lệnh kiểm tra mang tính hướng dẫn (không phải script repo đã được verify)
+## 5. Lệnh runtime
 
 ```bash
-# Trên máy đã cài Ollama và khởi động dịch vụ
-ollama --version
-ollama list
-ollama show qwen2.5:1.5b
-curl --fail http://127.0.0.1:11434/api/tags
-
-# Khi repo có Docker Compose thật, chạy file CPU đã được test
-# docker compose -f deployment/compose.cpu.yml up -d --build
-# docker compose -f deployment/compose.cpu.yml ps
-
-# Khi repo có scripts thật, chạy từ đúng root + .env
-# bash scripts/setup-local.sh
-# bash scripts/smoke-local.sh
+./ai/scripts/setup.sh
+./ai/scripts/smoke.sh
+./ai/scripts/test-contract.sh
+./ai/scripts/stop.sh
 ```
 
-Dòng comment là kế hoạch triển khai, không phải lệnh đã được xác nhận chạy. Không tự lấy `ollama show` làm bằng chứng digest/checksum nếu CLI phiên bản hiện tại không thể hiện đầy đủ immutable identity; bổ sung lookup/manifest validation riêng.
+These commands are implemented but remain unverified on a separate clean CPU-only machine.
 
 ## 6. Các biến môi trường hướng tới
 
 ```dotenv
-# Minh họa tên biến cần đồng bộ với backend/adapter code trước release
+# Root `.env.example` contains the NestJS adapter URL and an empty token placeholder.
 DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<db>
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:3001
 AI_RUNTIME_BASE_URL=http://127.0.0.1:8001
-AI_RUNTIME_TOKEN=<local-secret>
-AI_REQUEST_TIMEOUT_MS=60000
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen2.5:1.5b
-AI_DEPLOYMENT_PROFILE=local-cpu
-AI_CAPACITY_PROFILE_PATH=<approved-release-profile.json>
+AI_RUNTIME_TOKEN=<generated-local-secret>
+AI_RUNTIME_PORT=8001
 ```
 
-Tên biến/port là **placeholder** cần khớp mã nguồn, không copy thẳng để tự nhận là cấu hình hoàn chỉnh. Nếu dùng Docker Compose networking, `127.0.0.1` bên trong container chỉ chính container đó; phải dùng service name/nội mạng phù hợp, không dùng localhost sai ngữ cảnh.
+FastAPI-to-Ollama uses Compose service DNS (`http://ollama:11434`) and does not publish the Ollama port. `AI_RUNTIME_TOKEN` is shared only between local NestJS config and the adapter, never sent to the browser.
 
 ## 7. Yêu cầu bảo mật khi bàn giao
 
@@ -102,10 +84,10 @@ Tên biến/port là **placeholder** cần khớp mã nguồn, không copy thẳ
 - [ ] DB migrate/seed idempotent.
 - [ ] Đăng nhập/authorization 3 vai trò và non-AI flows PASS.
 - [ ] Model tải theo manifest có checksum/digest xác thực.
-- [ ] FastAPI `/v1/infer` và gateway contract/errata tests PASS.
+- [ ] FastAPI `/v1/infer` contract tests PASS on a clean host; fixture/mock tests are labeled separately from live inference evidence.
 - [ ] Capacity profile hợp lệ gắn đúng model/tokenizer/prompt/task; nếu thiếu thì AI feature báo lỗi đúng baseline, không bypass.
 - [ ] Chạy live các AI flows với latency/result được ghi minh bạch; với CPU-only chưa đạt 60 giây phải ghi FAIL/limitation.
 - [ ] Bảo đảm không có secrets và dữ liệu nhạy cảm trong bộ nộp.
 - [ ] README phân biệt rõ: "cài đặt được" vs "đạt performance/quality".
 
-**Trạng thái:** Chưa có clean-install evidence và chưa được xem là runbook đã verification.
+**Trạng thái:** Runtime package and mock contract tests are implemented; clean installability is still UNVERIFIED. Real inference and CPU/GPU capacity are separate gates. No capacity profile has been created.
