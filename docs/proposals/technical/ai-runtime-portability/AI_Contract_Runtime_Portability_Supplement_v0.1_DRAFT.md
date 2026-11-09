@@ -1,4 +1,6 @@
-# AI Contract v1.0 — Runtime Portability Supplement (DRAFT)
+# AI Contract v1.0 — Runtime Portability Supplement (DRAFT; superseded)
+
+> Superseded by [AI Contract Runtime Portability Supplement v0.2 RC](AI_Contract_Runtime_Portability_Supplement_v0.2_RC.md). This v0.1 draft contains outdated terminal-log wording and is not current review input or authority.
 
 **Phiên bản đề xuất:** 0.1  
 **Ngày:** 07/11/2026  

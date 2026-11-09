@@ -5,7 +5,7 @@
 **Ngày:** 07/11/2026  
 **Trạng thái:** DRAFT — chưa phát hành baseline; tham chiếu SRS v1.6 frozen cho đến khi change control hoàn tất  
 **Phạm vi:** MVP phục vụ đồ án chuyên ngành  
-**Tech stack bắt buộc (đề xuất sửa CR-005):** Next.js, NestJS, PostgreSQL; AI runtime self-managed, interface `/v1/infer`, có đường cài đặt local CPU; GPU cloud/Colab chỉ là profile tùy chọn. **Không coi CPU đã đạt performance/quality gate.**
+**Tech stack bắt buộc (đề xuất sửa CR-005):** Next.js, NestJS, PostgreSQL; AI runtime self-managed, interface `/v1/infer`, có đường cài đặt local CPU; GPU cloud/Colab chỉ là profile tùy chọn. **Không coi CPU đã đạt performance/quality gate.** CR-006 v1.0/downstream addendum remains the controlling downstream authority for AIRequestLog lifecycle and dashboard aggregates; this candidate does not restore a per-attempt row guarantee.
 
 ---
 
@@ -301,7 +301,7 @@ Administrator theo dõi hệ thống, người dùng và feedback trong phạm v
 - chưa khóa một model production cụ thể; mọi model/runtime profile cần evidence riêng. Phase 1D.3-Lite đã được duyệt cho **demo candidate** T4 FP16, không chứng nhận hiệu năng Ollama CPU hoặc capacity profile.
 
 ### Bàn giao / tái cài đặt (đề xuất CR-005)
-Sản phẩm bàn giao phải cung cấp mã nguồn, migrations/seed PostgreSQL, cấu hình và hướng dẫn chạy Next.js/NestJS, mã nguồn AI adapter, registry/prompt/schema theo release hợp lệ, cùng manifest model, checksum/digest và script/Compose khi đã triển khai thực sự. Người đánh giá không phải dựa vào tài khoản Google Cloud cá nhân của nhóm. Trạng thái cài đặt thành công và trạng thái inference đạt yêu cầu phải được báo cáo **riêng**; không hiển thị output ghi sẵn như kết quả AI vừa sinh.
+Sản phẩm bàn giao phải cung cấp mã nguồn, migrations/seed PostgreSQL, environment template không chứa secret, script/Compose đã triển khai và kiểm chứng, runbook clean-install, health/readiness checks, hướng dẫn troubleshooting, registry/prompt/schema theo release hợp lệ, cùng manifest model ghi immutable digest/revision và cách tải lại đúng artifact (model weights chỉ kèm khi license cho phép). Người đánh giá không phải dựa vào tài khoản Google Cloud cá nhân của nhóm. **Installability** (cài và khởi động được từ source trên CPU-only machine) và **AI Conformance/Capacity** (mỗi task/profile đạt schema, semantic/required-content, approved quality criteria và giới hạn 60 giây với capacity profile hợp lệ) phải được nghiệm thu, ghi báo cáo riêng; lắp đặt thành công không bật dispatch nếu thiếu profile. Contract tests với mock/fixture không được trình bày là real inference. Không hiển thị output ghi sẵn như kết quả AI vừa sinh.
 
 ## 2.6. Design and Implementation Constraints
 
@@ -634,7 +634,7 @@ Mỗi yêu cầu chức năng có:
 2. Không làm mất trạng thái nghiệp vụ trước lỗi.
 3. Trả thông báo dễ hiểu.
 4. Cho phép user thử lại khi phù hợp.
-5. Ghi AIRequestLog.
+5. Thử ghi terminal AIRequestLog một lần theo CR-006 khi handler đến bước persistence.
 
 **Acceptance Criteria:**
 - lỗi AI không làm mất StudyPlan/StudyTask/report trước đó;
@@ -655,7 +655,7 @@ Mỗi yêu cầu chức năng có:
 - errorCode nếu có.
 
 **Acceptance Criteria:**
-- mỗi lần gọi AI trong các tính năng chính tạo được log thành công hoặc thất bại;
+- khi handler đến terminal persistence sau external attempt, thử một lần ghi terminal `SUCCESS` hoặc `FAILED`; theo CR-006 đây là best-effort, không bảo đảm row nếu insert lỗi/ACK không rõ hoặc process dừng trước bước ghi;
 - không bắt buộc lưu toàn bộ prompt.
 
 ---
@@ -1258,9 +1258,9 @@ AI không được đề xuất trong MVP:
 - `totalUsers` = tổng số User đang lưu, bao gồm `ACTIVE` và `DISABLED`;
 - `usersByRole` = tổng User theo role, bao gồm `ACTIVE` và `DISABLED`;
 - `totalFeedback` = tổng số Feedback đang lưu;
-- `totalAIRequests` = tổng số `AIRequestLog` của các lần backend đã thực sự attempt gọi external AI runtime/endpoint;
-- `failedAIRequests` = số `AIRequestLog` có trạng thái thất bại;
-- `totalAIRequests` bao gồm success, connection failure, timeout, empty response, invalid structured output và failure khác xảy ra sau khi backend đã bắt đầu external AI call;
+- `totalAIRequests` = tổng số persisted `AIRequestLog` rows theo CR-006; số này có thể thấp hơn external attempts thực tế;
+- `failedAIRequests` = số persisted `AIRequestLog` rows có trạng thái `FAILED`;
+- persisted rows có thể phản ánh attempt success, connection failure, timeout, empty response, invalid structured output hoặc failure khác; không có row nếu terminal insert không commit;
 - không tính vào `totalAIRequests`/`failedAIRequests` nếu request bị dừng trước external AI call, ví dụ `INSUFFICIENT_DATA`, business ineligible hoặc validation input thất bại.
 
 **Ngoài phạm vi dashboard MVP:**
@@ -1385,7 +1385,7 @@ AI không được đề xuất trong MVP:
 1. FR-ADM-004 hoàn thành stage 1 và backend có dataset snapshot, tagStatistics và issueGroups đã validate.
 2. Backend thực hiện **external AI attempt stage 2** với feedback/tagStatistics/issueGroups đã validate.
 3. AI trả structured output gồm `summary`, `priorityAreas`, `recommendations`.
-4. Backend validate output và ghi `AIRequestLog` cho external attempt stage 2 theo AI-REQ-018.
+4. Backend validate output rồi thử terminal insert một lần cho external attempt stage 2 theo AI-REQ-018/CR-006.
 5. Backend chuẩn bị analysis context hoàn chỉnh để Admin xem và có thể Save qua FR-ADM-006.
 
 **Đầu ra:**
@@ -1607,7 +1607,7 @@ User phải nhận thông báo có thể hiểu và có thể thử lại khi th
 ## 5.6. AI Logging
 
 ### AI-REQ-018
-Mỗi lần backend đã thực sự **attempt gọi external AI runtime/endpoint** phải có `AIRequestLog`.
+Theo CR-006 v1.0 và Downstream Addendum, khi handler đến bước terminal persistence sau external attempt, backend thử đúng một lần ghi terminal `AIRequestLog`; đây là best-effort, không phải bảo đảm row tồn tại cho mọi external attempt. Insert lỗi/ACK không rõ hoặc process dừng trước persistence có thể để thiếu row. Không ghi `PENDING`, không retry inference hoặc insert. `SUCCESS`/`FAILED` phản ánh kết quả AI attempt sau khi NestJS validate envelope/correlation, schema, semantic/reference và required content. Nếu inference hợp lệ nhưng insert không được xác nhận, trả `502 AI_RUNTIME_FAILURE`, bỏ output và không tạo business success; nếu inference đã thất bại, giữ public error gốc và ghi diagnostic persistence an toàn.
 
 Các trường hợp dừng trước external AI call như validation input thất bại, `INSUFFICIENT_DATA` hoặc business ineligible không tạo `AIRequestLog`.
 
@@ -1638,7 +1638,7 @@ Admin feedback analysis trong MVP sử dụng **two-stage external AI inference*
 2. backend validate/deduplicate issueGroups và tự tính count;
 3. stage 2 (`FR-ADM-005`) dùng feedback/tagStatistics/issueGroups đã validate để tạo summary, priorityAreas và recommendations.
 
-Mỗi external attempt thực tế phải có `AIRequestLog` theo AI-REQ-018. Nếu stage 1 dừng trước external call do dataset rỗng thì không có stage 1 log và không chạy stage 2.
+Mỗi external attempt theo best-effort logging policy của AI-REQ-018/CR-006 được xử lý riêng. Nếu stage 1 dừng trước external call do dataset rỗng thì không có stage 1 log và không chạy stage 2.
 
 ---
 
@@ -1840,8 +1840,8 @@ MVP không cần bảng nối riêng Feedback–FeedbackAnalysis vì `feedbackId
 - createdAt.
 
 Quy ước:
-- tạo log khi backend đã thực sự attempt external AI call;
-- connection failure, timeout, empty response, invalid structured output và các failure khác sau khi external call bắt đầu vẫn tạo log với trạng thái thất bại phù hợp;
+- nếu handler còn chạy tới terminal persistence sau external attempt thì thử một lần ghi terminal row;
+- connection failure, timeout, empty response, invalid structured output và các failure khác sau khi external call bắt đầu được phân loại `FAILED` sau NestJS validation; row có thể vắng mặt nếu persistence thất bại/ACK không xác định hoặc process dừng trước bước ghi;
 - validation input thất bại trước AI call, `INSUFFICIENT_DATA` và business ineligible trước AI call không tạo log.
 
 ## 6.14. Data Relationships
@@ -2039,7 +2039,7 @@ Completion rate của Student/Teacher chỉ dựa trên StudyPlan hiện tại: 
 AI adjustment trong MVP chỉ được đề xuất `expectedMinutes`, `dueDate`, `priority` cho StudyTask `TODO`; không thêm/xóa task, đổi Topic hoặc sửa task `COMPLETED`.
 
 ### BR-029
-Admin dashboard MVP không yêu cầu active user tracking hoặc hạ tầng monitoring chi tiết. Các metric là số liệu toàn thời gian; `totalUsers/usersByRole` tính cả ACTIVE và DISABLED, và AI request metrics chỉ tính các external AI call đã thực sự được attempt.
+Admin dashboard MVP không yêu cầu active user tracking hoặc hạ tầng monitoring chi tiết. Các metric là số liệu toàn thời gian; `totalUsers/usersByRole` tính cả ACTIVE và DISABLED. Theo CR-006, AI request metrics đếm các persisted terminal `AIRequestLog` rows và có thể undercount external attempts.
 
 ### BR-030
 ClassAnalysisReport và FeedbackAnalysis lưu snapshot input và kết quả AI đã validate bằng JSONB; MVP không tạo bảng con riêng cho các nhóm insight AI.
@@ -2078,7 +2078,7 @@ Administrator không được chuyển chính tài khoản đang đăng nhập c
 Đối với FR-STU-004, `goal` là optional context. Student có AssessmentResult hợp lệ vẫn đủ minimum-data để chạy Strength/Weakness Analysis khi chưa có `goal`; thiếu goal không được trả `INSUFFICIENT_DATA`.
 
 ### BR-042
-Admin feedback AI trong MVP dùng two-stage external inference: FR-ADM-004 tạo candidate issueGroups; backend validate/deduplicate và tự tính count; FR-ADM-005 mới dùng issueGroups đã validate để tạo summary/priorityAreas/recommendations. Mỗi external attempt thực tế phải được log.
+Admin feedback AI trong MVP dùng two-stage external inference: FR-ADM-004 tạo candidate issueGroups; backend validate/deduplicate và tự tính count; FR-ADM-005 mới dùng issueGroups đã validate để tạo summary/priorityAreas/recommendations. Mỗi external attempt được xử lý theo best-effort terminal logging policy của CR-006.
 
 ### BR-043
 Nếu tập feedback sau filter không rỗng nhưng issueGroups hợp lệ sau validation/deduplicate là `[]`, FR-ADM-004 vẫn thành công và FR-ADM-005 vẫn tiếp tục. Trường hợp này không phải `INSUFFICIENT_DATA`.
@@ -2317,7 +2317,7 @@ API sử dụng JSON chuẩn để giảm phụ thuộc client.
 Backend phải ghi log lỗi server cần thiết để debug.
 
 ### NFR-LOG-002
-Lần gọi AI phải có AIRequestLog.
+Theo CR-006 v1.0/Downstream Addendum, mỗi handler đến bước terminal persistence thực hiện một lần thử ghi terminal AIRequestLog; lỗi/ACK không rõ hoặc process dừng trước bước ghi có thể khiến external attempt không có row. Không retry insert hoặc inference.
 
 ### NFR-LOG-003
 AIRequestLog được giữ trong suốt vòng đời phát triển và demo của đồ án; MVP không yêu cầu cơ chế purge tự động.
@@ -2374,13 +2374,13 @@ Hành vi:
 ## 10.5. AI Errors
 
 ### ERR-006 – AI Connection Failure
-- ghi AIRequestLog failed;
+- thử ghi terminal `FAILED` một lần theo CR-006; giữ thông báo AI tạm không khả dụng dù persistence cũng thất bại;
 - thông báo AI tạm không khả dụng;
 - giữ nguyên dữ liệu.
 
 ### ERR-007 – AI Timeout
 - dừng chờ theo timeout;
-- ghi log;
+- thử ghi terminal `FAILED` một lần theo CR-006;
 - cho phép retry phù hợp.
 
 ### ERR-008 – Empty AI Response
@@ -2421,7 +2421,7 @@ Khi authoritative input đã qua validation/minimum-data/business eligibility v�
 - message chuẩn: `Dữ liệu hiện vượt khả năng xử lý của AI cho yêu cầu này. Hãy thu hẹp phạm vi dữ liệu khi có thể và thử lại.`;
 - response không cần expose context-window/token-count nội bộ.
 
-Nếu Admin Stage 1 đã thành công nhưng Stage 2 bị capacity preflight reject thì giữ đúng một `AIRequestLog` SUCCESS của Stage 1, không có Stage 2 attempt/log và không tạo `analysisRef`.
+Nếu Admin Stage 1 đã validate thành công và terminal insert được xác nhận, nhưng Stage 2 bị capacity preflight reject, giữ row Stage 1 `SUCCESS`, không có Stage 2 attempt/log và không tạo `analysisRef`. Nếu Stage 1 log không được xác nhận, CR-006 yêu cầu 502 và dừng trước Stage 2.
 
 ### XAI-002 — AI runtime/provider/integration technical failure
 
@@ -2436,7 +2436,7 @@ Public code `HTTP 502 / AI_RUNTIME_FAILURE` được dùng cho các failure kỹ
 Quy tắc logging:
 
 - failure phát hiện **trước dispatch** do capacity-profile mismatch: không tạo `AIRequestLog`; server diagnostic dùng `AI_CAPACITY_PROFILE_MISMATCH`;
-- failure sau khi external attempt đã bắt đầu: tạo `AIRequestLog.status = FAILED` và giữ internal diagnostic phù hợp (`AI_RUNTIME_PROTOCOL_FAILURE`, `AI_RUNTIME_AUTH_FAILURE`, `AI_RUNTIME_INFERENCE_FAILURE`, `AI_RUNTIME_TECHNICAL_FAILURE`).
+- failure sau khi external attempt đã bắt đầu: phân loại attempt `FAILED` sau NestJS validation rồi thử một lần insert terminal theo CR-006; giữ internal diagnostic phù hợp (`AI_RUNTIME_PROTOCOL_FAILURE`, `AI_RUNTIME_AUTH_FAILURE`, `AI_RUNTIME_INFERENCE_FAILURE`, `AI_RUNTIME_TECHNICAL_FAILURE`). Nếu persistence thất bại, giữ nguyên public inference error và ghi diagnostic an toàn.
 
 Các code cũ giữ nguyên semantics:
 
@@ -2871,16 +2871,9 @@ Trong MVP, các metric Admin Dashboard là số liệu **toàn thời gian**, kh
 - `totalUsers` = tổng số User đang lưu, bao gồm `ACTIVE` và `DISABLED`;
 - `usersByRole` = tổng User theo role, bao gồm `ACTIVE` và `DISABLED`;
 - `totalFeedback` = tổng số Feedback đang lưu;
-- `totalAIRequests` = tổng số `AIRequestLog` tương ứng với các lần backend đã thực sự **attempt gọi external AI Service/AI Runtime**;
-- `failedAIRequests` = số `AIRequestLog` có trạng thái thất bại.
+- `totalAIRequests` = tổng số persisted `AIRequestLog` rows; `failedAIRequests` = số persisted rows có status `FAILED`. Theo CR-006 đây là counts của lượt đã ghi nhận, có thể undercount attempts thực tế. Row `SUCCESS` vẫn có thể tồn tại nếu DB đã commit nhưng backend timeout khi nhận ACK, dù caller nhận `502 AI_RUNTIME_FAILURE`.
 
-`totalAIRequests` bao gồm các attempt dẫn đến:
-- success;
-- connection failure;
-- timeout;
-- empty response;
-- invalid structured output;
-- hoặc failure khác xảy ra sau khi backend đã bắt đầu external AI call.
+`totalAIRequests` counts terminal rows persisted for successful or failed AI attempts; it cannot count attempts whose terminal insert did not commit. A committed `SUCCESS` after ACK timeout remains counted even if the caller received `502 AI_RUNTIME_FAILURE`.
 
 Không tính vào `totalAIRequests`/`failedAIRequests` nếu request bị dừng trước external AI call, ví dụ:
 - `INSUFFICIENT_DATA`;
@@ -2962,7 +2955,7 @@ Admin feedback AI trong MVP dùng hai external AI stages:
 2. Backend validate schema/feedbackIds, deduplicate theo OD-34, loại group rỗng và tự tính lại count.
 3. FR-ADM-005 gọi AI lần hai với feedback/tagStatistics/issueGroups đã validate để tạo summary, priorityAreas và recommendations.
 
-Backend validation phải nằm giữa hai stage. Mỗi external attempt thực tế tạo `AIRequestLog` theo AI-REQ-018.
+Backend validation phải nằm giữa hai stage. Mỗi external attempt được xử lý theo best-effort terminal logging policy của AI-REQ-018/CR-006.
 
 ## OD-43 – Empty IssueGroups Semantics
 

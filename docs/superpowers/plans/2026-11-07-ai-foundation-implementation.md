@@ -1,12 +1,12 @@
 # Phase 2B — AI Foundation Implementation Plan
 
-**Status:** Task 1 PASS for contract and authority reconciliation. CR-006 v1.0 and its downstream addendum were approved/released on 2026-11-09; terminal-log failure policy is resolved. This revised plan requires a fresh read-only Plan Review before Task 5 and separate explicit Task 5 implementation authorization. No implementation is authorized by this document. Runtime portability and dispatch-enabled capacity profiles remain separately gated.
-**Design:** [AI Foundation Design](../specs/2026-11-07-ai-foundation-design.md)
+**Status:** Tasks 1–4A PASS in this checkout. CR-006 v1.0/addendum and CR-005 v1.0, ADR-AI-001 v0.2, SRS v1.7, Architecture v1.2 and the portability supplement are released downstream authorities (2026-11-09). This revision requires a fresh read-only Plan Review before any still-gated task proceeds and separate explicit task authorization. No implementation is authorized by this document. Installability and dispatch-enabled capacity profiles remain separate gates.
+**Design:** [AI Foundation Design](../specs/2026-11-07-ai-foundation-design.md); [Runtime Portability Design](../specs/2026-11-07-ai-runtime-portability-design.md)
 **Scope:** Shared AI foundation, then Student StudyPlan generation preview and confirmed apply. No other role workflow in this plan.
 
 ## Gate before code
 
-Do not start code until the user authorizes the specific task. R3 remains frozen and is supplemented only by released downstream authority in `docs/implementation/releases/CR-006/`. Public errors follow API v1.5 plus CR-006's narrow persistence exception. CR-005 and ADR-AI-001 remain unreleased; Task 4B still needs an approved capacity profile. Never use Drafts as authority or fabricate a capacity profile. The CR-006 policy release does not authorize Task 5 implementation.
+Do not start code until the user authorizes the specific task. R3 remains frozen and is supplemented only by released downstream authority in `docs/implementation/releases/CR-005/` and `docs/implementation/releases/CR-006/`. Public errors follow API v1.5 plus CR-006's narrow persistence exception. CR-005/ADR-AI-001 portability authority is released; Task 4B still needs a real approved capacity profile. Never use Drafts as authority or fabricate a profile. CR-006 does not authorize Task 5 implementation, and CR-005 does not authorize Task 7 implementation.
 
 ## Work order and dependencies
 
@@ -14,25 +14,25 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 ### Task 1 — Close the contract and runtime authority gate (**current result: PASS; runtime sub-gates remain open**)
 
-**Depends on:** none. This gate must pass before Tasks 2–11. CR-005/ADR approval is an additional gate for Tasks 7–11 and any runtime deployment change.
+**Depends on:** none. This gate must pass before Tasks 2–11. CR-005/ADR portability approval is now released; an approved capacity profile and task-specific authorization remain additional gates where specified below.
 
 - **1.1 Inventory:** compare recovery copies with official release paths in Git history; record frozen baseline and source release commits. Keep recovery files non-authoritative.
 - **1.2 Verify versions and provenance:** compare Contract hash to the schema release validation record; verify Schema Pack, Erratum 1, CR-003, Erratum 2 and CR-004 against official `SHA256SUMS`/sidecars. Record governance-index and Phase 1D.3 supplement checksum limitations.
 - **1.3 Reconcile all six keys:** bind each exact key to its Release 1 input/output schema pair and orchestration count.
 - **1.4 Reconcile envelopes:** record request/success/error fields, the request's lack of `promptVersion`, correlation tuple, token header, 60-second timeout and no-retry rule.
 - **1.5 Reconcile Errata E5/E6:** record runtime-vs-Nest behavior, HTTP/envelope, public/internal mapping, terminal log requirement and separate malformed-HTTP/empty-body cases.
-- **1.6 Reconcile governance:** record CR-003/004 and Phase 1D.3 approval sources; record CR-005 as Draft/formal release pending, ADR-AI-001 pending CR-005, frozen Colab authority and CPU profile absence.
+- **1.6 Reconcile governance:** record CR-003/004 and Phase 1D.3 approval sources; record CR-005 v1.0 and ADR-AI-001 v0.2 release; distinguish released portability authority from absent CPU/GPU capacity profile.
 - **1.7 Resolve authority set:** use the approved R3 freeze adopted for this checkout. Confirm root/backend instructions, the official 12-entry manifest, active R3 baselines and AI Contract v1.0 agree; do not infer authority from recovery copies.
 - **1.8 Publish report:** record verified sources, applied R3 alignment hashes, mappings, limitations, allowed task boundary and remaining blockers.
 
-**Acceptance:** PASS only when (a) primary Contract/Schema Pack/Errata/CR-003/004 sources and release checksums reconcile; (b) all six key/schema pairs and E5/E6 outcomes resolve to those sources; and (c) the approved R3 authority set is aligned across release files, manifest and instructions. The recovery governance-index copy's unsigned hash does not replace primary release records. CR-005/ADR approval remains an additional prerequisite for local runtime work.
+**Acceptance:** PASS only when (a) primary Contract/Schema Pack/Errata/CR-003/004 sources and release checksums reconcile; (b) all six key/schema pairs and E5/E6 outcomes resolve to those sources; and (c) the approved R3 authority set is aligned across release files, manifest and instructions. The recovery governance-index copy's unsigned hash does not replace primary release records. CR-005/ADR portability authority is now released; matching profile approval is still required before application inference can dispatch.
 
 ### Task 2 — Add NestJS AI configuration and module shell
 
 **Depends on:** Task 1 PASS, current plan review approval and human implementation authorization. **Files:** `apps/api/src/ai/ai.module.ts`, `apps/api/src/ai/ai.config.ts`, `apps/api/src/app.module.ts`, `.env.example`, `apps/api/src/ai/ai.config.spec.ts`.
 
 - Consume official `AI_RUNTIME_BASE_URL` and `AI_RUNTIME_TOKEN` settings. Record missing/malformed AI settings as unavailable without failing Nest startup; keep secrets server-only and the attempt timeout fixed at 60 seconds.
-- Add an inert `AiModule` importing existing config/Prisma modules. Do not add a controller, outbound transport, Ollama setting or callable dispatch path in this task. The frozen Colab requirement remains until CR-005 release.
+- Add an inert `AiModule` importing existing config/Prisma modules. Do not add a controller, outbound transport, Ollama setting or callable dispatch path in this task. CR-005 portability authority does not change this Task 2 no-dispatch boundary.
 
 **TDD steps:** (a) add config unit test proving valid settings load; (b) add missing/malformed URL/secret cases and assert they mark AI unavailable without throwing out of Nest app initialization; (c) assert failure messages omit secret values; (d) test the 60-second attempt constant cannot silently drift. Implement only after Task 1 PASS.
 
@@ -103,7 +103,7 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 ### Task 6 — Implement the NestJS AiGateway transport
 
-**Depends on:** Tasks 2–5, Task 4B, CR-006 v1.0, and the independent runtime governance gates. **Files:** `apps/api/src/ai/ai.gateway.ts`, `apps/api/src/ai/ai.service.ts`, their specs and module wiring.
+**Depends on:** Tasks 2–5, Task 4B, CR-006 v1.0, and the released CR-005/ADR-AI-001 runtime authority. **Files:** `apps/api/src/ai/ai.gateway.ts`, `apps/api/src/ai/ai.service.ts`, their specs and module wiring.
 
 - Send only the released v1.0 envelope to configured FastAPI `/v1/infer`; propagate correlation per contract; no business logic in gateway.
 - Enforce a hard 60-second deadline per actual external attempt, no automatic retry, and exact error translation. Capture attempt timestamp immediately before dispatch. Validate the runtime envelope before task-schema/semantic validation.
@@ -115,23 +115,24 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 **Acceptance:** every dispatch has at most one outbound request, at most 60 seconds, and valid output still must pass Nest validator.
 
-### Task 7 — Build FastAPI `/v1/infer` adapter and Ollama profiles
+### Task 7 — Build FastAPI `/v1/infer` adapter and Ollama profiles (**fresh Plan Review and separate implementation authorization required**)
 
-**Depends on:** Tasks 1 and 3 plus formal CR-005/ADR-AI-001 release. Cannot proceed as the application runtime while frozen SRS v1.6 still requires Colab. **Files:** `ai/app/main.py`, `ai/app/config.py`, `ai/app/tasks/registry.py`, `ai/app/engine/ollama.py`, `ai/app/schemas/release1/*.schema.json` (15 files), `ai/tests/`, `ai/pyproject.toml` (or existing approved Python dependency manifest), `ai/Dockerfile`, `ai/compose.yaml` or existing deployment file, `.env.example`, `ai/AGENTS.md`.
+**Depends on:** Tasks 1 and 3, released CR-005 v1.0/ADR-AI-001 v0.2 (satisfied), this plan's fresh read-only review PASS and separate explicit Task 7 authorization. CR-005 supersedes the Colab placement constraint only within its scope; it does not release a capacity profile or enable inference. **Files:** `ai/app/main.py`, `ai/app/config.py`, `ai/app/tasks/registry.py`, `ai/app/engine/ollama.py`, `ai/app/schemas/release1/*.schema.json` (15 files), `ai/tests/`, `ai/pyproject.toml` (or existing approved Python dependency manifest), `ai/Dockerfile`, `ai/compose.yaml` or existing deployment file, `.env.example`, `ai/AGENTS.md`, `deployment/model-manifest.json`, and update `docs/implementation/ai-runtime/Deployment_Reproduction_Guide_v0.1_DRAFT.md` against the implemented scripts/services.
 
 - Implement the released envelope and correlation behavior; allowlist exactly six registered tasks and official schemas. Return contract-defined errors without prompt repair or hidden retries. For E5/E6, preserve separate model-generation failure, parsed-object pass-through, malformed HTTP request and empty HTTP response behavior exactly as official sources specify.
 - Retrieve the same official archive from commit `e9a44818c077faf7b7809ac9e4efa3280ba88ed4`; verify official sidecar/`SHA256SUMS`, extract the exact 15 schema files to `ai/app/schemas/release1/`, and configure the Docker image to copy that path. Add a test comparing every runtime schema byte-for-byte with `apps/api/src/ai/schemas/release1/` so the two copies cannot drift.
 - Update `ai/AGENTS.md` §5 for the approved Erratum 2 E6 exception: Runtime may transport a parsed object unchanged; NestJS remains authoritative for task-schema and semantic acceptance.
 - Configure Ollama with CPU-local default and explicit optional GPU profile. Pin model digest/revision and relevant context/quantization/runtime settings in deployment configuration. Do not silently fallback across profiles/models. A profile without released capacity evidence can be installed/tested but must not enable application dispatch; do not add a fabricated capacity JSON.
 - Expose liveness/readiness; readiness requires the configured model/profile to be available. Keep FastAPI/Ollama off the browser network path and give runtime no DB credentials or database dependency.
+- Ship a versioned environment template with placeholders, setup scripts, a runbook matching real commands, health/readiness checks, model identity/retrieval/licensing notes, six-task contract test commands, troubleshooting and secret/seed-data review. Preserve a clear label between mock contract tests and real inference.
 
-**TDD steps:** (a) test official envelope/auth/correlation; (b) register and test each official task/schema; (c) test runtime generation text cases E5/E6 as separate parametrized cases; (d) test valid object pass-through unchanged even when Nest later rejects task schema; (e) test malformed HTTP request/response handling separately; (f) test model unavailable, no hidden retry/repair, and CPU/GPU profile selection without claiming capacity. `cd ai && python -m pytest`.
+**TDD steps:** (a) test official envelope/auth/correlation; (b) register and test each official task/schema; (c) test runtime generation text cases E5/E6 as separate parametrized cases; (d) test valid object pass-through unchanged even when Nest later rejects task schema; (e) test malformed HTTP request/response handling separately; (f) test model unavailable, no hidden retry/repair, and CPU/GPU profile selection without claiming capacity; (g) test health/readiness; separately rerun the NestJS preflight rejection test to confirm installing the adapter does not enable app dispatch; (h) run the documented clean CPU install from a clean/recreated host, verify source/model manifest digests, service health, six-task adapter contract tests and non-AI startup; (i) verify the runbook matches executed commands and scan release env/log/seed artifacts for secrets or sensitive sample data. `cd ai && python -m pytest` plus the documented clean-install procedure.
 
-**Acceptance:** only after the CR-005/ADR gate passes: FastAPI and Ollama start from a clean documented setup, contract tests pass, and runtime has no DB access. This proves installability, not capacity; application dispatch remains denied without a matching profile.
+**Acceptance:** Installability PASS only after a clean CPU-only host installs and starts the source using the released runbook, exact model identity is reproducible, health/readiness and six-task contract tests pass, runtime has no DB access, and non-AI routes remain available. This proves Installability, not AI Conformance/Capacity. Application dispatch remains denied without an approved matching profile. Model/hardware benchmark evidence is a separate profile release; Task 7 must not create a profile from installation or smoke evidence.
 
 ### Task 8 — Implement Student StudyPlan generation preview API
 
-**Depends on:** Tasks 3–6, Task 7 and its CR-005/ADR-AI-001 gate, Task 5 PASS under CR-006, and Task 4B's approved capacity profile. **Files:** `apps/api/src/student/study-plan-generation.controller.ts`, `study-plan-generation.service.ts`, DTO files, `apps/api/src/student/student.module.ts`, unit/controller specs, OpenAPI source/contract outputs.
+**Depends on:** Tasks 3–6, Task 7 Installability implementation gate, Task 5 PASS under CR-006, and Task 4B's approved capacity profile. CR-005/ADR portability authority is released; capacity-profile approval remains independent. **Files:** `apps/api/src/student/study-plan-generation.controller.ts`, `study-plan-generation.service.ts`, DTO files, `apps/api/src/student/student.module.ts`, unit/controller specs, OpenAPI source/contract outputs.
 
 - Implement frozen `POST /api/v1/student/study-plans/generate` and `GET /api/v1/student/study-plans/current` semantics from API Spec and approved schemas. Reuse existing `StudyContextService` validation and dashboard/assessment data access where applicable; current-plan read supports saved result after apply/reload.
 - Check active Student identity, owned data, generation eligibility and required source data before calling AI. Prepare minimized canonical input and exact capacity estimate. Validate returned candidate in NestJS; if tasks are missing/empty or all rejected, return frozen `502 AI_INCOMPLETE_DATA` and create no preview. Create owner-bound, expiring `TemporaryContext` preview only after validation.
@@ -174,16 +175,16 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 **Depends on:** Tasks 1–10. **Files:** targeted API integration/E2E/runtime tests and deployment documentation only if needed for reproducibility; do not alter baseline.
 
 - Run API integration against a new or verified clean disposable DB by setting `TEST_DATABASE_URL` to a DB identity different from development `DATABASE_URL`; verify target identity before migration/seed. Use the existing guard and migration/seed scripts. Do not run against `dacn`, production, or stale `dacn_test`; do not reset/drop shared databases.
-- Run Student E2E against the same isolated clean DB, with the runtime deterministically stubbed for product-flow checks. Separately run real Ollama CPU/GPU contract and per-task capacity tests using pinned artifacts; these must be labeled real-runtime evidence and report pass/fail per task/profile.
+- Run Student E2E against the same isolated clean DB, with the runtime deterministically stubbed for product-flow checks. Separately run real Ollama CPU/GPU conformance/capacity tests using pinned artifacts for each exact profile: at least 20 fixtures/task, 0% timeout violations, at least 95% schema and semantic pass/task, 0 reference-boundary violations, and manual Vietnamese quality at least 4/5/task, plus required-content and capacity-boundary evidence. Label results as real-runtime evidence and report PASS/FAIL/UNVERIFIED per task/profile.
 - Run gates: `pnpm test:integration`, `TEST_DATABASE_URL=<isolated-clean-db> pnpm test:e2e` (or equivalent existing environment setup), `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm contracts:check`, `pnpm verify:baseline`, `pnpm build`, and Python runtime tests/build checks. Commands that require real model hardware/config must report `UNVERIFIED` rather than being replaced by mocks.
 
-**Acceptance:** Student generate→preview→explicit apply passes with the real Nest business/API path and isolated PostgreSQL; mock-runtime E2E and real-runtime conformance are reported separately; every enabled profile has valid fail-closed capacity evidence. No results imply CPU supports all six tasks unless each task passes its required profile/latency criteria.
+**Acceptance:** Student generate→preview→explicit apply passes with the real Nest business/API path and isolated PostgreSQL; mock-runtime E2E and real-runtime conformance are reported separately; only exact profiles passing the approved §17 criteria and capacity checks may be enabled. No results imply CPU supports all six tasks unless each task passes its required profile/latency criteria.
 
 ## Review gate and stop conditions
 
 1. Have a fresh read-only reviewer compare this plan against the Design Spec, frozen baseline, approved authority and current repo; revise until the plan is approved.
 2. Human reviews/approves the final plan. No code starts before both review gates.
-3. Tasks 2–4A are PASS in this checkout. Task 4B remains blocked until a real benchmarked profile is released. CR-006 resolves terminal-log write-failure disposition; Task 5 still requires this fresh plan review to PASS and separate explicit Task 5 authorization. Task 6 remains gated by Task 4B and independent runtime governance; Tasks 8–11 depend on Task 5 PASS, capacity/runtime gates and their listed task-specific authorizations. Task 7 and live Student AI wait on CR-005/ADR release. Do not guess, bypass preflight or claim readiness.
+3. Tasks 1–4A are PASS in this checkout. Task 4B remains blocked until a real benchmarked profile is released. CR-006 resolves terminal-log write-failure disposition; Task 5 and Task 7 each require this fresh plan review to PASS and separate explicit implementation authorization. Task 6 remains gated by Task 4B; Tasks 8–11 depend on Task 5 PASS, capacity/runtime gates and their listed task-specific authorizations. CR-005/ADR is released, but does not itself enable dispatch. Do not guess, bypass preflight or claim readiness.
 4. CPU exploratory runs remain non-conformance. CPU application inference requires released portability authority plus a matching benchmarked profile. GPU/Colab evidence is not CPU evidence.
 
 ## Verification for this planning phase

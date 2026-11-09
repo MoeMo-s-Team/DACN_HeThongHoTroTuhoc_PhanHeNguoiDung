@@ -1,9 +1,9 @@
 # SYSTEM ARCHITECTURE & TECHNOLOGY STACK
 ## Hệ thống hỗ trợ tự học ứng dụng AI
 
-**Phiên bản:** 1.2 Draft Candidate — CR-005 direction endorsed; NOT RELEASED  
-**Ngày:** 26/10/2026  
-**Trạng thái:** Downstream Architecture & Technology Baseline — APPROVED  
+**Phiên bản:** 1.2 Draft Candidate — CR-005 direction endorsed; NOT RELEASED. CR-006 v1.0/downstream addendum controls AIRequestLog terminal persistence and aggregates; no absolute row guarantee is introduced here.
+**Ngày cập nhật candidate:** 09/11/2026 (nguồn v1.1: 26/10/2026)
+**Trạng thái:** DRAFT CANDIDATE — NOT RELEASED; R3 Architecture v1.1 remains active until approved change control and release
 **Phạm vi:** Web Application MVP — Student, Teacher, Administrator  
 **Baseline nguồn:** `DACN-REQ-UC-BL-2026-10-26-R3`  
 **API Baseline:** `API_Specification_v1.5_baseline_final.md`  
@@ -1153,7 +1153,7 @@ Cho tới khi AI Contract chốt, implementation agent không được coi “JS
 
 ## 14.6. AIRequestLog
 
-Mỗi external attempt thực tế phải tạo/hoàn thiện log.
+Theo CR-006 v1.0 và Downstream Addendum, nếu handler còn chạy tới terminal persistence sau external attempt thì chỉ thử một lần insert terminal `SUCCESS`/`FAILED`. Không bảo đảm row nếu insert lỗi/ACK không xác định hoặc tiến trình dừng trước persistence; không `PENDING`, không retry insert/inference. Status phản ánh AI attempt sau NestJS output validation. Dashboard aggregate counts persisted rows và có thể undercount external attempts.
 
 Không tạo AIRequestLog khi request dừng trước external call do:
 
@@ -1430,7 +1430,7 @@ Performance smoke test không thay thế functional/integration test và không 
 MVP sử dụng hai lớp:
 
 1. application logs từ NestJS;
-2. persistent `AIRequestLog` theo business/AI baseline.
+2. best-effort persistent terminal `AIRequestLog` theo CR-006: một insert attempt khi persistence được gọi, không bảo đảm row nếu write/ACK thất bại hoặc tiến trình dừng trước đó.
 
 ## 18.2. Application Log
 
@@ -1808,7 +1808,9 @@ Tránh commit message không mô tả nội dung như `update`, `final`, `fix th
 
 - `local-cpu`: Next.js + NestJS + PostgreSQL + FastAPI adapter + Ollama chạy local, có thể đóng gói Compose/native script. Yêu cầu cài đặt lại được không chứng minh mọi AI task đáp ứng 60 giây; SP-02 (10 Topic) còn FAIL trong evidence exploratory.
 - `remote-gpu`: Backend/database vẫn local, adapter/engine có thể ở GPU VM do người cài đặt sở hữu; cần bảo vệ endpoint bằng token/TLS hoặc tunnel riêng; không mở Ollama 11434 ra Internet.
-- Cả hai profile giữ nguyên `POST /v1/infer`, 6 task, JSON Schema Release 1, Errata 1/2, CR-003/004, no retry, per-attempt 60 giây, `AIRequestLog` và preflight capacity profile bind theo model/tokenizer/prompt/task. Thiếu capacity profile phải fail-closed.
+- Cả hai profile giữ nguyên `POST /v1/infer`, 6 task, JSON Schema Release 1, Errata 1/2, CR-003/004, no retry, per-attempt 60 giây, CR-006 best-effort terminal `AIRequestLog` policy và preflight capacity profile bind theo model/tokenizer/prompt/task. Thiếu capacity profile phải fail-closed.
+- Installability is checked on a clean CPU-only host with source, scripts, environment template, model digest/retrieval, health checks, contract tests and troubleshooting. It does not establish real inference conformance or enable dispatch.
+- AI Conformance/Capacity is measured separately per task and exact model/runtime/hardware profile. CPU exploratory runs and the Colab T4 Lite smoke are not released capacity evidence.
 - Lite T4 FP16 đã được chấp nhận để xác minh **demo model candidate**, không phải bằng chứng đã nghiệm thu luồng ứng dụng có auth/capacity thực tế hay chứng nhận CPU.
 
 
@@ -2006,7 +2008,7 @@ Khi bootstrap project theo tài liệu này, tối thiểu phải đạt:
 # 33. Review Checklist của tài liệu
 
 - [x] Không thay đổi 27 Use Case baseline.
-- [x] Không tạo requirement/business rule mới.
+- [x] Không tạo business rule mới; portability/installability requirements are proposed only through CR-005 and have no authority until approval.
 - [x] Giữ Next.js/NestJS/PostgreSQL; đề xuất thay Colab-only bằng portable runtime theo quyết định định hướng CR-005. Không tuyên bố CR-005 đã phát hành.
 - [x] Prisma được định nghĩa là implementation decision, không phải upstream requirement.
 - [x] Không cho frontend truy cập DB/AI trực tiếp.
