@@ -6,9 +6,9 @@ They extend the root `AGENTS.md` and must not override frozen baseline, Architec
 
 ## 2. Role of AI
 AI is a supporting external component, not the system's source of truth.
-The supported path is:
+The approved portable runtime path is:
 
-`Frontend → NestJS → AI Gateway → AI Runtime`
+`Next.js → NestJS → FastAPI /v1/infer → Ollama`
 
 Never implement:
 - Frontend → AI Runtime;
@@ -18,11 +18,10 @@ Never implement:
 The backend owns business eligibility, exact metrics, authorization, validation, persistence, and state transitions.
 
 ## 3. Runtime Boundary
-The MVP AI Runtime is self-managed and runs on Google Colab.
-Communicate with NestJS through HTTP/HTTPS JSON.
-Runtime URLs and secrets are configuration, not business logic.
-Do not hard-code a temporary Colab URL into notebooks, contracts, or application logic.
-Do not require the frontend to know AI credentials.
+The portable AI Runtime is FastAPI with a local Ollama engine. CPU-local is the preferred installation mode; a separate GPU configuration is optional under CR-005 v1.0 and ADR-AI-001 v0.2.
+NestJS communicates with FastAPI through HTTP/HTTPS JSON. FastAPI communicates only with its configured Ollama engine and never accesses PostgreSQL.
+Runtime URLs and secrets are environment configuration, not business logic. Keep Ollama private to the runtime network and do not expose AI credentials to the frontend.
+CR-005 supersedes R3's Colab placement constraint only within its released scope. Existing Colab evidence remains specific to its model/hardware profile.
 
 ## 4. Input Rules
 Accept only the data explicitly supplied by the backend contract.
@@ -34,20 +33,20 @@ If required data is insufficient according to the approved contract/baseline, re
 
 ## 5. Output Rules
 Return structured output only.
-Output must conform to the approved AI Contract/schema when available.
-Backend validation remains mandatory even when the runtime believes the output is valid.
+Return only a parsed JSON object in the success envelope. Under approved Erratum 2 E6, the runtime transports any parsed object unchanged; NestJS alone decides task-schema, semantic, reference and required-content validity.
 
 Do not:
 - return authoritative metrics that the backend can calculate exactly;
 - invent database/resource identifiers;
 - invent enum/reference values outside the contract;
 - create hidden business rules in prompt text;
-- imply that an AI suggestion was already applied.
+- imply that an AI suggestion was already applied;
+- repair malformed model text, coerce values, fill missing fields or retry generation.
 
 Important recommendations remain human-in-the-loop where baseline requires confirmation.
 
 ## 6. Open AI Design Items
-Do not choose the final AI model, prompt structure, output schema, or schema-validation technology as if they were frozen unless the approved AI Contract/ADR has decided them.
+Do not treat the Task 7 install model/settings or prompt wording as a certified production choice. Capacity profile, benchmark, and production conformance require separate approval under CR-005; the Contract v1.0 task keys, schemas, and promptVersion values remain authoritative.
 If these items are still open, treat them as technical design work and use Proposal Mode where a decision is needed.
 A model change is acceptable only when it preserves the approved external contract and business behavior.
 
@@ -83,7 +82,7 @@ Cover at least:
 - timeout/provider failure behavior at the integration boundary;
 - enum/reference/schema violations once the AI Contract defines them.
 
-Real Colab integration may be unavailable during local development; use mocks/fakes for technical contract testing where appropriate, then verify the real runtime before an AI-dependent demo.
+Real CPU/GPU integration may be unavailable during local development; use mocks/fakes for technical contract testing where appropriate, then verify the exact real runtime profile separately before an AI-dependent demo.
 
 ## 11. Escalation
 If an AI implementation request would change business behavior, authorization, exact calculations, human-confirmation requirements, API semantics, or allow AI direct data mutation:

@@ -1,0 +1,14 @@
+{
+  "planTitle": "Four-week review plan",
+  "tasks": [
+    {
+      "title": "Review traversal",
+      "topicId": "topic_1",
+      "goal": "Understand BFS and DFS",
+      "expectedMinutes": 90,
+      "dueDate": "2026-11-02T16:59:59.000Z",
+      "priority": "HIGH",
+      "reason": "This topic needs focused review."
+    }
+  ]
+}

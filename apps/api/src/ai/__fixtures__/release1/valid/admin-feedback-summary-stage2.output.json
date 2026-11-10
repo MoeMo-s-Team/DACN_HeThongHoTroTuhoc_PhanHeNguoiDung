@@ -1,0 +1,12 @@
+{
+  "summary": "Feedback highlights the need to clarify the main action.",
+  "priorityAreas": [
+    "Main action visibility"
+  ],
+  "recommendations": [
+    {
+      "title": "Clarify the primary action",
+      "description": "Improve the visibility of the primary action."
+    }
+  ]
+}

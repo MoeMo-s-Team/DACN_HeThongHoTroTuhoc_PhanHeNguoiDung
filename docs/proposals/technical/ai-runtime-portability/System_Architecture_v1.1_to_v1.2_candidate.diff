@@ -1,0 +1,128 @@
+--- System_Architecture_and_Technology_Stack_v1.1_baseline.md
++++ System_Architecture_and_Technology_Stack_v1.2_Runtime_Portability_DRAFT_CANDIDATE.md
+@@ -2,5 +2,5 @@
+ ## Hệ thống hỗ trợ tự học ứng dụng AI
+ 
+-**Phiên bản:** 1.1 Baseline  
++**Phiên bản:** 1.2 Draft Candidate — CR-005 direction endorsed; NOT RELEASED  
+ **Ngày:** 26/10/2026  
+ **Trạng thái:** Downstream Architecture & Technology Baseline — APPROVED  
+@@ -180,5 +180,5 @@
+ ## 4.4. Reliability trước AI failure
+ 
+-AI runtime trên Google Colab có thể unavailable.
++AI runtime self-managed ở local CPU/GPU tùy chọn có thể unavailable.
+ 
+ Kiến trúc phải bảo đảm:
+@@ -228,5 +228,5 @@
+ │                              │      │                               │
+ │ Business data                │      │ Self-managed model           │
+-│ JSONB snapshots/results      │      │ Google Colab                 │
++│ JSONB snapshots/results      │      │ Local CPU / GPU optional      │
+ │ Technical context storage    │      │ Structured output            │
+ └──────────────────────────────┘      └───────────────────────────────┘
+@@ -298,5 +298,5 @@
+ | ORM | Prisma ORM | **Implementation Decision được chốt** | Data access + migration |
+ | Database | PostgreSQL | **Bắt buộc từ SRS** | Persistent storage |
+-| AI Runtime | Self-managed model trên Google Colab | **Bắt buộc từ SRS** | Inference service |
++| AI Runtime | FastAPI Adapter + self-managed engine; Ollama CPU-local install mode, GPU tùy chọn | **Đề xuất theo CR-005** | Inference service; không thay `/v1/infer` |
+ | AI Transport | HTTP/HTTPS JSON endpoint | Baseline-derived | NestJS gọi AI runtime |
+ | Monorepo | pnpm workspace | Implementation Decision | Workspace/package management |
+@@ -1054,5 +1054,5 @@
+ AI Gateway
+    ↓
+-External AI Runtime / Google Colab
++FastAPI AI Adapter → Ollama/other configured inference engine
+ ```
+ 
+@@ -1080,5 +1080,5 @@
+ ## 14.3. AI URL Configuration
+ 
+-AI endpoint trên Colab có thể thay đổi theo phiên.
++AI endpoint có thể thay đổi theo deployment profile (CPU local/GPU tùy chọn).
+ 
+ Do đó:
+@@ -1544,5 +1544,5 @@
+ NestJS       → chạy local
+ PostgreSQL   → local service hoặc Docker container
+-AI Runtime   → external Colab endpoint khi cần AI integration
++AI Runtime   → FastAPI Adapter local/remote; Ollama CPU có thể chạy local
+ ```
+ 
+@@ -1557,14 +1557,14 @@
+ - giảm phụ thuộc cài PostgreSQL trực tiếp trên máy.
+ 
+-Không containerize Colab runtime.
++Đối với bàn giao, khuyến nghị Docker Compose/installation scripts cho cả backend, database và adapter/Ollama nếu phần cứng cho phép. Đây là mục tiêu triển khai cần chạy thử thực tế; không được tuyên bố đã kiểm chứng khi scripts chưa hiện hữu.
+ 
+ ## 21.3. Offline-from-AI Development
+ 
+-Frontend/backend non-AI feature phải phát triển và test được khi Colab offline.
++Frontend/backend non-AI feature phải phát triển và test được khi AI Runtime offline.
+ 
+ AI integration test có thể sử dụng:
+ 
+ - mock/fake server cho phần contract kỹ thuật;
+-- real Colab endpoint cho integration/demo verification phù hợp.
++- real AI Runtime endpoint của profile đang đánh giá (CPU-local hoặc GPU), kèm evidence và capacity profile hợp lệ.
+ 
+ Fake AI không được trình bày như real inference trong demo chính thức nếu requirement yêu cầu call AI thật.
+@@ -1803,7 +1803,18 @@
+ # 26. Deployment Position
+ 
++> **CR-005 draft candidate — định hướng đã được chủ dự án đồng ý ngày 07/11/2026; chưa thay thế baseline v1.1.**
++
++### 26.0. Portable AI runtime profiles (proposed)
++
++- `local-cpu`: Next.js + NestJS + PostgreSQL + FastAPI adapter + Ollama chạy local, có thể đóng gói Compose/native script. Yêu cầu cài đặt lại được không chứng minh mọi AI task đáp ứng 60 giây; SP-02 (10 Topic) còn FAIL trong evidence exploratory.
++- `remote-gpu`: Backend/database vẫn local, adapter/engine có thể ở GPU VM do người cài đặt sở hữu; cần bảo vệ endpoint bằng token/TLS hoặc tunnel riêng; không mở Ollama 11434 ra Internet.
++- Cả hai profile giữ nguyên `POST /v1/infer`, 6 task, JSON Schema Release 1, Errata 1/2, CR-003/004, no retry, per-attempt 60 giây, `AIRequestLog` và preflight capacity profile bind theo model/tokenizer/prompt/task. Thiếu capacity profile phải fail-closed.
++- Lite T4 FP16 đã được chấp nhận để xác minh **demo model candidate**, không phải bằng chứng đã nghiệm thu luồng ứng dụng có auth/capacity thực tế hay chứng nhận CPU.
++
++
++
+ ## 26.1. Chưa khóa deployment provider
+ 
+-SRS khóa AI Runtime trên Google Colab cho MVP/demo nhưng chưa khóa hosting provider cho:
++Định hướng CR-005 (chưa release) chọn local-first và adapter self-managed, không khóa cloud provider; GPU chỉ là lựa chọn tùy chọn cho tăng tốc. Hosting provider không bắt buộc cho:
+ 
+ - Next.js;
+@@ -1824,5 +1835,5 @@
+ - timeout phù hợp AI orchestration;
+ - frontend → backend CORS/networking;
+-- backend → Colab endpoint.
++- backend → FastAPI adapter endpoint; nếu remote phải bảo vệ kết nối và không expose cổng Ollama công khai.
+ 
+ Việc chọn provider là downstream deployment decision và có thể tạo ADR riêng.
+@@ -1870,5 +1881,5 @@
+ | NestJS backend | SRS CON-02, Operating Environment |
+ | PostgreSQL | SRS CON-03 |
+-| Google Colab AI | SRS CON-04, AI-REQ-020..022 |
++| Portable self-managed AI runtime (CPU local / GPU optional) | SRS CON-04, AI-REQ-020..022 — đề xuất sửa CR-005 |
+ | Frontend không DB direct | SRS CON-05 |
+ | Frontend không AI direct | SRS CON-06 |
+@@ -1997,5 +2008,5 @@
+ - [x] Không thay đổi 27 Use Case baseline.
+ - [x] Không tạo requirement/business rule mới.
+-- [x] Giữ Next.js/NestJS/PostgreSQL/Colab theo SRS.
++- [x] Giữ Next.js/NestJS/PostgreSQL; đề xuất thay Colab-only bằng portable runtime theo quyết định định hướng CR-005. Không tuyên bố CR-005 đã phát hành.
+ - [x] Prisma được định nghĩa là implementation decision, không phải upstream requirement.
+ - [x] Không cho frontend truy cập DB/AI trực tiếp.
+@@ -2077,4 +2088,5 @@
+ | 1.0 Baseline | 24/10/2026 | APPROVED | Phát hành chính thức sau pre-baseline review đạt 9.4/10; không còn BLOCKER/MAJOR technical finding. Architecture baseline hóa độc lập với Design System; Design System governance được chuyển thành `FOLLOWUP-GOV-001`, không làm thay đổi technology stack, API contract hoặc observable business behavior. |
+ | 1.1 Baseline | 26/10/2026 | APPROVED | CR-002/R3 sync: capacity-profile architecture, `AI_INPUT_TOO_LARGE`/`AI_RUNTIME_FAILURE`, runtime technical failure boundary; đóng OPEN-ARCH-004/008 bằng AI Contract v1.0; giữ OPEN-ARCH-003 cho benchmark |
++| 1.2 Draft Candidate | 07/11/2026 | DRAFT — DIRECTION ENDORSED | Portable AI runtime / local CPU ưu tiên, GPU tùy chọn; chưa chứng nhận CPU performance; CR-005 chưa phát hành và cần governance audit |
+ 
+ ---
+@@ -2089,5 +2101,5 @@
+ NestJS + TypeScript
+     ├── Prisma → PostgreSQL
+-    └── HTTP → Self-managed AI Runtime / Google Colab
++    └── HTTP POST /v1/infer → FastAPI Adapter → Ollama CPU local / GPU optional
+ ```
+ 
+@@ -2116,3 +2128,3 @@
+ Tài liệu này đóng vai trò cầu nối từ **“hệ thống phải làm gì”** sang **“source code sẽ được tổ chức và triển khai như thế nào”**, nhưng không có quyền tự thay đổi requirement đã freeze.
+ 
+-**Trạng thái phát hành:** `System_Architecture_and_Technology_Stack_v1.1_baseline.md` là Architecture & Technology Baseline chính thức cho implementation downstream của MVP.
++**Trạng thái phát hành:** Bản **v1.2 Draft Candidate** là đề xuất chưa được release; `System_Architecture_and_Technology_Stack_v1.1_baseline.md` vẫn là baseline đang có hiệu lực cho đến khi CR-005 và cross-document audit được phê duyệt.

@@ -1,0 +1,64 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "areasToImprove": [
+        "Review data structures"
+      ],
+      "priorityTopics": [
+        {
+          "topicId": "topic_1",
+          "reason": "The latest score indicates this topic is a priority."
+        }
+      ],
+      "reasons": [
+        "Based on the latest backend-provided assessment."
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "strengths"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "strengths": "wrong-type",
+      "areasToImprove": [
+        "Review data structures"
+      ],
+      "priorityTopics": [
+        {
+          "topicId": "topic_1",
+          "reason": "The latest score indicates this topic is a priority."
+        }
+      ],
+      "reasons": [
+        "Based on the latest backend-provided assessment."
+      ]
+    },
+    "keyword": "type",
+    "instancePath": "/strengths"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "strengths": [],
+      "areasToImprove": [
+        "Review data structures"
+      ],
+      "priorityTopics": [
+        {
+          "topicId": "topic_1",
+          "reason": "The latest score indicates this topic is a priority."
+        }
+      ],
+      "reasons": [
+        "Based on the latest backend-provided assessment."
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  }
+]

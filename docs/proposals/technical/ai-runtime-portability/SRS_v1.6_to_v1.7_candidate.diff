@@ -1,0 +1,147 @@
+--- SRS_v1.6_baseline_final.md
++++ SRS_v1.7_Runtime_Portability_DRAFT_CANDIDATE.md
+@@ -2,8 +2,9 @@
+ ## Hệ thống hỗ trợ tự học ứng dụng AI
+ 
+-**Phiên bản:** 1.6 Baseline Final  
+-**Ngày:** 26/10/2026  
++**Phiên bản:** 1.7 Draft Candidate (CR-005 architecture direction endorsed)  
++**Ngày:** 07/11/2026  
++**Trạng thái:** DRAFT — chưa phát hành baseline; tham chiếu SRS v1.6 frozen cho đến khi change control hoàn tất  
+ **Phạm vi:** MVP phục vụ đồ án chuyên ngành  
+-**Tech stack bắt buộc:** Next.js, NestJS, PostgreSQL, AI model tự triển khai (self-managed) trên Google Colab
++**Tech stack bắt buộc (đề xuất sửa CR-005):** Next.js, NestJS, PostgreSQL; AI runtime self-managed, interface `/v1/infer`, có đường cài đặt local CPU; GPU cloud/Colab chỉ là profile tùy chọn. **Không coi CPU đã đạt performance/quality gate.**
+ 
+ ---
+@@ -160,9 +161,9 @@
+     |                        |
+     v                        v
+-PostgreSQL               AI Service
++PostgreSQL             FastAPI Adapter
+                              |
+                              v
+-                      Google Colab
+-                      AI Model Runtime
++                       AI Runtime
++                    CPU local / GPU tùy chọn
+ ```
+ 
+@@ -296,7 +297,10 @@
+ ### AI Runtime
+ - mô hình AI do dự án tự triển khai và quản lý runtime/inference (self-managed);
+-- chạy trên Google Colab;
+-- phải được expose dưới dạng API/endpoint để NestJS có thể gọi;
+-- SRS không khóa vào một model cụ thể; model được chọn sau benchmark trên Google Colab theo các tiêu chí AI-REQ-020.
++- có đường cài đặt local CPU không phụ thuộc tài khoản cloud cá nhân; có thể triển khai profile GPU để tăng tốc;
++- expose endpoint tương thích AI Contract v1.0 qua FastAPI adapter để NestJS gọi `POST /v1/infer`;
++- chưa khóa một model production cụ thể; mọi model/runtime profile cần evidence riêng. Phase 1D.3-Lite đã được duyệt cho **demo candidate** T4 FP16, không chứng nhận hiệu năng Ollama CPU hoặc capacity profile.
++
++### Bàn giao / tái cài đặt (đề xuất CR-005)
++Sản phẩm bàn giao phải cung cấp mã nguồn, migrations/seed PostgreSQL, cấu hình và hướng dẫn chạy Next.js/NestJS, mã nguồn AI adapter, registry/prompt/schema theo release hợp lệ, cùng manifest model, checksum/digest và script/Compose khi đã triển khai thực sự. Người đánh giá không phải dựa vào tài khoản Google Cloud cá nhân của nhóm. Trạng thái cài đặt thành công và trạng thái inference đạt yêu cầu phải được báo cáo **riêng**; không hiển thị output ghi sẵn như kết quả AI vừa sinh.
+ 
+ ## 2.6. Design and Implementation Constraints
+@@ -312,5 +316,5 @@
+ 
+ ### CON-04
+-AI của MVP phải có khả năng chạy trong Google Colab.
++AI Runtime của MVP phải tự quản lý (self-managed), độc lập với nhà cung cấp cloud và có đường cài đặt lại được trên laptop không có GPU. Môi trường cài đặt ưu tiên gồm FastAPI Adapter + Ollama CPU; GPU là lựa chọn tùy chọn. Đường cài đặt CPU không đồng nghĩa mọi inference đều đáp ứng 60 giây; ví dụ benchmark exploratory SP-02 (10 Topic) chưa đạt và không được xem là đã chứng nhận; các giới hạn phải được kiểm thử và công khai, không bypass AI capacity preflight.
+ 
+ ### CON-05
+@@ -347,5 +351,5 @@
+ 
+ ### AS-03
+-AI phụ thuộc vào phiên Google Colab và endpoint đang hoạt động.
++AI phụ thuộc vào sự sẵn sàng của runtime được cấu hình (local CPU hoặc GPU tùy chọn), model và endpoint adapter đang hoạt động.
+ 
+ ### AS-04
+@@ -353,5 +357,5 @@
+ 
+ ### AS-05
+-Model AI được chọn sau benchmark trên Google Colab và phải hỗ trợ tối thiểu:
++Model AI được đánh giá theo từng deployment profile, giữ benchmark/acceptance tương ứng theo AI Contract và Demo Acceptance Supplement; model cần hỗ trợ tối thiểu:
+ - phân tích;
+ - tóm tắt;
+@@ -399,5 +403,5 @@
+    - lưu dữ liệu nghiệp vụ.
+ 
+-5. **AI Runtime trên Google Colab**
++5. **AI Runtime self-managed (CPU-local ưu tiên; GPU tùy chọn)**
+    - phân tích dữ liệu do backend cung cấp;
+    - trả structured output.
+@@ -1590,5 +1594,5 @@
+ - connection error;
+ - timeout;
+-- Colab runtime unavailable;
++- AI runtime unavailable;
+ - invalid response;
+ - empty response;
+@@ -1614,5 +1618,5 @@
+ 
+ ### AI-REQ-020
+-AI model chạy trên Google Colab phải được expose qua một API endpoint mà NestJS truy cập được. SRS không khóa vào một model cụ thể; model được chọn sau benchmark trên Colab và phải đáp ứng các yêu cầu tác vụ/structured output của tài liệu này.
++AI Runtime self-managed phải được truy cập từ NestJS qua endpoint `POST /v1/infer` và contractVersion `1.0`. FastAPI Adapter có thể gọi Ollama CPU local hoặc GPU inference engine được cấu hình. Việc chọn/đổi model và capacity profile phải có evidence tương ứng, không tự coi smoke demo T4 FP16 là chứng nhận CPU-only.
+ 
+ ### AI-REQ-021
+@@ -1620,5 +1624,5 @@
+ 
+ ### AI-REQ-022
+-Không được giả định phiên Google Colab luôn hoạt động. Nếu runtime bị ngắt hoặc endpoint không truy cập được, hệ thống phải đánh dấu chức năng AI là tạm thời không khả dụng và không làm gián đoạn các chức năng không phụ thuộc AI.
++Không được giả định AI Runtime luôn hoạt động. Nếu adapter, Ollama/model hoặc GPU endpoint không truy cập được, hệ thống phải đánh dấu chức năng AI là tạm thời không khả dụng, không làm gián đoạn các chức năng không phụ thuộc AI và giữ nguyên error/log semantics đã duyệt.
+ 
+ ### AI-REQ-023
+@@ -2194,5 +2198,5 @@
+ 
+ ### AI-INT-006
+-AI endpoint có thể thay đổi theo phiên Colab; cách cấu hình URL phải nằm ở environment/configuration, không hard-code vào business logic.
++AI endpoint thay đổi theo deployment profile; base URL phải được cấu hình trong backend environment/configuration, không hard-code trong business logic.
+ 
+ ### AI-INT-007
+@@ -2249,5 +2253,5 @@
+ 
+ ### NFR-PERF-005
+-Ngưỡng 2 giây không áp dụng cho AI inference chạy trên Google Colab; AI được kiểm soát bằng timeout 60 giây.
++Ngưỡng 2 giây không áp dụng cho AI inference ở bất kỳ deployment profile nào; mỗi external AI attempt vẫn chịu timeout tối đa 60 giây theo AI Contract hiện hành.
+ 
+ ## 9.3. Reliability
+@@ -2270,5 +2274,5 @@
+ Hệ thống phải báo rõ khi chức năng AI tạm thời không khả dụng.
+ 
+-Không đặt yêu cầu availability production cho Google Colab vì môi trường này được dùng cho MVP/demo.
++Không đặt SLA availability production cho local CPU hoặc GPU demo; AI không khả dụng phải được xử lý theo NFR-AVL-001/002 và error mapping hiện hành.
+ 
+ ## 9.5. Usability
+@@ -2600,6 +2604,6 @@
+ **Trạng thái:** Đã chốt ở mức SRS
+ 
+-SRS **không khóa vào một model cụ thể**. Model sẽ được chọn sau khi benchmark trên Google Colab. Model được chọn phải:
+-- chạy được với tài nguyên Colab sử dụng cho đồ án;
++SRS **không khóa vào một model production cụ thể**. Model/runtime profile cần có evidence cho môi trường triển khai thực tế; cấu hình CPU-local là mục tiêu cài đặt ưu tiên nhưng chưa đạt full performance gate. Model được chọn phải:
++- chạy được trên tài nguyên của deployment profile tương ứng và được kiểm tra theo scope acceptance hợp lệ;
+ - hỗ trợ phân tích, tóm tắt, nhóm vấn đề, recommendation và sinh StudyPlan;
+ - trả structured output đủ ổn định;
+@@ -2612,5 +2616,5 @@
+ **Trạng thái:** Đã chốt
+ 
+-Google Colab được xem là môi trường AI phục vụ phát triển/demo, không phải hạ tầng production có availability đảm bảo. Khi runtime bị ngắt hoặc endpoint unavailable:
++Môi trường local CPU và GPU tùy chọn đều có thể unavailable và chưa có SLA production. Khi runtime bị ngắt hoặc endpoint unavailable:
+ - chức năng AI báo tạm không khả dụng;
+ - không làm mất dữ liệu;
+@@ -3126,8 +3130,11 @@
+ | 1.5 Baseline | 21/10/2026 | Thực hiện CR-001: bổ sung FR-TEA-008/FR-ADM-007 cho lịch sử phân tích AI; chốt OD-45/OD-46, BR-045/BR-046, UI-REQ-009/UI-REQ-010; giữ history read-only, snapshot-based và không phát sinh AI call |
+ | 1.6 Baseline Final | 26/10/2026 | Thực hiện CR-002: khóa public semantics `422 AI_INPUT_TOO_LARGE` và `502 AI_RUNTIME_FAILURE`; capacity-profile preflight; no-truncation/no-hidden-chunking; logging semantics trước/sau dispatch; đồng bộ baseline R3 cho AI Contract v1.0 |
++| 1.7 Draft Candidate | 07/11/2026 | Chủ dự án đồng ý định hướng runtime local CPU + GPU tùy chọn; change set CR-005; chưa release; giữ nguyên timeout 60 giây, các yêu cầu capacity và các hạn chế CPU chưa đạt benchmark |
+ 
+ ---
+ 
+ # Kết luận
++
++Bản 1.7 là DRAFT CANDIDATE của SRS, chưa thay thế bản R3 v1.6 đã freeze.
+ 
+ SRS này xác định một MVP tập trung vào ba vai trò có giá trị rõ ràng:
+@@ -3150,5 +3157,5 @@
+ AI API / Endpoint
+    ↓
+-Self-managed AI Model trên Google Colab
++Self-managed AI Model (local CPU / GPU tùy chọn)
+ ```
+ 

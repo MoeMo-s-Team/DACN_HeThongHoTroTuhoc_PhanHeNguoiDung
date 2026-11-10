@@ -1,0 +1,109 @@
+[
+  {
+    "name": "missing-required",
+    "data": {
+      "weakTopics": [
+        {
+          "topicId": "topic_1",
+          "reason": "The backend marked this topic as weak."
+        }
+      ],
+      "progressIssues": [
+        {
+          "studentId": "student_1",
+          "description": "Progress is below the expected level."
+        }
+      ],
+      "attentionGroups": [
+        {
+          "title": "Foundational review",
+          "studentIds": [
+            "student_1"
+          ],
+          "description": "Students with attention signals."
+        }
+      ],
+      "recommendations": [
+        {
+          "title": "Review foundational topics",
+          "description": "Organize a short practice session."
+        }
+      ]
+    },
+    "keyword": "required",
+    "instancePath": "",
+    "missingProperty": "summary"
+  },
+  {
+    "name": "wrong-root-type",
+    "data": {
+      "summary": [],
+      "weakTopics": [
+        {
+          "topicId": "topic_1",
+          "reason": "The backend marked this topic as weak."
+        }
+      ],
+      "progressIssues": [
+        {
+          "studentId": "student_1",
+          "description": "Progress is below the expected level."
+        }
+      ],
+      "attentionGroups": [
+        {
+          "title": "Foundational review",
+          "studentIds": [
+            "student_1"
+          ],
+          "description": "Students with attention signals."
+        }
+      ],
+      "recommendations": [
+        {
+          "title": "Review foundational topics",
+          "description": "Organize a short practice session."
+        }
+      ]
+    },
+    "keyword": "type",
+    "instancePath": "/summary"
+  },
+  {
+    "name": "unknown-root-property",
+    "data": {
+      "summary": "The class needs support with foundational topics.",
+      "weakTopics": [
+        {
+          "topicId": "topic_1",
+          "reason": "The backend marked this topic as weak."
+        }
+      ],
+      "progressIssues": [
+        {
+          "studentId": "student_1",
+          "description": "Progress is below the expected level."
+        }
+      ],
+      "attentionGroups": [
+        {
+          "title": "Foundational review",
+          "studentIds": [
+            "student_1"
+          ],
+          "description": "Students with attention signals."
+        }
+      ],
+      "recommendations": [
+        {
+          "title": "Review foundational topics",
+          "description": "Organize a short practice session."
+        }
+      ],
+      "xCandidateUnknown": true
+    },
+    "keyword": "additionalProperties",
+    "instancePath": "",
+    "additionalProperty": "xCandidateUnknown"
+  }
+]

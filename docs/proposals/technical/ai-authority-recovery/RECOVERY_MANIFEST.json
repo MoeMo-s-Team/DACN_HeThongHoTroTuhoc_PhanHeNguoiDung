@@ -1,0 +1,32 @@
+[
+  {
+    "file": "AI_Contract_v1.0_baseline_final.md",
+    "size_bytes": 68587,
+    "sha256_recovery_only": "44c6bc2f0f6d01a6590d216237d4eb7b5ffc02a0783ffe6fd271178a4c8d4056",
+    "provenance": "conversation-upload original bytes; official publisher digest not independently verified"
+  },
+  {
+    "file": "AI_Contract_v1.0_Erratum_2_approved.md",
+    "size_bytes": 3718,
+    "sha256_recovery_only": "c13bcf1a2117316bc3da2d77c049ba61e0efca3032f14838316d828e3a3b377b",
+    "provenance": "text extraction from Project Library; appended terminal newline; raw original byte equality unverified"
+  },
+  {
+    "file": "CR-004_Runtime_Generated_Output_Failure_Policy_approved.md",
+    "size_bytes": 7626,
+    "sha256_recovery_only": "cce63f819f42f54257f6a8eeb8ad62f1cfd30b398ab92a15c50447b3cc735eb1",
+    "provenance": "text extraction from Project Library; appended terminal newline; raw original byte equality unverified"
+  },
+  {
+    "file": "Document_Governance_and_Traceability_Index_v1.5.md",
+    "size_bytes": 4870,
+    "sha256_recovery_only": "a153f235f8e0366fdb513c6f454d76542bebd2ab16508bc68b70f0fddddbc8bc",
+    "provenance": "text extraction from Project Library; appended terminal newline; raw original byte equality unverified"
+  },
+  {
+    "file": "Phase_1D3_Demo_Acceptance_Supplement.md",
+    "size_bytes": 4321,
+    "sha256_recovery_only": "b66c4d1558d4287590cf7e2ac23176d0d6ef38216fb332289fca2c60795686be",
+    "provenance": "text extraction from Project Library; appended terminal newline; raw original byte equality unverified"
+  }
+]

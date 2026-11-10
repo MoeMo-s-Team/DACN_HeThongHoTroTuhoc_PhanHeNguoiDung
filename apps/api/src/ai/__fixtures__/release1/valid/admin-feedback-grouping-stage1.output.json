@@ -1,0 +1,11 @@
+{
+  "issueGroups": [
+    {
+      "title": "Main action visibility",
+      "summary": "Users report difficulty finding the main action.",
+      "feedbackIds": [
+        "feedback_1"
+      ]
+    }
+  ]
+}

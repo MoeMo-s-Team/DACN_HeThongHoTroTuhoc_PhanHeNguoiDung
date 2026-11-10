@@ -1,0 +1,35 @@
+{
+  "title": "Candidate QA (not a formal cross-document or clean-install audit)",
+  "decision_scope": "Owner endorsed portability direction, CR release pending",
+  "source": "Project Library text extraction, not verified source bytes",
+  "srs_source_lines": 3157,
+  "arch_source_lines": 2118,
+  "srs_candidate_lines": 3164,
+  "arch_candidate_lines": 2130,
+  "checks": {
+    "srs_contains_timeout_60": true,
+    "arch_contains_timeout_60": true,
+    "srs_retains_CON_04": true,
+    "srs_retains_6_task_logic": true,
+    "arch_uses_adapter": true,
+    "arch_has_open_arch_003": true,
+    "srs_revision_pending": true,
+    "arch_revision_pending": true,
+    "srs_has_no_obligatory_colab": true,
+    "arch_has_no_obligatory_colab": true,
+    "srs_retains_prior_cr002_history": true,
+    "arch_retains_prior_approval_history": true,
+    "no_model_certification_claim": true
+  },
+  "remaining_colab_mentions": {
+    "srs": 1,
+    "architecture": 1
+  },
+  "release_blockers": [
+    "source byte equality not verified",
+    "formal CR-005 ID + approval pending",
+    "full cross-document review pending",
+    "clean install + real AI CPU 60sec not certified",
+    "capacity profile per runtime not released"
+  ]
+}

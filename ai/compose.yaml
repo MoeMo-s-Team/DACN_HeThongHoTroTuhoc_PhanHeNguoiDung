@@ -1,0 +1,32 @@
+services:
+  ollama:
+    image: ollama/ollama:0.40.15
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  runtime:
+    build:
+      context: ..
+      dockerfile: ai/Dockerfile
+    environment:
+      AI_RUNTIME_TOKEN: ${AI_RUNTIME_TOKEN:?Set AI_RUNTIME_TOKEN in .env}
+      AI_MODEL_MANIFEST: /app/model-manifest.json
+      OLLAMA_BASE_URL: http://ollama:11434
+    ports:
+      - "127.0.0.1:${AI_RUNTIME_PORT:-8001}:8001"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  ollama-models:
