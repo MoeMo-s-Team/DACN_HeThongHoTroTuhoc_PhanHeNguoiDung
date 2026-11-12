@@ -21,10 +21,12 @@ function generate(directory) {
   execFileSync('pnpm', ['--filter', '@dacn/api', 'exec', 'tsx', 'scripts/generate-openapi.ts', openapi], {
     cwd: root,
     stdio: 'inherit',
+    shell: true,
   });
   execFileSync('pnpm', ['exec', 'openapi-typescript', openapi, '--output', types], {
     cwd: root,
     stdio: 'inherit',
+    shell: true,
   });
   return { openapi, types };
 }

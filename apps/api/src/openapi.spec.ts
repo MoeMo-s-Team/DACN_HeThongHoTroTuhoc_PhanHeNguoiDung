@@ -144,6 +144,25 @@ describe('OpenAPI auth contract', () => {
     }
   });
 
+  it('generates all six Teacher Phase 1 contracts with bearer security and frozen response types', () => {
+    const routes = [
+      ['/api/v1/teacher/classes', 'get', 'TeacherClassesResponseDto'],
+      ['/api/v1/teacher/classes/{classId}/dashboard', 'get', 'ClassDashboardResponseDto'],
+      ['/api/v1/teacher/classes/{classId}/students', 'get', 'ClassStudentsResponseDto'],
+      ['/api/v1/teacher/classes/{classId}/students/{studentId}', 'get', 'StudentDetailResponseDto'],
+      ['/api/v1/teacher/classes/{classId}/analysis-reports', 'get', 'TeacherHistoryResponseDto'],
+      ['/api/v1/teacher/classes/{classId}/analysis-reports/{reportId}', 'get', 'TeacherHistoryDetailDto'],
+    ] as const;
+    for (const source of [document, generatedDocument]) {
+      for (const [path, method, responseType] of routes) {
+        const operation = source.paths[path]?.[method];
+        expect(operation?.security).toEqual([{ bearerAuth: [] }]);
+        expect(responseSchema(operation?.responses['200'])).toEqual({ $ref: `#/components/schemas/${responseType}` });
+        for (const status of ['401', '403', '500']) expect(responseSchema(operation?.responses[status])).toEqual({ $ref: '#/components/schemas/ApiErrorResponseDto' });
+      }
+    }
+  });
+
   it('documents Administrator pagination, filters and reusable stored snapshot schemas', () => {
     for (const source of [document, generatedDocument]) {
       const parameters = source.paths['/api/v1/admin/feedback']?.get?.parameters?.filter((parameter) => 'name' in parameter) ?? [];

@@ -693,6 +693,474 @@
         ]
       }
     },
+    "/api/v1/teacher/classes": {
+      "get": {
+        "operationId": "TeacherController_getClasses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherClassesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/classes/{classId}/dashboard": {
+      "get": {
+        "operationId": "TeacherController_getDashboard",
+        "parameters": [
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassDashboardResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/classes/{classId}/students": {
+      "get": {
+        "operationId": "TeacherController_getStudents",
+        "parameters": [
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassStudentsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/classes/{classId}/students/{studentId}": {
+      "get": {
+        "operationId": "TeacherController_getStudentDetail",
+        "parameters": [
+          {
+            "name": "studentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/classes/{classId}/analysis-reports": {
+      "get": {
+        "operationId": "TeacherController_listReports",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHistoryResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/classes/{classId}/analysis-reports/{reportId}": {
+      "get": {
+        "operationId": "TeacherController_getReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHistoryDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
     "/api/v1/admin/dashboard": {
       "get": {
         "operationId": "AdminController_getDashboard",
@@ -1837,6 +2305,423 @@
           "progress"
         ]
       },
+      "TeacherClassItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "TeacherClassesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherClassItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ClassBriefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "TopicBriefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "TopicAverageScoreDto": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "$ref": "#/components/schemas/TopicBriefDto"
+          },
+          "averageScore": {
+            "type": "number"
+          },
+          "weakTopic": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "topic",
+          "averageScore",
+          "weakTopic"
+        ]
+      },
+      "NeedsAttentionStudentDto": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "reasons": {
+            "example": [
+              "AVERAGE_SCORE_BELOW_60",
+              "OVERDUE_TASKS_AT_LEAST_2"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "studentId",
+          "fullName",
+          "reasons"
+        ]
+      },
+      "ProgressWarningStudentDto": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "actualProgress": {
+            "type": "number",
+            "example": 40
+          },
+          "expectedProgress": {
+            "type": "number",
+            "example": 70
+          }
+        },
+        "required": [
+          "studentId",
+          "fullName",
+          "actualProgress",
+          "expectedProgress"
+        ]
+      },
+      "ClassDashboardResponseDto": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "$ref": "#/components/schemas/ClassBriefDto"
+          },
+          "studentCount": {
+            "type": "number"
+          },
+          "classAverageScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "topicAverageScores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopicAverageScoreDto"
+            }
+          },
+          "classCompletionRate": {
+            "type": "number",
+            "nullable": true
+          },
+          "overdueTaskCount": {
+            "type": "number"
+          },
+          "needsAttentionStudents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NeedsAttentionStudentDto"
+            }
+          },
+          "progressWarnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgressWarningStudentDto"
+            }
+          }
+        },
+        "required": [
+          "class",
+          "studentCount",
+          "classAverageScore",
+          "topicAverageScores",
+          "classCompletionRate",
+          "overdueTaskCount",
+          "needsAttentionStudents",
+          "progressWarnings"
+        ]
+      },
+      "StudentBriefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName"
+        ]
+      },
+      "ClassStudentItemDto": {
+        "type": "object",
+        "properties": {
+          "student": {
+            "$ref": "#/components/schemas/StudentBriefDto"
+          },
+          "averageScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "completionRate": {
+            "type": "number",
+            "nullable": true
+          },
+          "overdueTaskCount": {
+            "type": "number"
+          },
+          "needsAttention": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "student",
+          "averageScore",
+          "completionRate",
+          "overdueTaskCount",
+          "needsAttention"
+        ]
+      },
+      "ClassStudentsResponseDto": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "$ref": "#/components/schemas/ClassBriefDto"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClassStudentItemDto"
+            }
+          }
+        },
+        "required": [
+          "class",
+          "items"
+        ]
+      },
+      "StudentAssessmentResultItemDto": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "$ref": "#/components/schemas/TopicBriefDto"
+          },
+          "score": {
+            "type": "number"
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "GOOD",
+              "NEEDS_REINFORCEMENT",
+              "PRIORITY"
+            ]
+          },
+          "evaluatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "topic",
+          "score",
+          "classification",
+          "evaluatedAt"
+        ]
+      },
+      "StudentMetricsDto": {
+        "type": "object",
+        "properties": {
+          "averageScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "completionRate": {
+            "type": "number",
+            "nullable": true
+          },
+          "overdueTaskCount": {
+            "type": "number"
+          },
+          "actualProgress": {
+            "type": "number",
+            "nullable": true
+          },
+          "expectedProgress": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "averageScore",
+          "completionRate",
+          "overdueTaskCount",
+          "actualProgress",
+          "expectedProgress"
+        ]
+      },
+      "StudentDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "student": {
+            "$ref": "#/components/schemas/StudentBriefDto"
+          },
+          "assessmentResults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentAssessmentResultItemDto"
+            }
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/StudentMetricsDto"
+          }
+        },
+        "required": [
+          "student",
+          "assessmentResults",
+          "metrics"
+        ]
+      },
+      "TeacherHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "classId",
+          "createdAt",
+          "summary"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "TeacherHistoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherHistoryItemDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "items",
+          "meta"
+        ]
+      },
+      "TeacherHistoryDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "inputSnapshot": {
+            "type": "object"
+          },
+          "analysisResult": {
+            "type": "object"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "classId",
+          "inputSnapshot",
+          "analysisResult",
+          "createdAt"
+        ]
+      },
       "UsersByRoleDto": {
         "type": "object",
         "properties": {
@@ -1917,29 +2802,6 @@
           "email",
           "role",
           "status"
-        ]
-      },
-      "PaginationMetaDto": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "number"
-          },
-          "limit": {
-            "type": "number"
-          },
-          "total": {
-            "type": "number"
-          },
-          "totalPages": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "page",
-          "limit",
-          "total",
-          "totalPages"
         ]
       },
       "AdminUsersResponseDto": {
