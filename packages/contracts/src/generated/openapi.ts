@@ -148,6 +148,102 @@ export interface paths {
         patch: operations["StudentTasksController_updateStatus"];
         trace?: never;
     };
+    "/api/v1/teacher/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeacherController_getClasses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teacher/classes/{classId}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeacherController_getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teacher/classes/{classId}/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeacherController_getStudents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teacher/classes/{classId}/students/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeacherController_getStudentDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teacher/classes/{classId}/analysis-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeacherController_listReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teacher/classes/{classId}/analysis-reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeacherController_getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/dashboard": {
         parameters: {
             query?: never;
@@ -393,6 +489,115 @@ export interface components {
             planStatus: "ACTIVE" | "COMPLETED";
             progress: components["schemas"]["ProgressViewDto"];
         };
+        TeacherClassItemDto: {
+            id: string;
+            name: string;
+        };
+        TeacherClassesResponseDto: {
+            items: components["schemas"]["TeacherClassItemDto"][];
+        };
+        ClassBriefDto: {
+            id: string;
+            name: string;
+        };
+        TopicBriefDto: {
+            id: string;
+            name: string;
+        };
+        TopicAverageScoreDto: {
+            topic: components["schemas"]["TopicBriefDto"];
+            averageScore: number;
+            weakTopic: boolean;
+        };
+        NeedsAttentionStudentDto: {
+            studentId: string;
+            fullName: string;
+            /**
+             * @example [
+             *       "AVERAGE_SCORE_BELOW_60",
+             *       "OVERDUE_TASKS_AT_LEAST_2"
+             *     ]
+             */
+            reasons: string[];
+        };
+        ProgressWarningStudentDto: {
+            studentId: string;
+            fullName: string;
+            /** @example 40 */
+            actualProgress: number;
+            /** @example 70 */
+            expectedProgress: number;
+        };
+        ClassDashboardResponseDto: {
+            class: components["schemas"]["ClassBriefDto"];
+            studentCount: number;
+            classAverageScore: number | null;
+            topicAverageScores: components["schemas"]["TopicAverageScoreDto"][];
+            classCompletionRate: number | null;
+            overdueTaskCount: number;
+            needsAttentionStudents: components["schemas"]["NeedsAttentionStudentDto"][];
+            progressWarnings: components["schemas"]["ProgressWarningStudentDto"][];
+        };
+        StudentBriefDto: {
+            id: string;
+            fullName: string;
+        };
+        ClassStudentItemDto: {
+            student: components["schemas"]["StudentBriefDto"];
+            averageScore: number | null;
+            completionRate: number | null;
+            overdueTaskCount: number;
+            needsAttention: boolean;
+        };
+        ClassStudentsResponseDto: {
+            class: components["schemas"]["ClassBriefDto"];
+            items: components["schemas"]["ClassStudentItemDto"][];
+        };
+        StudentAssessmentResultItemDto: {
+            topic: components["schemas"]["TopicBriefDto"];
+            score: number;
+            /** @enum {string} */
+            classification: "GOOD" | "NEEDS_REINFORCEMENT" | "PRIORITY";
+            /** Format: date-time */
+            evaluatedAt: string;
+        };
+        StudentMetricsDto: {
+            averageScore: number | null;
+            completionRate: number | null;
+            overdueTaskCount: number;
+            actualProgress: number | null;
+            expectedProgress: number | null;
+        };
+        StudentDetailResponseDto: {
+            student: components["schemas"]["StudentBriefDto"];
+            assessmentResults: components["schemas"]["StudentAssessmentResultItemDto"][];
+            metrics: components["schemas"]["StudentMetricsDto"];
+        };
+        TeacherHistoryItemDto: {
+            id: string;
+            classId: string;
+            /** Format: date-time */
+            createdAt: string;
+            summary: string | null;
+        };
+        PaginationMetaDto: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
+        TeacherHistoryResponseDto: {
+            items: components["schemas"]["TeacherHistoryItemDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        TeacherHistoryDetailDto: {
+            id: string;
+            classId: string;
+            inputSnapshot: Record<string, never>;
+            analysisResult: Record<string, never>;
+            /** Format: date-time */
+            createdAt: string;
+        };
         UsersByRoleDto: {
             STUDENT: number;
             TEACHER: number;
@@ -413,12 +618,6 @@ export interface components {
             role: "STUDENT" | "TEACHER" | "ADMINISTRATOR";
             /** @enum {string} */
             status: "ACTIVE" | "DISABLED";
-        };
-        PaginationMetaDto: {
-            page: number;
-            limit: number;
-            total: number;
-            totalPages: number;
         };
         AdminUsersResponseDto: {
             items: components["schemas"]["AdminUserDto"][];
@@ -1149,6 +1348,319 @@ export interface operations {
                      *       "details": null
                      *     }
                      */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    TeacherController_getClasses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherClassesResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    TeacherController_getDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassDashboardResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    TeacherController_getStudents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassStudentsResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    TeacherController_getStudentDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDetailResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    TeacherController_listReports: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHistoryResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    TeacherController_getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reportId: string;
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHistoryDetailDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["ApiErrorResponseDto"];
                 };
             };

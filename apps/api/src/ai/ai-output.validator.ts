@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
@@ -22,6 +22,14 @@ const RELEASED_SCHEMA_FILES = [
   'teacher-class-analysis.output.schema.json',
 ].sort();
 
+function defaultSchemaDirectory(): string {
+  const distDir = join(__dirname, 'schemas', 'release1');
+  if (existsSync(distDir)) return distDir;
+  const srcDir = join(__dirname, '..', '..', '..', 'src', 'ai', 'schemas', 'release1');
+  if (existsSync(srcDir)) return srcDir;
+  return distDir;
+}
+
 type ValidationIssue = { path: string; keyword: string };
 export type AiOutputValidation =
   | { valid: true }
@@ -31,7 +39,7 @@ export class AiOutputValidator {
   private readonly validators = new Map<string, ReturnType<Ajv2020['compile']>>();
   private readonly ajv: Ajv2020;
 
-  constructor(schemaDirectory = join(__dirname, 'schemas', 'release1')) {
+  constructor(schemaDirectory = defaultSchemaDirectory()) {
     this.ajv = new Ajv2020({
       strict: true,
       allErrors: true,
@@ -94,5 +102,4 @@ export class AiOutputValidator {
     if (failure) return { valid: false, code: failure.code, issues: [], reason: failure.reason };
     return { valid: true };
   }
-
 }
