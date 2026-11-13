@@ -84,7 +84,7 @@ export class StudyPlanApplyService {
       await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "temporary_contexts" WHERE "opaque_ref" = ${request.planPreviewRef} FOR UPDATE`;
       const context = await tx.temporaryContext.findUnique({ where: { opaqueRef: request.planPreviewRef } });
       if (!context || context.ownerUserId !== user.id || context.resourceKey !== user.id || context.contextType !== ContextType.STUDY_PLAN_PREVIEW) throw contextInvalid();
-      await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "users" WHERE "id" = ${user.id} FOR UPDATE`;
+      await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE`;
       const payload = context.payload as unknown as StoredPreview;
       const normalized = applyEdits(payload.preview, request, context.status === ContextStatus.CONSUMED ? new Date(0) : new Date());
       const requestFingerprint = fingerprint(normalized);

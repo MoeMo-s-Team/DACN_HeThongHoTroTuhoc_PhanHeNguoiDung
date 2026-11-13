@@ -92,7 +92,7 @@ export class StudyPlanAdjustmentService {
       await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "temporary_contexts" WHERE "opaque_ref" = ${request.adjustmentRef} FOR UPDATE`;
       const context = await tx.temporaryContext.findUnique({ where: { opaqueRef: request.adjustmentRef } });
       if (!context || context.ownerUserId !== user.id || context.contextType !== ContextType.STUDY_PLAN_ADJUSTMENT) throw invalidContext();
-      await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "users" WHERE "id" = ${user.id} FOR UPDATE`;
+      await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE`;
       const payload = context.payload as unknown as StoredAdjustment;
       if (context.status === ContextStatus.CONSUMED) {
         if (!context.replayResult) throw invalidContext();

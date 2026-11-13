@@ -1,0 +1,253 @@
+{
+  "reportVersion": "1.0",
+  "status": "INCOMPLETE_FIRST_TIMEOUT_STOPPED",
+  "startedAt": "2026-11-13T01:16:03.917Z",
+  "host": {
+    "platform": "linux 7.0.0-42-generic",
+    "cpuModel": "12th Gen Intel(R) Core(TM) i7-1265U",
+    "logicalCpuCount": 12,
+    "totalMemoryBytes": 16434315264
+  },
+  "contractVersion": "1.0",
+  "manifest": {
+    "modelName": "qwen2.5:1.5b",
+    "modelDigest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+    "options": {
+      "temperature": 0,
+      "top_p": 1,
+      "num_ctx": 32768,
+      "num_predict": -1
+    },
+    "sha256": "6b34c3f3c852fb3a3613a94659778ba9873251c1a0e3fcfb86ae4fe0e2c90579",
+    "tokenizerId": "UNVERIFIED",
+    "tokenizerMethod": "UNVERIFIED"
+  },
+  "binding": {
+    "runtimeImageId": "sha256:442c8cfc3305cbc672012a1df0db6b8fdcefa60e0894d418bf90a62b209bc012",
+    "ollamaVersion": "ollama version is 0.40.15",
+    "sourceSha256": {
+      "ai/app/main.py": "27b1be98c6403879f71413d19df3b4832824fb1b4e090cb92435267c4e98fb26",
+      "ai/app/config.py": "acbf877f93c99cc3389e33444b07f069976256d205271ca3f31b9738ce9a91cb",
+      "ai/app/tasks/registry.py": "ce53cf21dbf4c495f89df7504dd967b29830edbf8cc79a9962ed315c9e570edc",
+      "deployment/model-manifest.json": "6b34c3f3c852fb3a3613a94659778ba9873251c1a0e3fcfb86ae4fe0e2c90579"
+    },
+    "runtimeModelId": "qwen2.5:1.5b@sha256:65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b"
+  },
+  "fixtureSet": {
+    "STUDENT_LEARNING_ANALYSIS": "c4fda1b096b1ef9e59fd984d13a79a964cb214fa17cc53533d78e34ec0442b1c",
+    "STUDENT_STUDY_PLAN_GENERATION": "5994b2bac95df0e16c1cdc3d73aac6a14363e2f235a9debdc29988d011a4890a",
+    "STUDENT_STUDY_PLAN_ADJUSTMENT": "286cbcf5e0ab702907ffa42e5193f4d5a34c01074b9a11673551436b50bdc9bf"
+  },
+  "capacityProfile": {
+    "status": "BLOCKED_PENDING_TOKENIZER_AND_OWNER_APPROVAL",
+    "contextWindowTokens": 32768,
+    "reservedOutputTokens": -1,
+    "promptAndSchemaOverheadTokens": null,
+    "inputSafetyMarginTokens": null,
+    "capacityFixtureStatus": "STRESS_CASES_PRESENT_BUT_NEAR_BUDGET_CANNOT_BE_PROVEN_WITHOUT_TOKENIZER_AND_BUDGET"
+  },
+  "tasks": {
+    "STUDENT_LEARNING_ANALYSIS": {
+      "promptVersion": "stu-learning-analysis-v1",
+      "metrics": {
+        "caseCount": 11,
+        "timeoutViolations": 1,
+        "outputSchemaPassRate": 0.9090909090909091,
+        "semanticPassRate": 0.9090909090909091,
+        "referenceBoundaryViolations": 0,
+        "referenceBoundaryEvaluations": 10,
+        "hardBoundaryViolations": 0,
+        "hardBoundaryReviews": 0,
+        "manualQualityMean": null
+      },
+      "checks": {
+        "timeout": false,
+        "schema": false,
+        "semantics": false,
+        "references": false,
+        "manualQuality": false,
+        "hardBoundaryReview": false
+      },
+      "status": "UNVERIFIED_OR_FAIL",
+      "cases": [
+        {
+          "fixtureId": "student_learning_analysis-normal-01",
+          "fixtureKind": "normal",
+          "requestId": "a5579b6a-e637-474d-bf74-aa205a80b28e",
+          "elapsedMs": 18663,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-02",
+          "fixtureKind": "normal",
+          "requestId": "608346f3-a660-4de4-8ba3-d44ddc9692ef",
+          "elapsedMs": 13505,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-03",
+          "fixtureKind": "normal",
+          "requestId": "4bd00e5b-eeed-4d44-88de-73887f6d6a26",
+          "elapsedMs": 17757,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-04",
+          "fixtureKind": "normal",
+          "requestId": "2cec005c-5550-4fb5-814a-0a9e2423a40b",
+          "elapsedMs": 13169,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-05",
+          "fixtureKind": "normal",
+          "requestId": "3d204eb8-5f59-4a14-8019-30d20d9c6e75",
+          "elapsedMs": 18498,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-06",
+          "fixtureKind": "normal",
+          "requestId": "c7ec6936-cef7-4f0a-a6ec-6686991600a0",
+          "elapsedMs": 13541,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-07",
+          "fixtureKind": "normal",
+          "requestId": "39fb5abf-7124-4714-b3ea-da961964da07",
+          "elapsedMs": 13809,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-08",
+          "fixtureKind": "normal",
+          "requestId": "a3cfb340-860b-4593-b118-af44578c1824",
+          "elapsedMs": 14512,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-09",
+          "fixtureKind": "normal",
+          "requestId": "1329a139-e0f5-4e8b-b7ee-83338f6a064f",
+          "elapsedMs": 13255,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-normal-10",
+          "fixtureKind": "normal",
+          "requestId": "59bbff0e-4d48-4f95-80a4-803937d21fea",
+          "elapsedMs": 15452,
+          "httpStatus": 200,
+          "transportError": null,
+          "envelopeValid": true,
+          "outputSchemaPass": true,
+          "semanticPass": true,
+          "semanticReason": null,
+          "referenceBoundaryViolation": false,
+          "combinedValidatorPass": true,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        },
+        {
+          "fixtureId": "student_learning_analysis-boundary-01",
+          "fixtureKind": "boundary",
+          "requestId": "7d8a959b-fa40-4097-8103-ec366d36bc61",
+          "elapsedMs": 60003,
+          "httpStatus": null,
+          "transportError": "TIMEOUT",
+          "envelopeValid": false,
+          "outputSchemaPass": false,
+          "semanticPass": false,
+          "semanticReason": null,
+          "referenceBoundaryViolation": null,
+          "combinedValidatorPass": false,
+          "hardBoundaryViolation": null,
+          "manualQuality": null
+        }
+      ]
+    }
+  },
+  "finishedAt": "2026-11-13T01:19:36.101Z"
+}

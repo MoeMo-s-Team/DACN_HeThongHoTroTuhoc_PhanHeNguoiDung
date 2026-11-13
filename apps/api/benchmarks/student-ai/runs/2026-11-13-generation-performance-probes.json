@@ -1,0 +1,155 @@
+{
+  "reportVersion": "1.0",
+  "status": "EXPLORATORY_PROBES_ONLY_NOT_CAPACITY_EVIDENCE",
+  "runDate": "2026-11-13",
+  "task": "STUDENT_STUDY_PLAN_GENERATION",
+  "contractVersion": "1.0",
+  "model": {
+    "name": "qwen2.5:1.5b",
+    "digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+    "quantization": "Q4_K_M",
+    "ollamaVersion": "0.40.15"
+  },
+  "host": {
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U",
+    "logicalCpuCount": 12,
+    "physicalCoreCount": 10,
+    "memoryBytes": 16434315264,
+    "gpu": "Intel(R) Iris(R) Xe Graphics (ADL GT2)",
+    "gpuDriver": "i915; Vulkan 0.0"
+  },
+  "method": {
+    "fixtures": "Official buildStudentAiBenchmarkFixtures; normal-01 and boundary-02",
+    "prompt": "Built using the exact FastAPI app.main._prompt and Release 1 output schema",
+    "transport": "Direct Ollama /api/generate diagnostic; not the NestJS/FastAPI benchmark path",
+    "timeoutSeconds": 60,
+    "retries": 0,
+    "temperature": 0,
+    "schemaOrInputChanges": false,
+    "productionManifestChanged": false
+  },
+  "officialCpuBenchmark": {
+    "report": "2026-11-13-cpu-qwen2.5-1.5b-full.json",
+    "fixtureSetSha256": "5994b2bac95df0e16c1cdc3d73aac6a14363e2f235a9debdc29988d011a4890a",
+    "caseCount": 20,
+    "timeouts": 17,
+    "schemaPassRate": 0.15,
+    "semanticPassRate": 0.15,
+    "referenceBoundaryViolations": 0,
+    "dispatchProfile": "CPU only; no capacity certification"
+  },
+  "measurements": [
+    {
+      "profile": "cpu-default-num_ctx-32768-num_thread-default",
+      "fixture": "student_study_plan_generation-normal-01",
+      "topics": 3,
+      "promptTokens": 734,
+      "elapsedMs": 33549,
+      "loadMs": 2043,
+      "promptEvalMs": 8635,
+      "outputTokens": 457,
+      "evalMs": 22836,
+      "evalTokensPerSecond": 20.01,
+      "httpStatus": 200,
+      "outputIsJsonObject": true,
+      "validatorResult": "Not evaluated in this diagnostic"
+    },
+    {
+      "profile": "cpu-default-num_ctx-32768-num_thread-default",
+      "fixture": "student_study_plan_generation-boundary-02",
+      "topics": 24,
+      "promptTokensFromOllamaLog": 1968,
+      "elapsedMs": 60000,
+      "status": "TIMEOUT",
+      "finalOutputTokens": null,
+      "reason": "stream=false response had no final Ollama statistics on timeout"
+    },
+    {
+      "profile": "intel-iris-xe-vulkan-num_ctx-32768",
+      "fixture": "student_study_plan_generation-normal-01",
+      "topics": 3,
+      "promptTokens": 734,
+      "elapsedMs": 27293,
+      "loadMs": 0.644,
+      "promptEvalMs": 1165,
+      "outputTokens": 472,
+      "evalMs": 26079,
+      "evalTokensPerSecond": 18.1,
+      "httpStatus": 200,
+      "outputTaskCount": 3,
+      "outputIsJsonObject": true,
+      "validatorResult": "Not evaluated in this diagnostic"
+    },
+    {
+      "profile": "intel-iris-xe-vulkan-num_ctx-32768",
+      "fixture": "student_study_plan_generation-boundary-02",
+      "topics": 24,
+      "promptTokensFromOllamaLog": 1968,
+      "elapsedMs": 60000,
+      "status": "TIMEOUT",
+      "approxOutputTokensFromOllamaProgressLog": 464,
+      "decodeTokensPerSecondFromOllamaProgressLog": 17.08,
+      "finalOutputTokens": null
+    },
+    {
+      "profile": "intel-iris-xe-vulkan-num_ctx-8192",
+      "fixture": "student_study_plan_generation-boundary-02",
+      "topics": 24,
+      "promptTokensFromOllamaLog": 1968,
+      "elapsedMs": 60000,
+      "status": "TIMEOUT",
+      "approxOutputTokensFromOllamaProgressLog": 515,
+      "decodeTokensPerSecondFromOllamaProgressLog": 17.26,
+      "kvCacheMiB": 224,
+      "finalOutputTokens": null
+    },
+    {
+      "profile": "cpu-default-num_ctx-32768-num_thread-default-warm",
+      "fixture": "student_study_plan_generation-normal-01",
+      "topics": 3,
+      "promptTokens": 734,
+      "elapsedMs": 27418,
+      "loadMs": 0.683,
+      "promptEvalMs": 47.8,
+      "outputTokens": 484,
+      "evalMs": 27324,
+      "evalTokensPerSecond": 17.71,
+      "httpStatus": 200,
+      "outputIsJsonObject": true
+    },
+    {
+      "profile": "cpu-num_thread-10-num_ctx-32768",
+      "fixture": "student_study_plan_generation-normal-01",
+      "topics": 3,
+      "elapsedMs": 60000,
+      "status": "TIMEOUT",
+      "configuredThreads": 10,
+      "ollamaStartedThreads": 10,
+      "note": "Same input/profile except num_thread; no final stats returned"
+    },
+    {
+      "profile": "cpu-num_thread-4-num_ctx-32768",
+      "fixture": "student_study_plan_generation-normal-01",
+      "topics": 3,
+      "elapsedMs": 60000,
+      "status": "TIMEOUT",
+      "configuredThreads": 4,
+      "ollamaStartedThreads": 4,
+      "note": "Same input/profile except num_thread; no final stats returned"
+    }
+  ],
+  "interpretation": [
+    "Default CPU runner reported n_threads=2 despite 12 available logical CPUs and no Docker CPU quota; requesting 4 or 10 threads did not improve the same 3-topic fixture and timed out.",
+    "Intel Iris Xe was initially dropped by Ollama until OLLAMA_IGPU_ENABLE=1; after enabled, Ollama confirmed 29/29 layers on Vulkan GPU. The 3-topic sample remained about the same latency as warm CPU, and the 24-topic fixture still timed out.",
+    "Reducing num_ctx from 32768 to 8192 reduced Vulkan KV cache from 896 MiB to 224 MiB but did not make the 24-topic fixture complete within 60 seconds.",
+    "The strongest verified bottleneck is decode time and variable output length on this local model/hardware. num_predict=-1 supplies no output bound; the timed-out non-streaming calls cannot report their final generated token count. No safe finite output cap is established by the schema or quality evidence."
+  ],
+  "decision": "No CPU/GPU option is adopted. All candidate probes remain unapproved and do not change preflight or the production manifest.",
+  "profileGatesStillOpen": [
+    "All six AI tasks rather than Student-only scope",
+    "20 official fixtures/task through the full runtime path for each candidate profile",
+    "NestJS validator, semantic/reference checks, manual Vietnamese quality and hard-boundary review",
+    "Verified tokenizer/estimator, reserved output budget, prompt/schema overhead and safety margin",
+    "Capacity-profile owner approval and exact binding before dispatch"
+  ]
+}

@@ -20,6 +20,48 @@
 - Lint, typecheck, OpenAPI contract check, baseline hash verification, build, and diff whitespace checks PASS. Nest CLI dev now copies AI schemas into the compiled runtime path so the E2E API can start.
 - TP-001 records the frozen-schema conflict between contract-valid fractional normalized minutes and the current Prisma `Int` StudyPlan column. Until approved and implemented, claims must be limited to minute-exact inputs for Generation Apply.
 
+## Follow-up plan — real-runtime evidence and Apply safety (2026-11-13)
+
+**Authorization:** The Project Owner explicitly requests a real FastAPI/Ollama benchmark for the three Student task keys, PostgreSQL concurrency tests, and a TP-001 review. This authorizes preparing/running benchmark evidence and tests; it does not approve a capacity profile, change TP-001, or open production dispatch. Keep `assertAiCapacityProfileAvailable` fail-closed.
+
+### Task 15 — Student real-runtime benchmark harness and evidence
+
+**Files:** `apps/api/scripts/benchmark-student-ai.ts`, `apps/api/package.json`, benchmark fixtures/results under `apps/api/benchmarks/student-ai/`, and this plan.
+
+- Send synthetic, versioned input fixtures directly to the configured FastAPI `/v1/infer` using the backend-only runtime token; never call Nest production inference or disable its preflight. Preserve one request per fixture and a hard 60-second deadline with no retry.
+- Run at least 20 fixtures per Student task (at least 10 normal, 10 boundary/adversarial). Validate each input against the released input schema before dispatch; invalid fixtures are harness errors and must be fixed before the run. Compile the released input/output schemas with the project's Ajv 2020 dependency so input-schema, output-schema and semantic results have separate pass/fail outcomes. Use the registered `getAiTaskDefinition(task).validateSemantics(input, output)` for Nest-equivalent task semantics, and the existing `AiOutputValidator` as a final combined acceptance cross-check. Record timeout, transport/HTTP failure, malformed envelope, output-schema pass, semantic pass, reference-boundary pass, and manual quality separately. Every rate denominator is the total number of valid planned cases actually run for that task; failed dispatch/output cases remain failures in schema/semantic rates. Require timeout violations 0%, schema pass >=95%, semantic pass >=95%, reference-boundary violations 0%, and each task's mean five-dimension manual score >=4/5. At exactly 20 cases this means at least 19 schema and semantic passes. Include measured latency/result for all cases. Do not change §17 thresholds.
+- For each output, record five separate 1..5 scores from §17.2 and a separate hard-boundary finding flag for prohibited inference, unsupported official-tag/authoritative-metric changes, invented references, or AI-implied mutation. Any hard-boundary violation fails that fixture regardless of its average manual score; the per-task hard-boundary violation rate must be zero.
+- Bind evidence to what is serving: record `deployment/model-manifest.json` and its hash; compare the full model digest against Ollama `/api/tags`; compare returned `runtime.modelId`/promptVersion to the manifest/Nest registry; record runtime image ID and verify in-container SHA-256 for the active manifest, FastAPI prompt/registry source and generation-option code against the benchmarked checkout. A tag/response match alone does not prove serving-source identity. Record host OS/CPU/RAM, Ollama image/version, generation options, fixture-set hash, and run timestamp. Do not infer tokenizer identity: use an independently verified tokenizer ID/method or mark it UNVERIFIED and the capacity profile BLOCKED. Record `contextWindowTokens`, output reserve, prompt/schema overhead and safety margin only when evidenced; never derive them from smoke output.
+- Write sanitized per-case metadata/results. Synthetic fixture content is non-user data; keep raw model output out of the default report. A separately named, opt-in local capture may be used for human rubric scoring and must not be committed or sent to production logs.
+- Produce an explicitly **UNAPPROVED / PARTIAL SCOPE** report for the three Student tasks. Contract §17.1 requires all six task keys for model selection, plus manual five-dimension Vietnamese quality scores >=4/5 for each task and capacity-boundary/preflight evidence. Do not manufacture missing scores, infer tokenizer identity, label a smoke/partial run certified, or load report values into production config.
+- If the endpoint is unreachable or lacks exact immutable model/prompt/tokenizer evidence, mark the run BLOCKED/UNVERIFIED and list missing evidence. If measured gates fail, preserve failures and recommend a technical option without lowering thresholds.
+
+### Task 16 — Resolve TP-001 proposal without changing frozen behavior
+
+**Files:** `docs/proposals/technical/TP-001-study-plan-available-minutes-precision.md` only.
+
+- Review API/BR/schema/model types. Recommend PostgreSQL `DOUBLE PRECISION` / Prisma `Float` if it round-trips the accepted JavaScript number semantics; migration is integer-to-double with explicit preservation of all existing integer values and rollback path. Document any representational limits and test inputs including sub-minute, fractional, and large valid values.
+- Keep the proposal DRAFT/PENDING HUMAN REVIEW. Do not edit Prisma schema, migration, OpenAPI/baseline, or runtime code until the Project Owner approves the specific storage representation.
+
+### Task 17 — Verify PostgreSQL Apply/Adjustment concurrency
+
+**Files:** add a dedicated integration spec under `apps/api/test/` and register it with the existing integration runner; use uniquely owned fixtures and cleanup scoped to those IDs.
+
+- Against real PostgreSQL, issue two simultaneous applies of the same open generation preview with the same normalized payload. Assert one plan/task set is created, the preview is consumed once, and both callers receive the same result (one may be replay).
+- Issue simultaneous applies of that reference with different normalized edit payloads. Assert one mutation only; the second response is the stored replay for equivalent fingerprint or frozen `409 CONTEXT_ALREADY_CONSUMED` for a different fingerprint.
+- Force the first generation Apply to fail after an existing plan would have been archived (for example, an out-of-range persisted task integer). Assert the whole transaction rolls back and context remains OPEN, then repair only the synthetic preview and verify a valid retry succeeds.
+- Issue simultaneous independent generation applies for one Student. Assert no 500/unexpected result, exactly one current plan remains, and any replaced plan is archived with its tasks preserved.
+- Issue two simultaneous applies of the same adjustment preview. Assert the TODO task mutation is applied once, the context is consumed once, and replay result matches persisted tasks. Include an apply racing a competing task status/update; stale apply must not partially mutate the full adjustment set or consume context.
+- Use explicit synchronization barriers around requests/transactions where needed to prove overlap rather than only making sequential calls. Also retain sequential retry/idempotency assertions for deterministic API semantics.
+- No mocks for DB transactions/row locks in these integration cases. Run only against the configured dedicated integration database; never reset an unverified database.
+
+### Execution and exit conditions
+
+1. Fresh read-only Plan Review must approve this material plan revision before code changes.
+2. Implement Tasks 15 and 17 test-first; update Task 16 proposal as documentation only.
+3. Run focused tests, PostgreSQL integration, unit suite, lint, typecheck, contracts, baseline verification, build, and E2E where the configured dedicated DB is safe. Report each result separately.
+4. Real benchmark PASS requires exact reproducible runtime binding and every applicable §17 threshold. Overall model selection/profile remains blocked until all six tasks and manual quality/capacity boundary evidence pass and the Project Owner approves the release. No code path may enable dispatch based only on benchmark artifacts.
+
 ## Gate before code
 
 Do not start code until the user authorizes the specific task. R3 remains frozen and is supplemented only by released downstream authority in `docs/implementation/releases/CR-005/` and `docs/implementation/releases/CR-006/`. Public errors follow API v1.5 plus CR-006's narrow persistence exception. CR-005/ADR-AI-001 portability authority is released; Task 4B still needs a real approved capacity profile. Never use Drafts as authority or fabricate a profile. CR-006 does not authorize Task 5 implementation, and CR-005 does not authorize Task 7 implementation.
