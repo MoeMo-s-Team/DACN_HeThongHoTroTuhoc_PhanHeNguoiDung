@@ -75,10 +75,9 @@ export function StudentProgress() {
           <p className="text-sm font-bold uppercase tracking-widest">Cảnh báo chậm tiến độ</p>
           <h2 className="mt-2 text-xl font-bold">Tiến độ thực tế đang thấp hơn tiến độ dự kiến.</h2>
           <p className="mt-2">Thực tế {metrics.actualProgress.toFixed(1)}% · Dự kiến {metrics.expectedProgress.toFixed(1)}%</p>
-          <button type="button" disabled aria-describedby="ai-adjustment-status" className="mt-4 min-h-11 cursor-not-allowed border border-ink bg-white px-4 py-2 font-semibold opacity-60">
+          <Link href="/sinh-vien/ke-hoach-hoc-tap/dieu-chinh" className="mt-4 inline-flex min-h-11 items-center border border-ink bg-white px-4 py-2 font-semibold hover:bg-teal hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2">
             Điều chỉnh bằng AI
-          </button>
-          <p id="ai-adjustment-status" className="mt-2 text-sm">Chức năng điều chỉnh bằng AI chưa được triển khai.</p>
+          </Link>
         </section>}
       </div>}
     </section>

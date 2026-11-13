@@ -111,3 +111,8 @@ Các tài liệu baseline trong `docs/baseline/` là nguồn yêu cầu đóng b
 
 
 
+
+
+
+
+codex resume 01a1c378-839e-7c32-89fd-6865b18d714f

@@ -148,6 +148,102 @@ export interface paths {
         patch: operations["StudentTasksController_updateStatus"];
         trace?: never;
     };
+    "/api/v1/student/study-plans/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StudyPlanGenerationController_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/study-plans/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StudyPlanApplyController_getCurrent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/study-plans/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StudyPlanApplyController_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/ai/learning-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StudentLearningAnalysisController_analyze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/study-plan-adjustments/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StudyPlanAdjustmentController_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/study-plan-adjustments/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StudyPlanAdjustmentController_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/dashboard": {
         parameters: {
             query?: never;
@@ -392,6 +488,104 @@ export interface components {
             /** @enum {string} */
             planStatus: "ACTIVE" | "COMPLETED";
             progress: components["schemas"]["ProgressViewDto"];
+        };
+        StudyPlanPreviewTaskDto: {
+            previewTaskId: string;
+            topic: Record<string, never>;
+            title: string;
+            goal: string;
+            expectedMinutes: number;
+            /** Format: date-time */
+            dueDate: string;
+            /** @enum {string} */
+            priority: "LOW" | "MEDIUM" | "HIGH";
+            reason: string | null;
+        };
+        StudyPlanPreviewDto: {
+            planTitle: string;
+            goal: string;
+            availableMinutesPerWeek: number;
+            /** Format: date-time */
+            targetDeadline: string;
+            tasks: components["schemas"]["StudyPlanPreviewTaskDto"][];
+        };
+        GenerateStudyPlanResponseDto: {
+            planPreviewRef: string;
+            /** Format: date-time */
+            expiresAt: string;
+            preview: components["schemas"]["StudyPlanPreviewDto"];
+        };
+        CurrentStudyPlanDto: {
+            id: string;
+            title: string;
+            goal: string;
+            availableMinutesPerWeek: number;
+            /** Format: date-time */
+            startDate: string;
+            /** Format: date-time */
+            endDate: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "COMPLETED";
+        };
+        AppliedStudyTaskDto: {
+            id: string;
+            topic: Record<string, never>;
+            title: string;
+            goal: string;
+            expectedMinutes: number;
+            /** Format: date-time */
+            dueDate: string;
+            /** @enum {string} */
+            priority: "LOW" | "MEDIUM" | "HIGH";
+            /** @enum {string} */
+            status: "TODO" | "COMPLETED";
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        CurrentStudyPlanResponseDto: {
+            plan: components["schemas"]["CurrentStudyPlanDto"] | null;
+            tasks: components["schemas"]["AppliedStudyTaskDto"][];
+        };
+        AppliedStudyPlanDto: {
+            id: string;
+            title: string;
+            goal: string;
+            availableMinutesPerWeek: number;
+            /** Format: date-time */
+            startDate: string;
+            /** Format: date-time */
+            endDate: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "COMPLETED";
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ApplyStudyPlanResponseDto: {
+            replayed: boolean;
+            plan: components["schemas"]["AppliedStudyPlanDto"];
+            tasks: components["schemas"]["AppliedStudyTaskDto"][];
+        };
+        StudentPriorityTopicDto: {
+            topicId: string;
+            topicName: string;
+            reason: string;
+        };
+        StudentLearningAnalysisResponseDto: {
+            strengths: string[];
+            areasToImprove: string[];
+            priorityTopics: components["schemas"]["StudentPriorityTopicDto"][];
+            reasons: string[];
+        };
+        GenerateStudyPlanAdjustmentResponseDto: {
+            adjustmentRef: string;
+            /** Format: date-time */
+            expiresAt: string;
+            preview: Record<string, never>;
+        };
+        ApplyStudyPlanAdjustmentResponseDto: {
+            replayed: boolean;
+            updatedTasks: Record<string, never>[];
+            progress: Record<string, never>;
         };
         UsersByRoleDto: {
             STUDENT: number;
@@ -1149,6 +1343,253 @@ export interface operations {
                      *       "details": null
                      *     }
                      */
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StudyPlanGenerationController_generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateStudyPlanResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StudyPlanApplyController_getCurrent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentStudyPlanResponseDto"];
+                };
+            };
+            /** @description Invalid or missing access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Student role or ownership check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StudyPlanApplyController_apply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Idempotent replay of an earlier successful apply. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyStudyPlanResponseDto"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyStudyPlanResponseDto"];
+                };
+            };
+            /** @description Invalid or missing access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Student role or ownership check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StudentLearningAnalysisController_analyze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentLearningAnalysisResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StudyPlanAdjustmentController_generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateStudyPlanAdjustmentResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StudyPlanAdjustmentController_apply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyStudyPlanAdjustmentResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["ApiErrorResponseDto"];
                 };
             };

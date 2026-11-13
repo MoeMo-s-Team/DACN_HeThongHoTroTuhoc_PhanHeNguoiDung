@@ -72,15 +72,12 @@ describe('StudentProgress', () => {
     expect(apiRequest).toHaveBeenCalledWith('/student/progress');
   });
 
-  it('shows the AI adjustment CTA disabled with an explanation and no navigation target', async () => {
+  it('links the slow-progress warning to the AI adjustment screen', async () => {
     vi.mocked(apiRequest).mockResolvedValue(progress);
     renderProgress();
 
-    const button = await screen.findByRole('button', { name: 'Điều chỉnh bằng AI' });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute('aria-describedby', 'ai-adjustment-status');
-    expect(screen.getByText('Chức năng điều chỉnh bằng AI chưa được triển khai.')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Điều chỉnh bằng AI' })).not.toBeInTheDocument();
+    const link = await screen.findByRole('link', { name: 'Điều chỉnh bằng AI' });
+    expect(link).toHaveAttribute('href', '/sinh-vien/ke-hoach-hoc-tap/dieu-chinh');
   });
 
   it('shows zero progress for a current plan with no tasks and no warning', async () => {

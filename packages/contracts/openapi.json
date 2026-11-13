@@ -693,6 +693,304 @@
         ]
       }
     },
+    "/api/v1/student/study-plans/generate": {
+      "post": {
+        "operationId": "StudyPlanGenerationController_generate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateStudyPlanResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-plans/current": {
+      "get": {
+        "operationId": "StudyPlanApplyController_getCurrent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStudyPlanResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing access token."
+          },
+          "403": {
+            "description": "Student role or ownership check failed."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-plans/apply": {
+      "post": {
+        "operationId": "StudyPlanApplyController_apply",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Idempotent replay of an earlier successful apply.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyStudyPlanResponseDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyStudyPlanResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing access token."
+          },
+          "403": {
+            "description": "Student role or ownership check failed."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/ai/learning-analysis": {
+      "post": {
+        "operationId": "StudentLearningAnalysisController_analyze",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentLearningAnalysisResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-plan-adjustments/generate": {
+      "post": {
+        "operationId": "StudyPlanAdjustmentController_generate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateStudyPlanAdjustmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/study-plan-adjustments/apply": {
+      "post": {
+        "operationId": "StudyPlanAdjustmentController_apply",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyStudyPlanAdjustmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "student"
+        ]
+      }
+    },
     "/api/v1/admin/dashboard": {
       "get": {
         "operationId": "AdminController_getDashboard",
@@ -1834,6 +2132,387 @@
         "required": [
           "task",
           "planStatus",
+          "progress"
+        ]
+      },
+      "StudyPlanPreviewTaskDto": {
+        "type": "object",
+        "properties": {
+          "previewTaskId": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "expectedMinutes": {
+            "type": "number"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "previewTaskId",
+          "topic",
+          "title",
+          "goal",
+          "expectedMinutes",
+          "dueDate",
+          "priority",
+          "reason"
+        ]
+      },
+      "StudyPlanPreviewDto": {
+        "type": "object",
+        "properties": {
+          "planTitle": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "availableMinutesPerWeek": {
+            "type": "number"
+          },
+          "targetDeadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyPlanPreviewTaskDto"
+            }
+          }
+        },
+        "required": [
+          "planTitle",
+          "goal",
+          "availableMinutesPerWeek",
+          "targetDeadline",
+          "tasks"
+        ]
+      },
+      "GenerateStudyPlanResponseDto": {
+        "type": "object",
+        "properties": {
+          "planPreviewRef": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/StudyPlanPreviewDto"
+          }
+        },
+        "required": [
+          "planPreviewRef",
+          "expiresAt",
+          "preview"
+        ]
+      },
+      "CurrentStudyPlanDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "availableMinutesPerWeek": {
+            "type": "number"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "goal",
+          "availableMinutesPerWeek",
+          "startDate",
+          "endDate",
+          "status"
+        ]
+      },
+      "AppliedStudyTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "expectedMinutes": {
+            "type": "number"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "COMPLETED"
+            ]
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "title",
+          "goal",
+          "expectedMinutes",
+          "dueDate",
+          "priority",
+          "status",
+          "completedAt"
+        ]
+      },
+      "CurrentStudyPlanResponseDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CurrentStudyPlanDto"
+              }
+            ]
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppliedStudyTaskDto"
+            }
+          }
+        },
+        "required": [
+          "plan",
+          "tasks"
+        ]
+      },
+      "AppliedStudyPlanDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "availableMinutesPerWeek": {
+            "type": "number"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "goal",
+          "availableMinutesPerWeek",
+          "startDate",
+          "endDate",
+          "status",
+          "createdAt"
+        ]
+      },
+      "ApplyStudyPlanResponseDto": {
+        "type": "object",
+        "properties": {
+          "replayed": {
+            "type": "boolean"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/AppliedStudyPlanDto"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppliedStudyTaskDto"
+            }
+          }
+        },
+        "required": [
+          "replayed",
+          "plan",
+          "tasks"
+        ]
+      },
+      "StudentPriorityTopicDto": {
+        "type": "object",
+        "properties": {
+          "topicId": {
+            "type": "string"
+          },
+          "topicName": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicId",
+          "topicName",
+          "reason"
+        ]
+      },
+      "StudentLearningAnalysisResponseDto": {
+        "type": "object",
+        "properties": {
+          "strengths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "areasToImprove": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priorityTopics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentPriorityTopicDto"
+            }
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "strengths",
+          "areasToImprove",
+          "priorityTopics",
+          "reasons"
+        ]
+      },
+      "GenerateStudyPlanAdjustmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "adjustmentRef": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preview": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "adjustmentRef",
+          "expiresAt",
+          "preview"
+        ]
+      },
+      "ApplyStudyPlanAdjustmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "replayed": {
+            "type": "boolean"
+          },
+          "updatedTasks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "progress": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "replayed",
+          "updatedTasks",
           "progress"
         ]
       },

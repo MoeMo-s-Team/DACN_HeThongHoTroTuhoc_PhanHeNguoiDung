@@ -1,8 +1,24 @@
 # Phase 2B — AI Foundation Implementation Plan
 
-**Status:** Tasks 1–4A PASS in this checkout. CR-006 v1.0/addendum and CR-005 v1.0, ADR-AI-001 v0.2, SRS v1.7, Architecture v1.2 and the portability supplement are released downstream authorities (2026-11-09). This revision requires a fresh read-only Plan Review before any still-gated task proceeds and separate explicit task authorization. No implementation is authorized by this document. Installability and dispatch-enabled capacity profiles remain separate gates.
+**Status:** Tasks 1–4A PASS in this checkout. CR-006 v1.0/addendum and CR-005 v1.0, ADR-AI-001 v0.2, SRS v1.7, Architecture v1.2 and the portability supplement are released downstream authorities (2026-11-09). On 2026-11-10, the Project Owner explicitly authorized implementation of Tasks 5–10 and the Student Learning Analysis/Adjustment tasks below, with StudyPlan Generation → Apply prioritized. This material revision requires a fresh read-only Plan Review before code execution. Authorization does not approve capacity, mark installability/conformance complete, or enable dispatch. Missing/unapproved profiles remain fail-closed.
 **Design:** [AI Foundation Design](../specs/2026-11-07-ai-foundation-design.md); [Runtime Portability Design](../specs/2026-11-07-ai-runtime-portability-design.md)
-**Scope:** Shared AI foundation, then Student StudyPlan generation preview and confirmed apply. No other role workflow in this plan.
+**Scope:** Shared AI foundation and all three Student AI flows: Learning Analysis, StudyPlan generation preview and confirmed apply, and StudyPlan adjustment preview and confirmed apply. Generation → Apply is the first product slice. No other role workflow is included.
+
+## Three-day delivery order
+
+1. **Day 1 — Foundation + Generation → Apply:** finish/reverify Task 5; implement Gateway/service code behind the unchanged fail-closed preflight, then Generation/Apply API and isolated tests. No real inference runs while Task 4B is blocked.
+2. **Day 2 — Runtime installability + Student UI:** finish Task 7 installability work without claiming capacity, connect the plan UI through NestJS, and implement Analysis and Adjustment API/UI slices behind the same closed gate.
+3. **Day 3 — Evidence + enablement decision:** run isolated DB/API integration, mock-runtime product E2E, lint/typecheck/build, then real Ollama conformance if hardware/time is available. Enable dispatch only after an exact profile passes the released gate and is approved; otherwise leave AI endpoints fail-closed and report UNVERIFIED.
+
+**Capacity status at plan revision:** UNVERIFIED. Real HTTP 200 smoke calls and `AiOutputValidator` success prove protocol/schema behavior for those samples only; they do not satisfy AI Contract §17 or release a capacity profile.
+
+## Implementation checkpoint — 2026-11-10
+
+- The Project Owner authorized implementation of Tasks 5–10 and 12–13, with Generation → Apply first. The implementation is present in this checkout behind the unchanged fail-closed capacity preflight.
+- Task 4B remains BLOCKED: no exact approved capacity profile is available. Task 7 deployment/installability and actual Ollama inference from the Student UI have not been verified here. No real inference was dispatched from the Student UI.
+- Unit/UI tests: 24 API suites / 168 tests and 19 Web suites / 93 tests PASS. PostgreSQL integration: 8 suites / 56 tests PASS on `dacn_test`. Playwright: 11/11 PASS on the dedicated `dacn_phase2a_e2e` database; the three new Student AI UI flows stub HTTP only inside E2E. Default `dacn_test` E2E setup remains blocked by stale AssessmentResult fixture IDs referring to the wrong Student/Topic; that database was not reset.
+- Lint, typecheck, OpenAPI contract check, baseline hash verification, build, and diff whitespace checks PASS. Nest CLI dev now copies AI schemas into the compiled runtime path so the E2E API can start.
+- TP-001 records the frozen-schema conflict between contract-valid fractional normalized minutes and the current Prisma `Int` StudyPlan column. Until approved and implemented, claims must be limited to minute-exact inputs for Generation Apply.
 
 ## Gate before code
 
@@ -10,11 +26,11 @@ Do not start code until the user authorizes the specific task. R3 remains frozen
 
 ## Work order and dependencies
 
-Each task is one reviewable implementation slice. Use TDD for behavior: add the focused failing test, implement the smallest change, then rerun it. Do not add tests from this plan or modify code during Phase 2B itself; those belong to approved execution of these tasks.
+Each task is one reviewable implementation slice. After this revision passes the fresh Plan Review, use TDD for behavior: add the focused failing test, implement the smallest change, then rerun it. The current owner message authorizes the listed implementation tasks; it does not authorize bypassing profile/installability gates.
 
 ### Task 1 — Close the contract and runtime authority gate (**current result: PASS; runtime sub-gates remain open**)
 
-**Depends on:** none. This gate must pass before Tasks 2–11. CR-005/ADR portability approval is now released; an approved capacity profile and task-specific authorization remain additional gates where specified below.
+**Depends on:** none. This gate must pass before implementation Tasks 2–10 and 12–14. CR-005/ADR portability approval is released; an approved capacity profile remains a separate dispatch gate.
 
 - **1.1 Inventory:** compare recovery copies with official release paths in Git history; record frozen baseline and source release commits. Keep recovery files non-authoritative.
 - **1.2 Verify versions and provenance:** compare Contract hash to the schema release validation record; verify Schema Pack, Erratum 1, CR-003, Erratum 2 and CR-004 against official `SHA256SUMS`/sidecars. Record governance-index and Phase 1D.3 supplement checksum limitations.
@@ -103,7 +119,7 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 ### Task 6 — Implement the NestJS AiGateway transport
 
-**Depends on:** Tasks 2–5, Task 4B, CR-006 v1.0, and the released CR-005/ADR-AI-001 runtime authority. **Files:** `apps/api/src/ai/ai.gateway.ts`, `apps/api/src/ai/ai.service.ts`, their specs and module wiring.
+**Depends on:** Tasks 2, 3, 4A, 5, CR-006 v1.0, and released CR-005/ADR-AI-001 runtime authority. Gateway/service code may be implemented behind `assertAiCapacityProfileAvailable()`; Task 4B is required before real dispatch and remains blocked. **Files:** `apps/api/src/ai/ai.gateway.ts`, `apps/api/src/ai/ai.service.ts`, specs and module wiring.
 
 - Send only the released v1.0 envelope to configured FastAPI `/v1/infer`; propagate correlation per contract; no business logic in gateway.
 - Enforce a hard 60-second deadline per actual external attempt, no automatic retry, and exact error translation. Capture attempt timestamp immediately before dispatch. Validate the runtime envelope before task-schema/semantic validation.
@@ -113,7 +129,7 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 **Tests:** `pnpm --filter @dacn/api test -- ai.gateway.spec.ts ai.service.spec.ts`.
 
-**Acceptance:** every dispatch has at most one outbound request, at most 60 seconds, and valid output still must pass Nest validator.
+**Acceptance:** while no approved profile exists, every service call is rejected before HTTP transport and log creation. Once Task 4B is approved, transport is limited to one outbound request of at most 60 seconds and valid output must pass Nest validation.
 
 ### Task 7 — Build FastAPI `/v1/infer` adapter and Ollama profiles (**fresh Plan Review and separate implementation authorization required**)
 
@@ -132,7 +148,7 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 ### Task 8 — Implement Student StudyPlan generation preview API
 
-**Depends on:** Tasks 3–6, Task 7 Installability implementation gate, Task 5 PASS under CR-006, and Task 4B's approved capacity profile. CR-005/ADR portability authority is released; capacity-profile approval remains independent. **Files:** `apps/api/src/student/study-plan-generation.controller.ts`, `study-plan-generation.service.ts`, DTO files, `apps/api/src/student/student.module.ts`, unit/controller specs, OpenAPI source/contract outputs.
+**Depends on:** Tasks 3, 4A, 5, 6 and Task 7's `/v1/infer` source contract/interface. Runtime clean-install acceptance is separately required before release; real inference remains blocked on Task 4B capacity approval and Task 7 installability. API may be wired while preflight remains closed. **Files:** `apps/api/src/student/study-plan-generation.controller.ts`, `study-plan-generation.service.ts`, DTO files, `apps/api/src/student/student.module.ts`, unit/controller specs, OpenAPI source/contract outputs.
 
 - Implement frozen `POST /api/v1/student/study-plans/generate` and `GET /api/v1/student/study-plans/current` semantics from API Spec and approved schemas. Reuse existing `StudyContextService` validation and dashboard/assessment data access where applicable; current-plan read supports saved result after apply/reload.
 - Check active Student identity, owned data, generation eligibility and required source data before calling AI. Prepare minimized canonical input and exact capacity estimate. Validate returned candidate in NestJS; if tasks are missing/empty or all rejected, return frozen `502 AI_INCOMPLETE_DATA` and create no preview. Create owner-bound, expiring `TemporaryContext` preview only after validation.
@@ -170,21 +186,39 @@ Each task is one reviewable implementation slice. Use TDD for behavior: add the 
 
 **Acceptance:** end-to-end UI honors baseline wireframe/API behavior, confirmation is mandatory, and runtime details/secrets remain server-side.
 
-### Task 11 — Verify integration, clean E2E and runtime capacity/conformance
+### Task 14 — Verify integration, clean E2E and runtime capacity/conformance
 
-**Depends on:** Tasks 1–10. **Files:** targeted API integration/E2E/runtime tests and deployment documentation only if needed for reproducibility; do not alter baseline.
+**Depends on:** Tasks 1–10 and 12–13. **Files:** targeted API integration/E2E/runtime tests and deployment documentation only if needed for reproducibility; do not alter baseline.
 
 - Run API integration against a new or verified clean disposable DB by setting `TEST_DATABASE_URL` to a DB identity different from development `DATABASE_URL`; verify target identity before migration/seed. Use the existing guard and migration/seed scripts. Do not run against `dacn`, production, or stale `dacn_test`; do not reset/drop shared databases.
 - Run Student E2E against the same isolated clean DB, with the runtime deterministically stubbed for product-flow checks. Separately run real Ollama CPU/GPU conformance/capacity tests using pinned artifacts for each exact profile: at least 20 fixtures/task, 0% timeout violations, at least 95% schema and semantic pass/task, 0 reference-boundary violations, and manual Vietnamese quality at least 4/5/task, plus required-content and capacity-boundary evidence. Label results as real-runtime evidence and report PASS/FAIL/UNVERIFIED per task/profile.
 - Run gates: `pnpm test:integration`, `TEST_DATABASE_URL=<isolated-clean-db> pnpm test:e2e` (or equivalent existing environment setup), `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm contracts:check`, `pnpm verify:baseline`, `pnpm build`, and Python runtime tests/build checks. Commands that require real model hardware/config must report `UNVERIFIED` rather than being replaced by mocks.
 
-**Acceptance:** Student generate→preview→explicit apply passes with the real Nest business/API path and isolated PostgreSQL; mock-runtime E2E and real-runtime conformance are reported separately; only exact profiles passing the approved §17 criteria and capacity checks may be enabled. No results imply CPU supports all six tasks unless each task passes its required profile/latency criteria.
+**Acceptance:** all three Student flows pass through the real Nest business/API path and isolated PostgreSQL; generation has explicit confirmation before persistence; mock-transport E2E and real-runtime conformance are reported separately; only exact profiles passing approved §17 criteria and capacity checks may be enabled. No results imply CPU supports all six tasks unless each task passes its required profile/latency criteria.
+
+### Task 12 — Implement Student Learning Analysis
+
+**Depends on:** Tasks 3, 4A, 5, 6 and Task 7's `/v1/infer` source contract/interface. API/UI may be wired while preflight remains closed; no analysis endpoint may call runtime until Task 4B releases an exact profile and Task 7 installability passes. **Files:** create `apps/api/src/student/student-learning-analysis.controller.ts`, `student-learning-analysis.service.ts`, DTO/specs; create `apps/web/app/sinh-vien/phan-tich-ai/page.tsx` and `learning-analysis.tsx`, page/UI tests; add `Phân tích AI` to `apps/web/app/sinh-vien/student-navigation.tsx` and entry CTA from results per SCR-STU-004.
+
+- Implement frozen `POST /api/v1/student/ai/learning-analysis`. Reuse latest owned assessment results and optional goal/current-plan progress; reject absent minimum assessment data as `422 INSUFFICIENT_DATA` before AI/logging. Validate output and enrich topic names from backend-owned Topic records. Preserve capacity/runtime errors and return only the API v1.5 response.
+- TDD: test role/ownership, zero AI/log for insufficient assessments, optional goal/progress, topic-reference rejection/enrichment, and validated output only. UI tests cover the Student navigation/results entry, loading, empty/ineligible, capacity/runtime failures, valid rendering, and distinguish AI insights from backend metrics. E2E later exercises NestJS HTTP with mocked transport for deterministic product assertions only.
+
+**Acceptance:** current Student data → NestJS preflight → one validated AI attempt → API response → visible analysis. No provider/runtime request for ineligible input, no unvalidated output retained.
+
+### Task 13 — Implement Student StudyPlan Adjustment
+
+**Depends on:** Tasks 3, 4A, 5, 6 and Task 7's `/v1/infer` source contract/interface. API/UI may be wired while preflight remains closed; no adjustment endpoint may call runtime until Task 4B releases an exact profile and Task 7 installability passes. **Files:** create `apps/api/src/student/study-plan-adjustment.controller.ts`, service/DTO/specs; create `apps/web/app/sinh-vien/ke-hoach-hoc-tap/dieu-chinh/page.tsx` and UI tests; add SCR-STU-008 entry actions from the plan screen and slow-progress warning in `apps/web/app/sinh-vien/tien-do/student-progress.tsx`.
+
+- Implement frozen `POST /api/v1/student/study-plan-adjustments/generate` and `/apply`. Generation reads the owned current plan, backend metrics and TODO tasks; no-plan/past-deadline/no-TODO cases stop before AI/logging. Validate/enrich the proposal and create owner-bound `STUDY_PLAN_ADJUSTMENT` TemporaryContext with opaque ref and 60-minute expiry. Apply requires Student confirmation and revalidates owner, context type/expiry, current plan, all target tasks still TODO, and field bounds; atomically updates the full set, writes replay identity/result and consumes context.
+- TDD: test zero AI/log for ineligible cases, foreign/expired/stale-context rejection, reference and bounds validation, all-or-nothing success, rollback on failure, concurrent apply mutating once, and replay without a second mutation. UI tests cover plan/progress entry actions, preview, Accept/Reject, stale/error/result states, and no auto-retry. API/E2E use mocks only for deterministic transport tests.
+
+**Acceptance:** progress → validated adjustment preview → explicit confirmation → atomic all-or-nothing update, with stale/expired/replayed references following API v1.5.
 
 ## Review gate and stop conditions
 
 1. Have a fresh read-only reviewer compare this plan against the Design Spec, frozen baseline, approved authority and current repo; revise until the plan is approved.
 2. Human reviews/approves the final plan. No code starts before both review gates.
-3. Tasks 1–4A are PASS in this checkout. Task 4B remains blocked until a real benchmarked profile is released. CR-006 resolves terminal-log write-failure disposition; Task 5 and Task 7 each require this fresh plan review to PASS and separate explicit implementation authorization. Task 6 remains gated by Task 4B; Tasks 8–11 depend on Task 5 PASS, capacity/runtime gates and their listed task-specific authorizations. CR-005/ADR is released, but does not itself enable dispatch. Do not guess, bypass preflight or claim readiness.
+3. Tasks 1–4A are PASS in this checkout. The Project Owner's 2026-11-10 message authorizes implementation of Tasks 5–10 and 12–13 after this fresh Plan Review. Task 4B and all external dispatch remain blocked until an exact benchmarked capacity profile is released; Task 7 installability must also be verified before reported complete. Tasks 8–10 and 12–13 may be implemented only behind fail-closed preflight and must not dispatch or claim live AI until Task 4B passes. Task 14 verifies all three flows after 12/13. CR-005/ADR portability authority is released, but does not itself enable dispatch. Do not guess, bypass preflight or claim readiness.
 4. CPU exploratory runs remain non-conformance. CPU application inference requires released portability authority plus a matching benchmarked profile. GPU/Colab evidence is not CPU evidence.
 
 ## Verification for this planning phase
