@@ -3,10 +3,41 @@ import { join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import { AI_TASK_KEYS, AiTaskKey, getAiTaskDefinition } from './ai-task.registry';
-import { buildStudentAiBenchmarkFixtures, summarizeBenchmarkOutcomes } from './student-ai-benchmark.fixtures';
-import { buildInferenceRequest, resolveRuntimeConfig, withInferenceTimeout } from '../../scripts/benchmark-student-ai';
+import { buildStudentAiBenchmarkFixtures, selectStudentBenchmarkRun, summarizeBenchmarkOutcomes } from './student-ai-benchmark.fixtures';
+import { assertServingSourceHashesMatch, buildInferenceRequest, listServingSourceFiles, resolveRuntimeConfig, withInferenceTimeout } from '../../scripts/benchmark-student-ai';
 
 describe('Student AI benchmark fixtures', () => {
+  it('binds engine and all validator schemas to the serving runtime source set', () => {
+    const files = listServingSourceFiles();
+    expect(files).toContainEqual({ checkoutPath: 'ai/app/engine/ollama.py', containerPath: '/app/app/engine/ollama.py' });
+    expect(files).toContainEqual({ checkoutPath: 'ai/app/schemas/release1/student-study-plan-generation.output.schema.json', containerPath: '/app/app/schemas/release1/student-study-plan-generation.output.schema.json' });
+    expect(files.filter(({ checkoutPath }) => checkoutPath.endsWith('.schema.json'))).toHaveLength(15);
+    expect(() => assertServingSourceHashesMatch(['main-hash', 'schema-hash'], ['main-hash', 'changed-schema'])).toThrow(/does not match/);
+  });
+
+  it('defaults to all official Student fixtures and labels a selected fixture as triage only', () => {
+    const full = selectStudentBenchmarkRun([]);
+    expect(full.status).toBe('UNAPPROVED_PARTIAL_SCOPE');
+    expect(full.taskFixtures.map(({ fixtures }) => fixtures.length)).toEqual([20, 20, 20]);
+
+    const generation = selectStudentBenchmarkRun(['--', '--task', 'STUDENT_STUDY_PLAN_GENERATION', '--fixture', 'student_study_plan_generation-boundary-02']);
+    expect(generation).toMatchObject({ status: 'TRIAGE_ONLY' });
+    expect(generation.taskFixtures).toHaveLength(1);
+    expect(generation.taskFixtures[0].fixtures).toHaveLength(1);
+    expect(generation.taskFixtures[0].fixtures[0].input.topics).toHaveLength(24);
+  });
+
+  it.each([
+    [['--fixture', 'student_study_plan_generation-boundary-02'], /requires --task/],
+    [['--task', 'STUDENT_STUDY_PLAN_GENERATION', '--task', 'STUDENT_STUDY_PLAN_GENERATION'], /Duplicate --task/],
+    [['--task', 'STUDENT_STUDY_PLAN_GENERATION', '--fixture', 'missing'], /Unknown benchmark fixture/],
+    [['--task', 'TEACHER_CLASS_ANALYSIS'], /Unknown Student benchmark task/],
+    [['--unknown'], /Unknown benchmark argument/],
+    [['--report=one.json', '--report=two.json'], /Duplicate --report/],
+  ])('rejects invalid selector arguments %j before inference', (args, message) => {
+    expect(() => selectStudentBenchmarkRun(args)).toThrow(message);
+  });
+
   it('builds 20 deterministic inputs per Student task with 10 normal and 10 boundary cases', () => {
     const ajv = new Ajv2020({ strict: true });
     addFormats(ajv);

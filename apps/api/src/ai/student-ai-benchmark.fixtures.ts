@@ -15,6 +15,7 @@ const studentTasks: AiTaskKey[] = [
   'STUDENT_STUDY_PLAN_GENERATION',
   'STUDENT_STUDY_PLAN_ADJUSTMENT',
 ];
+const taskSet = new Set<AiTaskKey>(studentTasks);
 const start = '2026-11-13T00:00:00.000Z';
 const deadline = '2026-12-13T00:00:00.000Z';
 const identifier = (seed: number) => `00000000-0000-4000-8000-${String(seed).padStart(12, '0')}`;
@@ -76,6 +77,59 @@ export function buildStudentAiBenchmarkFixtures(task: AiTaskKey): StudentBenchma
     kind: index < 10 ? 'normal' as const : 'boundary' as const,
     input: inputFor(task, index),
   }));
+}
+
+export function selectStudentBenchmarkRun(args: string[]) {
+  let task: string | undefined;
+  let fixtureId: string | undefined;
+  let reportPath: string | undefined;
+  let capturePath: string | undefined;
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (index === 0 && argument === '--') continue;
+    if (argument.startsWith('--report=') || argument.startsWith('--capture-output=')) {
+      const [option, ...pathParts] = argument.split('=');
+      const path = pathParts.join('=');
+      if (!path) throw new Error(`${option} requires a path`);
+      if (option === '--report') {
+        if (reportPath) throw new Error('Duplicate --report argument');
+        reportPath = path;
+      } else {
+        if (capturePath) throw new Error('Duplicate --capture-output argument');
+        capturePath = path;
+      }
+      continue;
+    }
+    if (argument !== '--task' && argument !== '--fixture') throw new Error(`Unknown benchmark argument: ${argument}`);
+    const value = args[index + 1];
+    if (!value || value.startsWith('--')) throw new Error(`${argument} requires a value`);
+    if (argument === '--task') {
+      if (task) throw new Error('Duplicate --task argument');
+      task = value;
+    } else {
+      if (fixtureId) throw new Error('Duplicate --fixture argument');
+      fixtureId = value;
+    }
+    index += 1;
+  }
+
+  if (fixtureId && !task) throw new Error('--fixture requires --task');
+  if (task && !taskSet.has(task as AiTaskKey)) throw new Error(`Unknown Student benchmark task: ${task}`);
+  const selectedTasks = task ? [task as AiTaskKey] : studentTasks;
+  const taskFixtures = selectedTasks.map((selectedTask) => {
+    const fixtures = buildStudentAiBenchmarkFixtures(selectedTask);
+    if (!fixtureId) return { task: selectedTask, fixtures };
+    const selected = fixtures.filter(({ id }) => id === fixtureId);
+    if (selected.length !== 1) throw new Error(`Unknown benchmark fixture for ${selectedTask}: ${fixtureId}`);
+    return { task: selectedTask, fixtures: selected };
+  });
+
+  return {
+    taskFixtures,
+    status: fixtureId ? 'TRIAGE_ONLY' as const : 'UNAPPROVED_PARTIAL_SCOPE' as const,
+    reportPath,
+    capturePath,
+  };
 }
 
 export function summarizeBenchmarkOutcomes(outcomes: StudentBenchmarkOutcome[]) {

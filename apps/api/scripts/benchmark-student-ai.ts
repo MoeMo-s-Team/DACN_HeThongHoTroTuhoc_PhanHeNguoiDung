@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import os from 'node:os';
 import Ajv2020 from 'ajv/dist/2020';
@@ -8,21 +8,13 @@ import addFormats from 'ajv-formats';
 import dotenv from 'dotenv';
 import { performance } from 'node:perf_hooks';
 import { AiOutputValidator } from '../src/ai/ai-output.validator';
-import { AI_TASK_KEYS, AiTaskKey, getAiTaskDefinition } from '../src/ai/ai-task.registry';
-import { buildStudentAiBenchmarkFixtures, StudentBenchmarkOutcome, summarizeBenchmarkOutcomes } from '../src/ai/student-ai-benchmark.fixtures';
+import { AiTaskKey, getAiTaskDefinition } from '../src/ai/ai-task.registry';
+import { buildStudentAiBenchmarkFixtures, selectStudentBenchmarkRun, StudentBenchmarkOutcome, summarizeBenchmarkOutcomes } from '../src/ai/student-ai-benchmark.fixtures';
 
-const studentTasks = AI_TASK_KEYS.slice(0, 3);
 const repoRoot = resolve(__dirname, '../../..');
 const schemaDir = join(repoRoot, 'apps/api/src/ai/schemas/release1');
 const manifestPath = join(repoRoot, 'deployment/model-manifest.json');
 const runtimeTimeoutMs = 60_000;
-const sourceFiles = [
-  'ai/app/main.py',
-  'ai/app/config.py',
-  'ai/app/tasks/registry.py',
-  'deployment/model-manifest.json',
-];
-
 type Manifest = {
   contractVersion: string;
   modelName: string;
@@ -60,6 +52,34 @@ function hashFile(path: string) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
+export function listServingSourceFiles(root = repoRoot, validatorSchemaDirectory = schemaDir) {
+  const runtimeSchemaDirectory = join(root, 'ai/app/schemas/release1');
+  const runtimeSchemas = readdirSync(runtimeSchemaDirectory).filter((file) => file.endsWith('.schema.json')).sort();
+  const validatorSchemas = readdirSync(validatorSchemaDirectory).filter((file) => file.endsWith('.schema.json')).sort();
+  if (runtimeSchemas.length !== 15 || JSON.stringify(runtimeSchemas) !== JSON.stringify(validatorSchemas)
+    || runtimeSchemas.some((file) => hashFile(join(runtimeSchemaDirectory, file)) !== hashFile(join(validatorSchemaDirectory, file)))) {
+    throw new Error('FastAPI and NestJS Release 1 schemas do not match');
+  }
+  return [
+    { checkoutPath: 'ai/app/main.py', containerPath: '/app/app/main.py' },
+    { checkoutPath: 'ai/app/config.py', containerPath: '/app/app/config.py' },
+    { checkoutPath: 'ai/app/engine/ollama.py', containerPath: '/app/app/engine/ollama.py' },
+    { checkoutPath: 'ai/app/tasks/registry.py', containerPath: '/app/app/tasks/registry.py' },
+    { checkoutPath: 'ai/app/schemas/release1/SHA256SUMS', containerPath: '/app/app/schemas/release1/SHA256SUMS' },
+    ...runtimeSchemas.map((file) => ({
+      checkoutPath: `ai/app/schemas/release1/${file}`,
+      containerPath: `/app/app/schemas/release1/${file}`,
+    })),
+    { checkoutPath: 'deployment/model-manifest.json', containerPath: '/app/model-manifest.json' },
+  ];
+}
+
+export function assertServingSourceHashesMatch(localHashes: string[], remoteHashes: string[]) {
+  if (localHashes.length !== remoteHashes.length || localHashes.some((hash, index) => hash !== remoteHashes[index])) {
+    throw new Error('Serving FastAPI source/manifest/schema does not match this benchmark checkout');
+  }
+}
+
 function docker(args: string[]) {
   return execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
@@ -88,6 +108,7 @@ function checkReferenceBoundary(task: string, input: Record<string, unknown>, ou
 function verifyServingBinding(manifest: Manifest, runtimeConfig: ReturnType<typeof resolveRuntimeConfig>) {
   const { runtimeBaseUrl, token } = runtimeConfig;
   if (!runtimeBaseUrl || !token) throw new Error('AI_RUNTIME_BASE_URL and AI_RUNTIME_TOKEN must be configured in the backend environment');
+  const servingFiles = listServingSourceFiles();
 
   const expectedModel = `${manifest.modelName}@sha256:${manifest.modelDigest}`;
   const tags = JSON.parse(docker(['exec', 'ai-runtime-1', 'python', '-c',
@@ -96,20 +117,21 @@ function verifyServingBinding(manifest: Manifest, runtimeConfig: ReturnType<type
     throw new Error('Ollama model digest does not match deployment/model-manifest.json');
   }
 
-  const remoteHashes = docker(['exec', 'ai-runtime-1', 'sha256sum',
-    '/app/app/main.py', '/app/app/config.py', '/app/app/tasks/registry.py', '/app/model-manifest.json'])
+  const remoteHashes = docker(['exec', 'ai-runtime-1', 'sha256sum', ...servingFiles.map(({ containerPath }) => containerPath)])
     .split('\n').map((line) => line.trim().split(/\s+/)[0]);
-  const localHashes = sourceFiles.map((file) => hashFile(join(repoRoot, file)));
-  if (JSON.stringify(remoteHashes) !== JSON.stringify(localHashes)) throw new Error('Serving FastAPI source/manifest does not match this benchmark checkout');
+  const localHashes = servingFiles.map(({ checkoutPath }) => hashFile(join(repoRoot, checkoutPath)));
+  assertServingSourceHashesMatch(localHashes, remoteHashes);
 
   const runtimeImageId = docker(['inspect', '--format={{.Image}}', 'ai-runtime-1']);
   const ollamaVersion = docker(['exec', 'ai-ollama-1', 'ollama', '--version']);
   if (!ollamaVersion.includes(manifest.ollama.version)) throw new Error('Running Ollama version does not match deployment/model-manifest.json');
   return { runtimeBaseUrl: runtimeBaseUrl.replace(/\/$/, ''), token, expectedModel, runtimeImageId, ollamaVersion,
-    modelDigest: manifest.modelDigest, manifestSha256: hashFile(manifestPath), sourceSha256: Object.fromEntries(sourceFiles.map((file, index) => [file, localHashes[index]])) };
+    modelDigest: manifest.modelDigest, manifestSha256: hashFile(manifestPath), sourceSha256: Object.fromEntries(servingFiles.map(({ checkoutPath }, index) => [checkoutPath, localHashes[index]])) };
 }
 
 async function run() {
+  const selection = selectStudentBenchmarkRun(process.argv.slice(2));
+  const selectedTasks = selection.taskFixtures.map(({ task }) => task);
   const envFile = join(repoRoot, '.env');
   const runtimeConfig = resolveRuntimeConfig(process.env, existsSync(envFile) ? readFileSync(envFile, 'utf8') : '');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Manifest;
@@ -122,7 +144,8 @@ async function run() {
   const outputValidator = new AiOutputValidator(schemaDir);
   const report = {
     reportVersion: '1.0',
-    status: 'UNAPPROVED_PARTIAL_SCOPE',
+    status: selection.status,
+    scope: selection.status === 'TRIAGE_ONLY' ? 'ONE_CASE_TRIAGE' : 'PARTIAL_STUDENT_TASK_SCOPE',
     startedAt: new Date().toISOString(),
     host: { platform: `${os.platform()} ${os.release()}`, cpuModel: os.cpus()[0]?.model,
       logicalCpuCount: os.cpus().length, totalMemoryBytes: os.totalmem() },
@@ -131,7 +154,7 @@ async function run() {
       sha256: binding.manifestSha256, tokenizerId: 'UNVERIFIED', tokenizerMethod: 'UNVERIFIED' },
     binding: { runtimeImageId: binding.runtimeImageId, ollamaVersion: binding.ollamaVersion,
       sourceSha256: binding.sourceSha256, runtimeModelId: binding.expectedModel },
-    fixtureSet: Object.fromEntries(studentTasks.map((task) => [task, createHash('sha256')
+    fixtureSet: Object.fromEntries(selectedTasks.map((task) => [task, createHash('sha256')
       .update(JSON.stringify(buildStudentAiBenchmarkFixtures(task))).digest('hex')])),
     capacityProfile: { status: 'BLOCKED_PENDING_TOKENIZER_AND_OWNER_APPROVAL', contextWindowTokens: manifest.ollama.options.num_ctx,
       reservedOutputTokens: manifest.ollama.options.num_predict, promptAndSchemaOverheadTokens: null, inputSafetyMarginTokens: null,
@@ -139,16 +162,15 @@ async function run() {
     tasks: {} as Record<string, unknown>,
   };
 
-  const capturePath = process.argv.find((arg) => arg.startsWith('--capture-output='))?.split('=')[1];
-  const reportPath = process.argv.find((arg) => arg.startsWith('--report='))?.split('=')[1];
+  const capturePath = selection.capturePath;
+  const reportPath = selection.reportPath;
   const captured: Record<string, unknown>[] = [];
 
-  for (const task of studentTasks) {
+  for (const { task, fixtures } of selection.taskFixtures) {
     const definition = getAiTaskDefinition(task)!;
     if (manifest.promptVersions[task] !== definition.promptVersion) throw new Error(`Manifest promptVersion mismatch for ${task}`);
     const inputSchema = loadSchema(definition.inputSchema, ajv);
     const outputSchema = loadSchema(definition.outputSchema, ajv);
-    const fixtures = buildStudentAiBenchmarkFixtures(task);
     for (const fixture of fixtures) assertSchema(inputSchema, fixture.input, `${fixture.id} input`);
     const outcomes: StudentBenchmarkOutcome[] = [];
     const cases: Record<string, unknown>[] = [];

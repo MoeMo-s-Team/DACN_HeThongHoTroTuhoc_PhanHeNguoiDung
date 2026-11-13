@@ -46,7 +46,21 @@ Change the database column from PostgreSQL `INTEGER` to `DOUBLE PRECISION`, use 
 - Requires a schema migration and PostgreSQL round-trip tests.
 - A finite input whose multiplication by 60 overflows remains unresolved by this storage change.
 
-### Option B — Restrict available hours to whole-minute increments
+### Option B — Store normalized minutes as PostgreSQL `NUMERIC` / Prisma `Decimal`
+
+Unconstrained `NUMERIC` stores decimal digits exactly. A chosen precision/scale such as `NUMERIC(p,s)` instead imposes a range and rounding boundary that must be specified and tested.
+
+**Advantages**
+- Preserves a decimal representation exactly when that representation is the domain value.
+- Supports exact decimal arithmetic in the database.
+
+**Disadvantages under the current API**
+- Request DTOs and the public API use JavaScript `number`; parsing has already converted the submitted JSON number to IEEE-754 before normalization. Prisma `Decimal` cannot recover the original decimal spelling or make the existing `hours * 60` calculation exact decimal arithmetic.
+- Converting the current normalized JavaScript number to Decimal would require an explicit conversion/serialization rule and a chosen PostgreSQL scale or unconstrained numeric strategy. That changes the storage semantics and adds conversion code without improving preservation of the current API number.
+- A fixed scale can round valid values; unconstrained Decimal still needs defined conversion semantics at the API boundary.
+- Decimal does not by itself solve multiplication overflow or provide decimal-exact input semantics end to end.
+
+### Option C — Restrict available hours to whole-minute increments
 
 Require `availableHoursPerWeek × 60` to be an integer.
 
@@ -58,9 +72,11 @@ Require `availableHoursPerWeek × 60` to be an integer.
 
 ## 6. Recommended Option
 
-**Recommendation:** Option A, subject to Project Owner approval.
+**Recommendation:** Option A, subject to Project Owner approval, if “preserve minutes” means round-trip the numeric value already calculated by the current JavaScript API.
 
-PostgreSQL `DOUBLE PRECISION` can preserve the binary JavaScript `number` value produced by the existing multiplication and return it to Prisma without a new scale or rounding step. This recommendation does not claim base-10 decimal exactness. Select this option only if that matches the required meaning of “exact minutes”; otherwise the owner must choose and approve different observable numeric semantics.
+PostgreSQL `DOUBLE PRECISION` stores the same binary floating-point value produced by JavaScript multiplication and can return it to Prisma as the same JavaScript `number`. For example, the value from `1.3333 * 60` is `79.99799999999999`; `DOUBLE PRECISION` preserves that API value, not the mathematical rational value `79.998`.
+
+`NUMERIC` is preferable only if the domain requires decimal-exact arithmetic. That would require an explicit end-to-end decimal decision covering JSON input parsing, hours-to-minutes normalization, Prisma representation, AI numeric schema, API serialization, display, precision/range, and migration. The current API does not preserve the source decimal lexeme, so changing only the database column to Decimal would not establish that behavior. The Project Owner must confirm whether IEEE-754 number preservation is the intended interpretation before implementation.
 
 ## 7. Implementation Impact
 
@@ -69,7 +85,7 @@ PostgreSQL `DOUBLE PRECISION` can preserve the binary JavaScript `number` value 
 - Database: add a migration using `ALTER COLUMN ... TYPE DOUBLE PRECISION USING available_minutes_per_week::double precision` and preserve all existing integer values exactly.
 - Migration rollback: casting back to `INTEGER` is safe only while all values are integral and in the PostgreSQL `INTEGER` range. After fractional rows are written, do not cast and discard them; retain the new column type with compatible code or restore a database backup.
 - AI: confirm the existing input schema accepts the same finite numeric value; do not change contract schemas.
-- Tests: cover `0.001` hours (0.06 minutes), `1.3333` hours, integer inputs, and a large finite input across validate → generate → preview → apply → current-plan readback. Assert PostgreSQL returns the same JavaScript number. Verify existing integer rows remain exact after migration. Add a characterization test for multiplication overflow without changing request behavior.
+- Tests: cover `0.001` hours (0.06 minutes), `1.3333` hours, integer inputs, and a large finite input across validate → generate → preview → apply → current-plan readback. For the Float option, assert PostgreSQL returns the same JavaScript `number` using `Object.is`, and separately show that this does not mean decimal/rational exactness. Verify existing integer rows remain exact after migration. Add a characterization test for multiplication overflow without changing request behavior.
 - Deployment: deploy the migration before API code that writes `Float` values.
 
 ## 8. Verification Required
